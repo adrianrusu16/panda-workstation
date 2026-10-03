@@ -1,0 +1,28 @@
+name: 🐼 Validate Workstation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: 🧪 Validate configuration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐟 Install Fish
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fish
+
+      - name: ✅ Run Panda validation
+        run: fish bootstrap/validate.fish
