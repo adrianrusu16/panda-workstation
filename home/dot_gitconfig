@@ -1,0 +1,20 @@
+[include]
+    path = ~/.config/git/local.inc
+
+[init]
+    defaultBranch = main
+
+[core]
+    autocrlf = input
+
+[fetch]
+    prune = true
+
+[pull]
+    ff = only
+
+[push]
+    autoSetupRemote = true
+
+[rerere]
+    enabled = true
