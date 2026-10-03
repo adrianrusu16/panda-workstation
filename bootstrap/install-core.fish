@@ -1,6 +1,7 @@
 #!/usr/bin/env fish
 
-set -l repo_root (path resolve (dirname (status filename))/..)
+set -l script_dir (path dirname (status filename))
+set -l repo_root (path resolve "$script_dir/..")
 set -l manifest "$repo_root/packages/core.txt"
 
 if not test -f "$manifest"
@@ -9,16 +10,19 @@ if not test -f "$manifest"
 end
 
 set -l packages
-for line in (cat "$manifest")
+while read -l line
     set line (string trim -- "$line")
+
     if test -z "$line"
         continue
     end
-    if string match -q "#*" -- "$line"
+
+    if string match -qr "^#" -- "$line"
         continue
     end
+
     set -a packages "$line"
-end
+end < "$manifest"
 
 if test (count $packages) -eq 0
     echo "No packages listed in $manifest"
