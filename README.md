@@ -57,6 +57,7 @@ flowchart LR
 | 🔐 Git/GitHub | ✅ | Portable config + local identity split |
 | 🐚 Fish | ✅ | CachyOS defaults + Panda layer |
 | 🏠 chezmoi | ✅ | Portable home configuration |
+| 💻 Machine profile | ✅ | Panda Helios LTS Intel-only policy verified |
 | 🧪 CI validation | ✅ | Fish + manifest checks |
 | 🧰 Desktop package layer | 🟡 | Started |
 | 🎨 KDE / Konsole | ⏳ | Pending |
@@ -87,7 +88,7 @@ The current laptop is an aging **Acer Predator Helios 300** with a GTX 1060 that
 |---|:---:|
 | Intel HD 630 | ✅ Primary stability target |
 | GTX 1060 | ⚠️ Unstable · optional / experimental |
-| `linux-cachyos-lts` | 🟢 Safe/dev target |
+| `linux-cachyos-lts` | 🟢 Verified safe/dev · Intel-only |
 | `linux-cachyos` | 🔴 Experimental / NVIDIA-capable |
 | Suspend | 🚫 Disabled while stabilizing |
 | Samsung 870 QVO | ✅ Current system drive |

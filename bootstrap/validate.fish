@@ -10,7 +10,7 @@ set -l checked_scripts 0
 
 ui_section '🐟' 'Fish syntax'
 
-for script in (find "$repo_root/bootstrap" -type f -name '*.fish' | sort)
+for script in (find "$repo_root/bootstrap" "$repo_root/machines" -type f -name '*.fish' | sort)
     set checked_scripts (math "$checked_scripts + 1")
 
     if not fish -n "$script"

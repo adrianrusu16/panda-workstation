@@ -5,7 +5,7 @@ source "$script_dir/lib/ui.fish"
 
 set -l stages \
     'core|install-core.fish|📦|Core packages|required' \
-    'machine|setup-machine.fish|💻|Machine profile|planned' \
+    'machine|setup-machine.fish|💻|Machine profile|required' \
     'chezmoi|setup-chezmoi.fish|🏠|Portable configuration|required' \
     'github|setup-github.fish|🔐|Git & GitHub|required' \
     'desktop|install-desktop.fish|🖥️|Desktop & applications|required' \
