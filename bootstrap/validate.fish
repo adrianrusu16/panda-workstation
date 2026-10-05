@@ -1,60 +1,95 @@
 #!/usr/bin/env fish
 
-set -l repo_root (path resolve (path dirname (status filename))/..)
-set -l failed 0
+set -l script_dir (path resolve (path dirname (status filename)))
+set -l repo_root (path resolve "$script_dir/..")
 
-echo "🐟 Checking Fish syntax..."
-for script in $repo_root/**/*.fish
+source "$script_dir/lib/ui.fish"
+
+set -l failed 0
+set -l checked_scripts 0
+
+ui_section '🐟' 'Fish syntax'
+
+for script in (find "$repo_root/bootstrap" -type f -name '*.fish' | sort)
+    set checked_scripts (math "$checked_scripts + 1")
+
     if not fish -n "$script"
-        echo "❌ Invalid Fish syntax: $script"
-        set failed 1
+        ui_error "Invalid Fish syntax: "(string replace "$repo_root/" '' "$script")
+        set failed (math "$failed + 1")
     end
 end
 
-echo "📦 Checking package manifests..."
-set -l seen_packages
+if test $failed -eq 0
+    ui_success "$checked_scripts Fish scripts passed syntax validation"
+end
 
-for manifest in $repo_root/packages/*.txt
+ui_section '📦' 'Package manifests'
+
+set -l seen_packages
+set -l package_entries 0
+set -l manifest_failures 0
+
+for manifest in "$repo_root"/packages/*.txt
     set -l line_number 0
 
     while read -l line
-        set line_number (math $line_number + 1)
+        set line_number (math "$line_number + 1")
         set line (string trim -- "$line")
 
         if test -z "$line"
             continue
         end
 
-        if string match -q "#*" -- "$line"
+        if string match -q '#*' -- "$line"
             continue
         end
 
-        if string match -qr "\s" -- "$line"
-            echo "❌ Invalid package entry in $manifest:$line_number → $line"
-            set failed 1
+        set package_entries (math "$package_entries + 1")
+
+        if string match -qr '\s' -- "$line"
+            ui_error "Invalid package entry in "(path basename "$manifest")":$line_number → $line"
+            set manifest_failures (math "$manifest_failures + 1")
             continue
         end
 
         if contains -- "$line" $seen_packages
-            echo "❌ Duplicate package across manifests: $line"
-            set failed 1
+            ui_error "Duplicate package across manifests: $line"
+            set manifest_failures (math "$manifest_failures + 1")
         else
             set -a seen_packages "$line"
         end
     end < "$manifest"
 end
 
-echo "🔧 Checking bootstrap permissions..."
-for script in $repo_root/bootstrap/*.fish
+if test $manifest_failures -eq 0
+    ui_success "$package_entries package entries validated"
+else
+    set failed (math "$failed + $manifest_failures")
+end
+
+ui_section '🔧' 'Bootstrap permissions'
+
+set -l permission_failures 0
+
+for script in "$repo_root"/bootstrap/*.fish
     if not test -x "$script"
-        echo "❌ Bootstrap script is not executable: $script"
-        set failed 1
+        ui_error "Not executable: "(path basename "$script")
+        set permission_failures (math "$permission_failures + 1")
     end
 end
 
+if test $permission_failures -eq 0
+    ui_success 'All top-level bootstrap scripts are executable'
+else
+    set failed (math "$failed + $permission_failures")
+end
+
+echo
+
 if test $failed -ne 0
-    echo "❌ Validation failed."
+    ui_error "Validation failed with $failed problem(s)"
     exit 1
 end
 
-echo "✅ Panda Workstation validation passed."
+ui_success 'Panda Workstation validation passed'
+exit 0

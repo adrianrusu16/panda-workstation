@@ -20,6 +20,33 @@
 
 ---
 
+## 🚀 Restore path
+
+The repository is organized so workstation state can move from “remembered setup” to reproducible setup.
+
+```mermaid
+flowchart LR
+    Fresh["Fresh CachyOS"] --> Clone["Clone panda-workstation"]
+    Clone --> Packages["Install package layers"]
+    Packages --> Dotfiles["Apply chezmoi config"]
+    Dotfiles --> Machine["Apply machine profile"]
+    Machine --> Validate["Validate"]
+    Validate --> Ready["🐼 Ready workstation"]
+```
+
+| Need | Where to look |
+|---|---|
+| 📦 Package inventory | [`packages/`](packages/) |
+| 🏠 Portable home config | [`home/`](home/) |
+| 💻 Machine-specific behavior | [`machines/`](machines/) |
+| 🚀 Bootstrap scripts | [`bootstrap/`](bootstrap/) |
+| ✅ Repository checks | [`bootstrap/validate.fish`](bootstrap/validate.fish) |
+| 🧭 Current implementation state | [Status](#-status) and [Roadmap](#-roadmap) |
+
+> **Design rule:** portable defaults belong in shared configuration; hardware-specific exceptions belong in a machine profile.
+
+---
+
 ## 🧭 Status
 
 | Layer | Status | Notes |
