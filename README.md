@@ -1,6 +1,22 @@
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/CachyOS/website/develop/src/assets/images/logo.svg" width="76" alt="CachyOS logo" />
+
 # 🐼 Panda Workstation
 
-> **A clean, fast, reproducible CachyOS workstation for development, Linux learning, Android/AOSP, gaming, and future hardware migration.**
+### Reproducible CachyOS developer workstation
+
+**⚡ Fast · 🧼 Clean · 🔁 Reproducible · 🧪 Developer-first · 🎮 Game-capable**
+
+[![CachyOS](https://img.shields.io/badge/CachyOS-0A0F14?style=for-the-badge&logo=archlinux&logoColor=00CCFF)](https://cachyos.org/)
+[![KDE Plasma](https://img.shields.io/badge/KDE_Plasma-1D99F3?style=for-the-badge&logo=kde&logoColor=white)](https://kde.org/plasma-desktop/)
+[![Fish](https://img.shields.io/badge/Fish-111111?style=for-the-badge&logo=gnubash&logoColor=white)](https://fishshell.com/)
+[![chezmoi](https://img.shields.io/badge/chezmoi-dotfiles-111827?style=for-the-badge)](https://www.chezmoi.io/)
+[![CI](https://img.shields.io/github/actions/workflow/status/adrianrusu16/panda-workstation/validate.yml?branch=main&style=for-the-badge&label=validation)](https://github.com/adrianrusu16/panda-workstation/actions)
+
+> **Build once. Understand it. Reproduce it.**
+
+</div>
 
 ---
 
@@ -8,542 +24,327 @@
 
 | Layer | Status | Notes |
 |---|:---:|---|
-| 🐧 CachyOS | ✅ | Installed and operational |
-| 🖥️ KDE Plasma | ✅ | Wayland primary |
-| 🪟 Plasma X11 | ✅ | Fallback session available |
-| 📦 Core CLI | ✅ | Installed from package manifest |
-| 🗂️ Workspace layout | ✅ | Structured under `~/Workspace` |
-| 🔐 GitHub authentication | ✅ | SSH / GitHub CLI |
-| 🧰 Bootstrap | 🟡 | Core installer started |
-| 🐚 Fish shell | 🟡 | Portable config pending |
-| 🎨 KDE configuration | ⏳ | Pending |
+| 🐧 CachyOS | ✅ | Installed on Samsung SATA SSD |
+| 🖥️ KDE Plasma | ✅ | Wayland primary · X11 fallback |
+| 📦 Core CLI | ✅ | Manifest-driven |
+| 🔐 Git/GitHub | ✅ | Portable config + local identity split |
+| 🐚 Fish | ✅ | CachyOS defaults + Panda layer |
+| 🏠 chezmoi | ✅ | Portable home configuration |
+| 🧪 CI validation | ✅ | Fish + manifest checks |
+| 🧰 Desktop package layer | 🟡 | Started |
+| 🎨 KDE / Konsole | ⏳ | Pending |
 | 🤖 Android / Kotlin | ⏳ | Pending |
 | ⚙️ C++ | ⏳ | Pending |
 | 🦀 Rust | ⏳ | Pending |
 | 📱 AOSP | ⏳ | Pending |
 | 🎮 Gaming | ⏳ | Pending |
 | 🐼 Panda theme | ⏳ | Pending |
-| 🔁 Full machine restore | ⏳ | Target milestone |
-
-### Overall progress
+| 🔁 Full restore test | ⏳ | v1.0 milestone |
 
 ```text
 Base system       ████████████████████ 100%
 Core tooling      ████████████████████ 100%
-Portability       ███████░░░░░░░░░░░░░  35%
-Development       ░░░░░░░░░░░░░░░░░░░░   0%
+Portability       ████████████░░░░░░░░  60%
+Development       ██░░░░░░░░░░░░░░░░░░  10%
 Gaming            ░░░░░░░░░░░░░░░░░░░░   0%
-Panda experience  ░░░░░░░░░░░░░░░░░░░░   0%
+Panda experience  ██░░░░░░░░░░░░░░░░░░  10%
 ```
 
 ---
 
-# 🎯 Goals
+## 🚨 Panda Helios stability lab
 
-| Goal | Description |
-|---|---|
-| ⚡ **Fast** | Keep the system lean and avoid unnecessary background services |
-| 🧼 **Clean** | No random projects, downloads, SDKs, or scripts scattered around `$HOME` |
-| 🔁 **Reproducible** | Rebuild most of the workstation from Git |
-| 🧳 **Portable** | Move the environment to future hardware with minimal manual setup |
-| 🧪 **Developer-first** | Linux, Android, Kotlin, C++, Rust, AOSP and general engineering |
-| 🎮 **Game-ready** | Steam/Proton and gaming tools without compromising workstation quality |
-| 🔐 **Secure** | Never commit credentials, private keys, API tokens, or signing material |
-| 🐼 **Personal** | Consistent Panda visual identity across terminal, KDE and tooling |
+The current laptop is an aging **Acer Predator Helios 300** with a GTX 1060 that has shown repeated NVIDIA Xid faults and physical artifacting.
+
+| Component / mode | State |
+|---|:---:|
+| Intel HD 630 | ✅ Primary stability target |
+| GTX 1060 | ⚠️ Unstable · optional / experimental |
+| `linux-cachyos-lts` | 🟢 Safe/dev target |
+| `linux-cachyos` | 🔴 Experimental / NVIDIA-capable |
+| Suspend | 🚫 Disabled while stabilizing |
+| Samsung 870 QVO | ✅ Current system drive |
+| Intel 600p NVMe | ❌ Untrusted / retired from OS use |
+
+### Intended dual-mode strategy
+
+```mermaid
+flowchart LR
+    A["🐼 Boot"] --> B{"Mode?"}
+    B -->|"Safe / Dev"| C["🟢 LTS · Intel HD 630"]
+    B -->|"Gaming / Experiment"| D["🔴 Main kernel · GTX 1060 available"]
+
+    C --> C1["Coding"]
+    C --> C2["Firefox"]
+    C --> C3["Android Studio"]
+    C --> C4["Daily Linux"]
+
+    D --> D1["Steam / Proton"]
+    D --> D2["PRIME offload"]
+    D --> D3["Save work first"]
+```
+
+> The workstation must remain useful even if the discrete GPU is no longer reliable.
 
 ---
 
-# 🏗️ Workstation Architecture
+## 🎯 Design goals
+
+| Goal | Meaning |
+|---|---|
+| ⚡ **Fast** | Minimal unnecessary background work |
+| 🧼 **Clean** | Predictable filesystem and package organization |
+| 🔁 **Reproducible** | Restore configuration from Git |
+| 🧳 **Portable** | Move to future hardware with minimal manual setup |
+| 🧪 **Developer-first** | Android, Kotlin, C++, Rust, AOSP and Linux |
+| 🎮 **Game-capable** | Gaming layer is optional, not foundational |
+| 🔐 **Secure** | Credentials never belong in the repository |
+| 🐼 **Personal** | Consistent Panda identity across the workstation |
+
+---
+
+## 🏗️ Architecture
 
 ```mermaid
 flowchart TD
-    A[🐼 Panda Workstation] --> B[📦 Packages]
-    A --> C[⚙️ Configuration]
-    A --> D[💻 Machine Profiles]
-    A --> E[🧪 Development]
-    A --> F[🎨 Panda Experience]
+    A["🐼 Panda Workstation"] --> B["📦 Packages"]
+    A --> C["🏠 Portable config"]
+    A --> D["💻 Machine profiles"]
+    A --> E["🧪 Development"]
+    A --> F["🎨 Experience"]
 
-    B --> B1[Core]
-    B --> B2[Desktop]
-    B --> B3[Development]
-    B --> B4[Android]
-    B --> B5[AOSP]
-    B --> B6[Gaming]
+    B --> B1["core"]
+    B --> B2["desktop"]
+    B --> B3["development"]
+    B --> B4["android"]
+    B --> B5["aosp"]
+    B --> B6["gaming"]
 
-    C --> C1[Fish]
-    C --> C2[Git]
-    C --> C3[Konsole]
-    C --> C4[KDE]
-    C --> C5[Dotfiles]
+    C --> C1["Fish"]
+    C --> C2["Git"]
+    C --> C3["Konsole"]
+    C --> C4["KDE"]
+    C --> C5["Fastfetch"]
 
-    D --> D1[panda-helios]
-    D --> D2[amd-desktop]
+    D --> D1["panda-helios"]
+    D --> D2["amd-desktop"]
 
-    E --> E1[C++]
-    E --> E2[Rust]
-    E --> E3[Kotlin]
-    E --> E4[Android]
-    E --> E5[AOSP]
+    E --> E1["Android"]
+    E --> E2["Kotlin"]
+    E --> E3["C++"]
+    E --> E4["Rust"]
+    E --> E5["AOSP"]
 
-    F --> F1[Theme]
-    F --> F2[Wallpaper]
-    F --> F3[Terminal]
-    F --> F4[Icons]
+    F --> F1["Theme"]
+    F --> F2["Wallpaper"]
+    F --> F3["Terminal"]
+    F --> F4["Apps / plugins"]
 ```
 
 ---
 
-# 💻 Machines
-
-## 🐼 `panda-helios`
-
-| Component | Configuration |
-|---|---|
-| Device | Acer Predator Helios 300 |
-| CPU | Intel Core i7-7700HQ |
-| GPU | Intel HD 630 + NVIDIA GTX 1060 |
-| RAM | 32 GB DDR4 |
-| System drive | Samsung 870 QVO 1 TB SATA SSD |
-| OS | CachyOS |
-| Desktop | KDE Plasma |
-| Primary display protocol | Wayland |
-| Fallback | Plasma X11 |
-
-### Machine-specific notes
-
-`panda-helios` contains configuration that **must not leak into generic workstation setup**, including:
-
-- NVIDIA 580xx PRIME configuration
-- Intel/NVIDIA hybrid graphics
-- laptop-specific power behavior
-- suspend/resume workarounds
-- hardware-specific tuning
-
----
-
-## 🖥️ `amd-desktop`
-
-**Status:** `PLANNED`
-
-```text
-CPU      AMD
-GPU      AMD
-RAM      DDR5
-Linux    CachyOS
-Role     Primary future workstation
-```
-
-The goal is to migrate from:
-
-```text
-panda-helios
-      │
-      │ clone + bootstrap
-      ▼
-amd-desktop
-```
-
-without manually rebuilding the environment from memory.
-
----
-
-# 🗂️ Filesystem Philosophy
+## 🗂️ Workspace
 
 ```text
 ~
 ├── Workspace/
 │   ├── projects/       # long-lived Git projects
 │   ├── labs/           # learning and experiments
-│   ├── aosp/           # Android Open Source Project
-│   ├── tools/          # our scripts and utilities
+│   ├── aosp/           # AOSP checkouts and builds
+│   ├── tools/          # scripts and utilities
 │   ├── system/         # workstation configuration
-│   └── scratch/        # intentionally disposable
+│   └── scratch/        # disposable work
 │
 ├── Documents/
 │   ├── Notes/
 │   ├── Reference/
 │   └── Templates/
 │
-└── Downloads/          # temporary inbox only
+└── Downloads/          # temporary inbox
 ```
-
-### 📏 Rules
-
-| Location | Purpose |
-|---|---|
-| `~/Workspace/projects` | Real projects intended to survive |
-| `~/Workspace/labs` | Learning, prototypes and experiments |
-| `~/Workspace/aosp` | AOSP checkouts and builds |
-| `~/Workspace/tools` | Scripts/utilities maintained by us |
-| `~/Workspace/system` | Workstation configuration |
-| `~/Workspace/scratch` | Disposable work |
-| `~/Downloads` | Temporary files only |
-| `~/Documents` | Human documents, not source repositories |
-
-> 🚫 **No Git repositories in `Desktop`, `Downloads`, or random folders.**
 
 ---
 
-# 📦 Package Layers
-
-Packages are intentionally separated by responsibility.
+## 📦 Package layers
 
 | Manifest | Purpose | Status |
 |---|---|:---:|
-| `core.txt` | Essential CLI/system tools | ✅ |
-| `desktop.txt` | Desktop and session utilities | ✅ |
+| `core.txt` | Essential CLI/system tooling | ✅ |
+| `desktop.txt` | Desktop/session utilities | 🟡 |
 | `development.txt` | Generic development tooling | ⏳ |
-| `android.txt` | Android/Kotlin environment | ⏳ |
+| `android.txt` | Android/Kotlin stack | ⏳ |
 | `aosp.txt` | AOSP build dependencies | ⏳ |
 | `gaming.txt` | Steam/Proton/gaming stack | ⏳ |
 | `panda.txt` | Visual customization | ⏳ |
 
-### Current core utilities
+---
+
+## 🏠 Portable configuration
 
 ```text
-tree          ripgrep       fd
-fzf           bat           eza
-jq            rsync         curl
-wget          openssh       git
-git-lfs       github-cli    btop
-ncdu          fastfetch     unzip
-7zip          unrar         lsof
-strace        smartmontools nvme-cli
-man-db        man-pages
+panda-workstation/
+├── bootstrap/
+├── packages/
+├── home/                    # chezmoi source root
+│   ├── dot_config/
+│   │   └── fish/
+│   └── dot_gitconfig
+├── machines/
+│   ├── panda-helios/
+│   └── amd-desktop/
+└── .github/workflows/
+```
+
+```mermaid
+flowchart LR
+    G["GitHub"] --> R["panda-workstation"]
+    R --> P["📦 pacman manifests"]
+    R --> H["🏠 chezmoi"]
+    R --> M["💻 machine profiles"]
+    P --> W["🐼 Workstation"]
+    H --> W
+    M --> W
 ```
 
 ---
 
-# 🚀 Bootstrap
+## 🔀 Git conventions
 
-## Current
+**Default branch:** `main`
 
-```text
-bootstrap/
-└── install-core.fish
-```
-
-Run:
-
-```fish
-./bootstrap/install-core.fish
-```
-
-The bootstrap uses:
-
-```text
-pacman -S --needed
-```
-
-so already-installed packages are not unnecessarily reinstalled.
-
----
-
-## Target
-
-Eventually:
-
-```text
-Fresh CachyOS
-      │
-      ▼
-Clone panda-workstation
-      │
-      ▼
-Run bootstrap
-      │
-      ├── 📦 Install packages
-      ├── 🐚 Restore Fish
-      ├── 🔧 Restore Git config
-      ├── 🖥️ Restore Konsole
-      ├── 🎨 Restore KDE
-      ├── 🧰 Install development stacks
-      ├── 🎮 Configure gaming
-      └── 🐼 Apply Panda theme
-      │
-      ▼
-Ready workstation
-```
-
----
-
-# 🔀 Git Conventions
-
-## Branches
-
-```text
-main
-```
-
-is always expected to represent a usable workstation configuration.
-
-Short-lived branches use:
+**Short-lived branches:**
 
 ```text
 feat/android-toolchain
 feat/panda-theme
 feat/aosp-bootstrap
-
 fix/nvidia-suspend
 fix/bootstrap-packages
-
 docs/setup-guide
 chore/update-packages
 ```
 
----
-
-## 💬 Conventional Commits
-
-Format:
-
-```text
-type(scope): description
-```
-
-Examples:
+**Conventional commits:**
 
 ```text
 feat(bootstrap): add core package installer
 feat(android): add Android development environment
-feat(aosp): add build dependencies
-feat(panda): add Plasma theme
-fix(fish): correct manifest parsing
-fix(helios): adjust NVIDIA suspend behavior
+fix(helios): isolate unstable NVIDIA GPU
 docs(readme): document workstation architecture
 ci(validation): validate Fish scripts
 chore(packages): refresh package manifests
 ```
 
-### Types
-
-| Type | Meaning |
-|---|---|
-| `feat` | New functionality |
-| `fix` | Bug fix |
-| `docs` | Documentation |
-| `refactor` | Structural change |
-| `test` | Tests or validation |
-| `ci` | CI/CD |
-| `chore` | Maintenance |
-
 ---
 
-# 🔐 Security
+## 🔐 Security boundary
 
-## Never commit
+Never commit:
 
 ```text
 ~/.ssh/
-GitHub tokens
+tokens
 API keys
 Android signing keys
 passwords
 private certificates
-.env files with secrets
-credentials
+.env secrets
+credential files
 ```
 
-### Allowed
-
-```text
-SSH configuration templates
-package lists
-installation scripts
-public Git configuration
-KDE settings
-Fish configuration
-documentation
-machine profiles
-```
-
-> 🔑 **The repository describes how credentials are configured.  
-> It never contains the credentials themselves.**
+Portable Git behavior is tracked; identity and credentials remain local.
 
 ---
 
-# 🧪 Development Roadmap
+## 🧪 Roadmap
+
+```text
+Phase 1 ━━━━━━━━━━━━━━━━━━━━ ✅ Base OS
+Phase 2 ━━━━━━━━━━━━━━━━━━━━ ✅ Core CLI
+Phase 3 ━━━━━━━━━██░░░░░░░░░ 🟡 Portability
+Phase 4 ━━░░░░░░░░░░░░░░░░░░ 🟡 Development
+Phase 5 ░░░░░░░░░░░░░░░░░░░░ ⏳ AOSP
+Phase 6 ░░░░░░░░░░░░░░░░░░░░ ⏳ Gaming
+Phase 7 ━━░░░░░░░░░░░░░░░░░░ ⏳ Panda UI
+Phase 8 ░░░░░░░░░░░░░░░░░░░░ ⏳ Full restore
+```
+
+<details>
+<summary><b>📋 Development targets</b></summary>
 
 ### 🐚 Linux
-
 - [x] CachyOS
 - [x] Fish
 - [x] Core CLI
-- [ ] Shell functions
-- [ ] Shell abbreviations
-- [ ] Linux labs
-- [ ] systemd labs
-- [ ] networking labs
+- [x] chezmoi
+- [ ] systemd / networking labs
 - [ ] kernel exploration
 
 ### ⚙️ C++
-
-- [ ] GCC
-- [ ] Clang
-- [ ] CMake
-- [ ] Ninja
-- [ ] GDB
-- [ ] LLDB
-- [ ] sanitizers
-- [ ] profiling
+- [ ] GCC / Clang
+- [ ] CMake / Ninja
+- [ ] GDB / LLDB
+- [ ] sanitizers / profiling
 
 ### 🦀 Rust
-
 - [ ] rustup
 - [ ] stable toolchain
-- [ ] rustfmt
-- [ ] clippy
+- [ ] rustfmt / clippy
 - [ ] cargo tools
-- [ ] Rust labs
 
-### ☕ Kotlin / JVM
-
+### 🤖 Android / Kotlin
 - [ ] JDK
-- [ ] Kotlin
-- [ ] Gradle
-- [ ] JVM tooling
-
-### 🤖 Android
-
 - [ ] Android Studio
-- [ ] Android SDK
-- [ ] platform-tools
-- [ ] emulator
-- [ ] adb
+- [ ] SDK / platform-tools / emulator
 - [ ] Gradle environment
-- [ ] existing projects restored
 
 ### 📱 AOSP
-
-- [ ] Build dependencies
+- [ ] build dependencies
 - [ ] `repo`
 - [ ] source checkout
-- [ ] build environment
-- [ ] first successful build
-- [ ] AOSP exploration labs
-- [ ] Binder / IPC experiments
-- [ ] AAOS development environment
+- [ ] first build
+- [ ] Binder / IPC labs
+- [ ] AAOS exploration
 
 ### 🎮 Gaming
-
 - [ ] Steam
 - [ ] Proton
 - [ ] Proton-GE
 - [ ] MangoHud
 - [ ] GameMode
 - [ ] controller support
-- [ ] NVIDIA validation
-
----
-
-# 🐼 Panda Experience
-
-```text
-PANDA WORKSTATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Theme       ⏳
-Wallpaper   ⏳
-Live mode   ⏳
-Konsole     ⏳
-Fastfetch   ⏳
-Icons       ⏳
-Lock screen ⏳
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-```
-
-Target aesthetic:
-
-```text
-⬛ Graphite
-⬜ White
-🐼 Panda
-✨ Minimal
-🧑‍💻 Developer-first
-```
-
-Two wallpaper modes are planned:
-
-| Mode | Use |
-|---|---|
-| 🐼 **Panda Static** | Lowest resource usage |
-| 🎞️ **Panda Live** | Animated wallpaper when performance allows |
-
-Performance will be measured before enabling live wallpaper permanently.
-
----
-
-# 🧭 Roadmap
-
-```text
-Phase 1 ━━━━━━━━━━━━━━━━━━━━ ✅ Base OS
-Phase 2 ━━━━━━━━━━━━━━━━━━━━ ✅ Core CLI
-Phase 3 ━━━━━━━░░░░░░░░░░░░░ 🟡 Portability
-Phase 4 ░░░░░░░░░░░░░░░░░░░░ ⏳ Development
-Phase 5 ░░░░░░░░░░░░░░░░░░░░ ⏳ AOSP
-Phase 6 ░░░░░░░░░░░░░░░░░░░░ ⏳ Gaming
-Phase 7 ░░░░░░░░░░░░░░░░░░░░ ⏳ Panda UI
-Phase 8 ░░░░░░░░░░░░░░░░░░░░ ⏳ Full restore test
-```
-
----
-
-# ✅ Definition of Done
-
-Panda Workstation reaches **v1.0** when a fresh supported CachyOS installation can be transformed into the intended workstation using documented, reproducible steps with minimal manual configuration.
-
-```text
-Fresh installation
-        +
-panda-workstation
-        +
-credentials
-        =
-🐼 Ready-to-use workstation
-```
-
----
-
-<details>
-<summary>🔧 Design principles</summary>
-
-### Portable first
-
-Generic configuration belongs in shared workstation configuration.
-
-### Machine-specific second
-
-Hardware quirks belong under:
-
-```text
-machines/<hostname>/
-```
-
-### Declarative where possible
-
-Prefer:
-
-```text
-package manifest
-configuration file
-bootstrap script
-```
-
-over undocumented manual setup.
-
-### No mystery state
-
-If a setting matters enough that losing it would be annoying, it should eventually be documented or reproducible.
-
-### Keep it understandable
-
-Automation should make the workstation easier to understand, not hide how Linux works.
+- [ ] NVIDIA-on-demand workflow
 
 </details>
 
 ---
 
-## 🐼
+## 🐼 Panda experience
 
-**Build once. Understand it. Reproduce it.**
+```text
+Theme        ⏳
+Wallpaper    ⏳
+Live mode    ⏳
+Konsole      ⏳
+Fastfetch    ⏳
+Icons        ⏳
+Plugins      ⏳
+App audit    ⏳
+Gaming UI    ⏳
+```
+
+---
+
+## ✅ Definition of done
+
+**v1.0** means a fresh supported CachyOS installation can become the intended workstation through documented, reproducible steps with minimal manual configuration.
+
+```text
+Fresh CachyOS
+      +
+panda-workstation
+      +
+local credentials
+      =
+🐼 Ready-to-use workstation
+```
