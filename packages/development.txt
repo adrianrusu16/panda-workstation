@@ -1,0 +1,16 @@
+# Panda Workstation — development foundation
+base-devel
+cmake
+ninja
+clang
+llvm
+lldb
+gdb
+ccache
+valgrind
+perf
+python
+python-pip
+nodejs
+npm
+rustup

@@ -58,8 +58,9 @@ flowchart LR
 | 🐚 Fish | ✅ | CachyOS defaults + Panda layer |
 | 🏠 chezmoi | ✅ | Portable home configuration |
 | 💻 Machine profile | ✅ | Panda Helios LTS Intel-only policy verified |
+| 🧪 Development foundation | ✅ | C/C++ · Rust · Node.js · Python · fish-lsp |
 | 🧪 CI validation | ✅ | Fish + manifest checks |
-| 🧰 Desktop package layer | 🟡 | Started |
+| 🧰 Desktop package layer | ✅ | Base desktop utilities installed |
 | 🎨 KDE / Konsole | ⏳ | Pending |
 | 🤖 Android / Kotlin | ⏳ | Pending |
 | ⚙️ C++ | ⏳ | Pending |
@@ -199,7 +200,7 @@ flowchart TD
 |---|---|:---:|
 | `core.txt` | Essential CLI/system tooling | ✅ |
 | `desktop.txt` | Desktop/session utilities | 🟡 |
-| `development.txt` | Generic development tooling | ⏳ |
+| `development.txt` | Generic development tooling | ✅ |
 | `android.txt` | Android/Kotlin stack | ⏳ |
 | `aosp.txt` | AOSP build dependencies | ⏳ |
 | `gaming.txt` | Steam/Proton/gaming stack | ⏳ |
@@ -309,15 +310,15 @@ Phase 8 ░░░░░░░░░░░░░░░░░░░░ ⏳ Full re
 - [ ] kernel exploration
 
 ### ⚙️ C++
-- [ ] GCC / Clang
-- [ ] CMake / Ninja
-- [ ] GDB / LLDB
-- [ ] sanitizers / profiling
+- [x] GCC / Clang
+- [x] CMake / Ninja
+- [x] GDB / LLDB
+- [x] sanitizers / profiling
 
 ### 🦀 Rust
-- [ ] rustup
-- [ ] stable toolchain
-- [ ] rustfmt / clippy
+- [x] rustup
+- [x] stable toolchain
+- [x] rustfmt / clippy
 - [ ] cargo tools
 
 ### 🤖 Android / Kotlin

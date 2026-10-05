@@ -10,7 +10,7 @@ set -l stages \
     'github|setup-github.fish|🔐|Git & GitHub|required' \
     'desktop|install-desktop.fish|🖥️|Desktop & applications|required' \
     'plugins|setup-plugins.fish|🧩|Plugins & integrations|planned' \
-    'development|setup-development.fish|🧪|Development environment|planned' \
+    'development|setup-development.fish|🧪|Development environment|required' \
     'gaming|setup-gaming.fish|🎮|Gaming|planned' \
     'panda|setup-panda.fish|🐼|Panda experience|planned' \
     'validate|validate.fish|✅|Final validation|required'
