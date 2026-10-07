@@ -1,0 +1,5 @@
+# Panda Workstation — shell and terminal integration layer
+starship
+ghostty
+kitty
+ttf-jetbrains-mono-nerd
