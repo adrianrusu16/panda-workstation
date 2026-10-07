@@ -1,7 +1,7 @@
 # Panda Theme System — Design Specification
 
-**Date:** 2026-10-06  
-**Project:** `adrianrusu16/panda-workstation`  
+**Date:** 2026-10-06
+**Project:** `adrianrusu16/panda-workstation`
 **Status:** Approved for implementation
 **Scope:** KDE Plasma / Wayland theme family, desktop layout, widgets, shell, terminals, editors, and automatic/manual theme orchestration
 

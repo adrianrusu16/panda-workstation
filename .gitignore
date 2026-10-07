@@ -8,3 +8,7 @@ secrets/
 private/
 *.key
 *.pem
+
+# Python bytecode
+__pycache__/
+*.py[cod]
