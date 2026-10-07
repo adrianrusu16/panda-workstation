@@ -1,0 +1,23 @@
+schema_version = 1
+name = "Panda Cyber"
+slug = "cyber"
+aliases = []
+
+[palette]
+background = "#070B10"
+surface = "#0E1620"
+surface2 = "#14202B"
+text = "#E6F7FA"
+muted = "#8BA3B5"
+primary = "#20D7F2"
+secondary = "#52E397"
+success = "#52E397"
+warning = "#E3B341"
+error = "#F47067"
+border = "#547C8F"
+focus = "#20D7F2"
+selection = "#185C70"
+accent_text = "#20D7F2"
+on_primary = "#070B10"
+on_secondary = "#070B10"
+on_selection = "#E6F7FA"

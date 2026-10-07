@@ -1,0 +1,24 @@
+schema_version = 1
+name = "Panda Gothic"
+slug = "gothic"
+aliases = []
+
+[palette]
+background = "#090708"
+surface = "#151012"
+surface2 = "#21171B"
+text = "#F0EAEC"
+muted = "#97888D"
+# Brand fills need their paired foreground and a separate control boundary.
+primary = "#741D32"
+secondary = "#992E4D"
+success = "#80B99A"
+warning = "#D2B176"
+error = "#E99B91"
+border = "#806B73"
+focus = "#B9B5B7"
+selection = "#741D32"
+accent_text = "#DBA5B5"
+on_primary = "#F0EAEC"
+on_secondary = "#F0EAEC"
+on_selection = "#F0EAEC"
