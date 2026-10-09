@@ -1,4 +1,4 @@
-"""Phase 2 selection previews. No theme application or runtime state writes."""
+"""Selection previews and explicitly enrolled Phase 3A fixture transactions."""
 
 import argparse
 from datetime import datetime
@@ -9,6 +9,8 @@ import sys
 from palette import PaletteError, contrast_checks, load_family
 from selection import ContextSignals, SelectionError, effective_decision, propose_command, select_auto
 from state import StateError, read_state
+from fixture_fs import FixtureError, initialize_fixture
+from transaction import fixture_root, prepare_switch, switch_theme, recover, read_decision, inspect_fixture
 
 
 def state_path() -> Path:
@@ -29,6 +31,9 @@ def main(argv=None, *, now_provider=_local_now) -> int:
     parser.add_argument("--state", type=Path, help="read an explicit isolated state fixture")
     parser.add_argument("--dry-run", action="store_true", help="preview an unapplied state proposal")
     parser.add_argument("--explain", action="store_true", help="explain auto without changing mode")
+    parser.add_argument("--fixture-root", type=Path, help="enrolled /tmp/panda-theme-fixture-* root only")
+    parser.add_argument("--allow-fixture-writes", action="store_true", help="explicit opt-in; never enables live changes")
+    parser.add_argument("--recover", action="store_true", help="doctor: recover an interrupted fixture transaction")
     clock = parser.add_mutually_exclusive_group()
     clock.add_argument("--now", help="inject an ISO local datetime (optional timezone offset)")
     clock.add_argument("--no-time", action="store_true", help="simulate an unavailable local clock")
@@ -40,11 +45,30 @@ def main(argv=None, *, now_provider=_local_now) -> int:
     try:
         family = load_family(Path(__file__).resolve().parents[1])
         readonly = args.command in ("list", "status", "doctor")
+        fixture = args.fixture_root
+        if args.recover and args.command != "doctor":
+            raise FixtureError("--recover requires doctor")
+        if args.allow_fixture_writes and (fixture is None or args.dry_run or args.explain or
+                                          (readonly and not args.recover)):
+            raise FixtureError("fixture writes require an explicit root and a mutation command")
+        if args.recover and (fixture is None or not args.allow_fixture_writes):
+            raise FixtureError("recovery requires --fixture-root and --allow-fixture-writes; live recovery is disabled")
+        if fixture is not None and args.state is not None:
+            raise FixtureError("--state cannot override an enrolled fixture")
         if args.explain and (args.command != "auto" or args.dry_run):
             raise SelectionError("--explain requires auto and cannot be combined with --dry-run")
         if readonly and args.dry_run:
             raise SelectionError("--dry-run is for flavor, auto, next and previous proposals")
         signals = ContextSignals(args.special, args.project, args.gaming, args.focus)
+        if args.command == "init-fixture":
+            if (fixture is None or not args.allow_fixture_writes or args.now is not None or args.no_time
+                    or args.special is not None or args.project is not None or args.gaming or args.focus):
+                raise FixtureError("init-fixture requires only --fixture-root and --allow-fixture-writes")
+            initialize_fixture(fixture)
+            print("Phase 3A temporary fixture enrolled; no live integration")
+            return 0
+        if fixture is not None:
+            fixture_root(fixture / "config", fixture / "state")
         if readonly and (args.now is not None or args.no_time or args.special is not None or
                          args.project is not None or args.gaming or args.focus):
             raise SelectionError("context and clock options are for selection previews")
@@ -54,13 +78,18 @@ def main(argv=None, *, now_provider=_local_now) -> int:
                 alias = f" (alias: {', '.join(theme.aliases)})" if theme.aliases else ""
                 print(f"{slug}{alias}: {theme.name}")
             return 0
-        state = read_state(args.state if args.state is not None else state_path())
-        print("Phase 2 selection-only; not applied; state unchanged")
+        path = fixture / "config/panda/theme-state.toml" if fixture is not None else (
+            args.state if args.state is not None else state_path())
+        state = read_state(path)
+        if not args.allow_fixture_writes:
+            print("Phase 3A selection/fixture preview; not applied; state unchanged")
         if args.command == "status":
             print(f"mode: {state.mode if state else 'unset'}")
             print(f"recorded active: {state.active if state else 'none'}")
             print(f"last manual: {state.last_manual or 'none' if state else 'none'}")
-            print("reason: historical reason unavailable" if state else "reason: no established state")
+            recorded = read_decision(fixture / "config") if fixture is not None else None
+            print(f"reason: {recorded.reason}" if recorded else
+                  ("reason: historical reason unavailable" if state else "reason: no established state"))
             print("live appearance: unverified")
             return 0
         if args.command == "doctor":
@@ -70,7 +99,17 @@ def main(argv=None, *, now_provider=_local_now) -> int:
                 raise PaletteError("required palette contrast failed")
             print(f"palettes: {len(family)} valid; 140 required contrast pairs pass")
             print(f"state: {'valid' if state else 'absent; no established active theme'}")
-            print("application adapters: deferred to Phase 3; live appearance unverified")
+            print("application adapters: deferred to Phase 3B; live appearance unverified")
+            print("desktop/editor Tier 1 coverage: pending Phase 4")
+            if fixture is not None:
+                if args.recover:
+                    result = recover(fixture / "config", fixture / "state")
+                    print(f"fixture recovery: {result.rollback_status}")
+                    for warning in result.warnings:
+                        print(warning)
+                    return 0 if result.success else 1
+                for line in inspect_fixture(fixture / "config", fixture / "state"):
+                    print(line)
             return 0
         if args.no_time:
             now = None
@@ -93,9 +132,23 @@ def main(argv=None, *, now_provider=_local_now) -> int:
             print(f"effective reason: {effective.reason}")
         else:
             proposal = propose_command(state, args.command, decision)
+            proposed_decision = decision if proposal.mode == "auto" else None
+            if fixture is not None and args.allow_fixture_writes:
+                result = switch_theme(proposal, fixture / "config", fixture / "state", decision=proposed_decision)
+                print(f"fixture transaction: {'verified' if result.success else 'failed'}")
+                print(f"fixture recorded active: {result.active or 'none'}")
+                print(f"rollback: {result.rollback_status}")
+                for warning in result.warnings:
+                    print(warning)
+                print("live appearance: unverified; Phase 3B disabled")
+                return 0 if result.success else 1
             if not args.dry_run:
-                raise SelectionError("live commands require Phase 3; use --dry-run for a proposal "
+                raise SelectionError("live commands require separately authorized Phase 3B; use --dry-run for a proposal "
                                      "or auto --explain for read-only evaluation")
+            if fixture is not None:
+                plan = prepare_switch(proposal, fixture / "config", fixture / "state", decision=proposed_decision)
+                for entry in plan.entries:
+                    print(f"would {'keep' if entry.before == entry.after else 'replace' if entry.before else 'create'}: {entry.relative}")
             print(f"proposed mode: {proposal.mode}")
             print(f"selected candidate: {proposal.active}")
             print(f"last manual: {proposal.last_manual or 'none'}")
@@ -107,7 +160,7 @@ def main(argv=None, *, now_provider=_local_now) -> int:
               f"gaming={str(signals.gaming).lower()} focus={str(signals.focus).lower()} "
               f"local-time={now.strftime('%H:%M%z') if now is not None else 'unavailable'}")
         return 0
-    except (PaletteError, StateError, SelectionError) as error:
+    except (PaletteError, StateError, SelectionError, FixtureError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
 

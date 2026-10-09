@@ -1,0 +1,19 @@
+# Normal and bright entries share semantic roles; no independent app palette.
+# ANSI black is a background/control role; it is not promised as readable text.
+[ansi]
+"0" = "background"
+"1" = "error"
+"2" = "success"
+"3" = "warning"
+"4" = "accent_text"
+"5" = "accent_text"
+"6" = "accent_text"
+"7" = "text"
+"8" = "muted"
+"9" = "error"
+"10" = "success"
+"11" = "warning"
+"12" = "accent_text"
+"13" = "accent_text"
+"14" = "accent_text"
+"15" = "text"

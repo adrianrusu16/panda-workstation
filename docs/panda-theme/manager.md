@@ -1,8 +1,15 @@
-# Panda theme selection previews (Phase 2)
+# Panda theme manager — previews and Phase 3A fixtures
 
-This milestone reads established state and proposes selections. It never applies
-a theme or writes preferences. The command is repository-local; bootstrap does
-not install it. Python 3.11+ and Fish are sufficient; no extra packages are used.
+Phase 3A adds the [Transaction Foundation](transactions.md) in explicitly enrolled
+temporary fixtures. Phase 3B will add Controlled Live Integration only after a
+separate reviewed plan and authorization. This split preserves the approved
+design. Ordinary live commands remain disabled; the Phase 2 selection/state
+contracts below remain intact. No real home or chezmoi-managed source is changed.
+
+The default interface reads established state and proposes selections. It never
+applies a live theme or writes real preferences. The command is repository-local;
+bootstrap does not install it. Python 3.11+ and Fish are sufficient; no extra
+packages are used.
 
 From the repository root:
 
@@ -65,7 +72,8 @@ Cycling uses the canonical palette order: Minimal → Cyber → Gothic → Hybri
 PandaWave → Minimal. `next` and `previous` propose manual mode. With no
 established active flavor, `next` proposes Minimal and `previous` PandaWave.
 The mode/flavor remains unchanged in the existing file across all previews and
-process restarts. Phase 3 will implement persistence after successful application.
+process restarts. Phase 3A implements persistence after verified fixture
+application; Phase 3B will enable the separately reviewed live integration.
 
 ## State reads and diagnostics
 
@@ -97,10 +105,13 @@ are never replaced, repaired or deleted; no locks or state directories are made.
 `doctor` validates the five manifests, required contrast pairs and state only.
 It explicitly reports application adapters deferred; it makes no desktop claims.
 
-Mutating commands without `--dry-run` fail with a Phase 3 diagnostic. No service,
-watcher, hook, timer, application adapter or global command is installed. Real
-state writes, transactions, application integration, layout/widgets and automatic
-transitions remain later-phase work.
+Mutating commands without fixture opt-in or `--dry-run` fail with a Phase 3B
+diagnostic. No service, watcher, hook, timer, application adapter or global
+command is installed. Real
+state writes and application integration remain Phase 3B work. Fixture-only
+transactions and recovery are available with `--fixture-root` plus
+`--allow-fixture-writes`; see the transaction guide for enrollment, boundaries and
+limitations. Layout/widgets and automatic transitions remain later-phase work.
 
 Fish itself initializes shell config/data/cache directories when started in an
 empty home, even with `--no-config`. The Python entry avoids that shell startup.
