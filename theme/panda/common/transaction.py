@@ -383,17 +383,14 @@ def _diagnostic(error):
 
 def switch_theme(candidate: ThemeState, config_root: Path, state_root: Path, *,
                  decision=None, adapters=None, plan=None) -> SwitchResult:
+    """Build a fresh execution plan; externally supplied Plans are preview-only."""
     previous = None
     try:
         fixture_root(config_root, state_root)
         previous = read_state(Path(config_root) / "panda/theme-state.toml")
-        planned = prepare_switch(candidate, config_root, state_root, decision=decision, adapters=adapters)
         if plan is not None:
-            if (not isinstance(plan, Plan) or plan.root != planned.root or plan.candidate != candidate or
-                    [(e.relative, e.before, e.after.content) for e in plan.entries] !=
-                    [(e.relative, e.before, e.after.content) for e in planned.entries]):
-                raise FixtureError("stale or inconsistent transaction plan")
-            planned = plan
+            raise FixtureError("supplied plans are preview-only; omit plan to prepare a fresh transaction")
+        planned = prepare_switch(candidate, config_root, state_root, decision=decision, adapters=adapters)
         with FixtureFS(planned.root) as fs, _lock(fs):
             previous = read_state(Path(config_root) / "panda/theme-state.toml")
             journal = _load_journal(fs)
@@ -431,8 +428,8 @@ def switch_theme(candidate: ThemeState, config_root: Path, state_root: Path, *,
                 for entry in planned.entries[-3:]:
                     # Refresh or a later writer may invalidate an earlier verify.
                     # Recheck the entire slice immediately before persistence.
-                    for item in planned.prepared:
-                        if fs.read(item.relative) != bound[item.relative].after:
+                    for fragment in planned.entries[:-3]:
+                        if fs.read(fragment.relative) != fragment.after:
                             raise FixtureError("managed fragment changed after verification; refusing state commit")
                     if entry.before != entry.after:
                         fs.replace(entry.relative, entry.after, expected=entry.before)

@@ -136,10 +136,22 @@ def main(argv=None, *, now_provider=_local_now) -> int:
             if fixture is not None and args.allow_fixture_writes:
                 result = switch_theme(proposal, fixture / "config", fixture / "state", decision=proposed_decision)
                 print(f"fixture transaction: {'verified' if result.success else 'failed'}")
-                print(f"fixture recorded active: {result.active or 'none'}")
+                if result.success:
+                    print(f"fixture recorded active: {result.active or 'none'}")
+                else:
+                    print(f"fixture last known-good selection: {result.active or 'none'}")
                 print(f"rollback: {result.rollback_status}")
                 for warning in result.warnings:
                     print(warning)
+                if not result.success:
+                    try:
+                        fixture_root(fixture / "config", fixture / "state")
+                        recorded = read_state(path)
+                    except (OSError, StateError, FixtureError):
+                        print("fixture recorded active: unknown/unverified (safe read failed; transaction unverified)")
+                    else:
+                        print(f"fixture recorded active: {recorded.active if recorded else 'none'} "
+                              "(read-only observation; transaction unverified)")
                 print("live appearance: unverified; Phase 3B disabled")
                 return 0 if result.success else 1
             if not args.dry_run:

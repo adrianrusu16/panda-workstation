@@ -144,6 +144,15 @@ Adapter lifecycle: `probe`, `prepare`, `validate`, `snapshot`, `apply`, `verify`
 assembled from state. A byte-identical repeat verifies owned content and skips
 replacement/refresh, preserving file modes and mtimes.
 
+`prepare_switch()` returns a write-free preview, not an executable capability.
+`switch_theme()` now rejects every non-`None` supplied `plan` before any mutation,
+including an unchanged valid preview. Call it with the candidate and authorized
+decision/adapters, omitting `plan`; it builds and validates a fresh execution plan.
+The repository CLI already follows this interface. This intentional API restriction
+prevents altered adapter/prepared lists, image metadata or cleanup paths from
+bypassing application and verification. Current images are still rechecked under
+the lock, and every generated entry is rechecked before metadata persistence.
+
 The lock persists as a file; its held descriptor determines lifetime. Process
 exit releases the advisory lock. The lock file is never deleted to “break” a
 lock. Locks coordinate participating processes, not hostile same-user programs.
@@ -162,6 +171,16 @@ remain. A file matching neither recorded image is not overwritten; recovery
 reports an incomplete restore and retains its backup. Failure and restore failure
 have distinct `SwitchResult.rollback_status` values. `active` on failure identifies
 the last known-good selection, not proof that current files or a desktop match it.
+
+On failure the CLI labels that value `fixture last known-good selection`. It
+separately revalidates fixture enrollment and safely rereads the four-field state
+before printing `fixture recorded active` as a read-only observation with the
+transaction explicitly unverified. If that read fails, the recorded value is
+`unknown/unverified`; it never falls back to the previous or proposed selection.
+The original failure, nonzero exit status, rollback outcome and retained-backup
+warnings remain visible even when this diagnostic read fails. Successful
+transactions retain their verified fixture result and recorded-state output;
+neither result verifies native applications or live appearance.
 
 `doctor --recover` validates the entire journal and all current images before
 starting recovery. Missing journal means there is no recoverable transaction,
@@ -182,7 +201,9 @@ Recovery does not invent missing backups or overwrite later edits.
 - Caught `KeyboardInterrupt` rolls back before propagation.
 - Abrupt `os._exit` after an individual replacement releases the lock. The
   durable prepared journal allows explicit recovery of the interrupted fixture.
-- Stale plans and later edits cause refusal; a failed restore remains visible
+- All supplied previews, including stripped/forged/reordered plans, are refused
+  before locks, journals or state writes. Fresh internal plans reject later edits
+  under the lock. A failed restore remains visible
   and a subsequent explicit recovery can use the retained backup.
 - The generated Fish fragment is sourced in an isolated, noninteractive Fish
   process and its actual color-variable values are checked. This verifies that

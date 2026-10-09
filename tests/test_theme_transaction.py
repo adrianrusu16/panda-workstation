@@ -134,6 +134,72 @@ class TransactionContracts(unittest.TestCase):
         self.assertFalse(result.success)
         self.assertEqual(snapshot(self.root), before)
 
+    def test_supplied_plans_are_preview_only_and_rejected_without_any_writes(self):
+        from dataclasses import replace
+        variants = {
+            "stripped execution": lambda p: replace(p, prepared=(), adapters=()),
+            "valid preview": lambda p: p,
+            "empty adapters": lambda p: replace(p, adapters=()),
+            "missing prepared item": lambda p: replace(p, prepared=p.prepared[1:]),
+            "missing entry": lambda p: replace(p, entries=p.entries[1:]),
+            "reordered entries": lambda p: replace(p, entries=tuple(reversed(p.entries))),
+            "reordered adapters": lambda p: replace(p, adapters=tuple(reversed(p.adapters))),
+            "mismatched rendered data": lambda p: replace(p, prepared=(replace(p.prepared[0], content=b"forged"), *p.prepared[1:])),
+            "mismatched target": lambda p: replace(p, prepared=(replace(p.prepared[0], relative="config/unrelated"), *p.prepared[1:])),
+            "mismatched image": lambda p: replace(p, entries=(replace(p.entries[0], after=replace(p.entries[0].after, content=b"forged")), *p.entries[1:])),
+            "mismatched metadata": lambda p: replace(p, entries=(replace(p.entries[0], after=replace(p.entries[0].after, mode=0o666)), *p.entries[1:])),
+            "mismatched candidate": lambda p: replace(p, candidate=self.original),
+            "mismatched cleanup": lambda p: replace(p, created_dirs=("config/unrelated",)),
+        }
+        for label, mutate in variants.items():
+            with self.subTest(plan=label), tempfile.TemporaryDirectory(prefix="panda-theme-fixture-", dir="/tmp") as directory:
+                root = Path(directory)
+                self.fs.initialize_fixture(root)
+                config, state = root / "config", root / "state"
+                supplied = mutate(self.api.prepare_switch(self.candidate, config, state))
+                before = snapshot(root)
+                tree = sorted(str(p.relative_to(root)) for p in root.rglob("*"))
+                result = self.api.switch_theme(self.candidate, config, state, plan=supplied)
+                self.assertFalse(result.success)
+                self.assertEqual(result.rollback_status, "not-started")
+                self.assertEqual(snapshot(root), before)
+                self.assertEqual(sorted(str(p.relative_to(root)) for p in root.rglob("*")), tree)
+                self.assertIsNone(read_state(config / "panda/theme-state.toml"))
+                self.assertFalse((state / "panda-transactions").exists())
+
+    def test_preview_then_fresh_transaction_applies_all_six_fragments(self):
+        preview = self.api.prepare_switch(self.candidate, self.config, self.state)
+        self.assertEqual(len(preview.prepared), 6)
+        result = self.switch()
+        self.assertTrue(result.success, result.warnings)
+        self.assertEqual(read_state(self.config / "panda/theme-state.toml"), self.candidate)
+        for item in preview.prepared:
+            self.assertEqual((self.root / item.relative).read_bytes(), item.content)
+        journal = json.loads((self.state / "panda-transactions/journal.json").read_bytes())
+        self.assertEqual(journal["payload"]["phase"], "committed")
+
+    def test_fresh_plan_rechecks_external_edits_under_lock_before_target_writes(self):
+        from contextlib import contextmanager
+        self.establish()
+        target = self.config / "panda/generated/kitty.conf"
+        lock = self.api._lock
+        expected = None
+
+        @contextmanager
+        def changed_under_lock(fs):
+            nonlocal expected
+            with lock(fs):
+                target.write_bytes(b"edit after preparation")
+                expected = snapshot(self.root)
+                yield
+
+        with patch.object(self.api, "_lock", changed_under_lock):
+            result = self.switch()
+        self.assertFalse(result.success)
+        self.assertEqual(result.rollback_status, "not-started")
+        self.assertEqual(snapshot(self.root), expected)
+        self.assertEqual(read_state(self.config / "panda/theme-state.toml"), self.original)
+
     def test_external_edit_during_failure_is_never_overwritten_by_restore(self):
         from adapters.shell import ShellAdapter
         from adapters.base import Outcome
