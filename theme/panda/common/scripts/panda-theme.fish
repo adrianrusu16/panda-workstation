@@ -1,6 +1,6 @@
 #!/usr/bin/env fish
 
-# Repository-local Phase 2 preview entry; deliberately not bootstrap-installed.
+# Repository-local previews/Phase 3A fixtures; live integration disabled until Phase 3B.
 set -l script_dir (path resolve (path dirname (status filename)))
 
 if not command -sq python3
