@@ -144,11 +144,14 @@ else
     ui_success "fish-lsp completions written to $completions_file"
 end
 
+fish "$script_dir/dev/setup-ai-tools.fish"; or exit 1
+fish_add_path -g "$HOME/.local/bin"
+
 ui_section '🔍' 'Development verification'
 
 set -l failed 0
 
-for command_name in gcc g++ clang cmake ninja gdb lldb ccache valgrind perf python node npm rustup rustc cargo rustfmt fish-lsp
+for command_name in gcc g++ clang cmake ninja gdb lldb ccache valgrind perf python node npm rustup rustc cargo rustfmt fish-lsp uv codex serena graphify
     if command -q "$command_name"
         ui_success "$command_name · "(command -v "$command_name")
     else

@@ -1,0 +1,25 @@
+schema_version = 1
+name = "PandaWave Pulse"
+slug = "pandawave"
+aliases = ["wave"]
+
+# Logo RGB samples at bb1e83c3c178e5a315aa799c105c3cab5b662c9c.
+# See docs/panda-theme/palettes.md for asset hash, coordinates and alpha policy.
+[palette]
+background = "#060A13"
+surface = "#101420"
+surface2 = "#191C2B"
+text = "#FFFDFF"
+muted = "#A4A7B3"
+primary = "#FB2AA9"
+secondary = "#FA26A3"
+success = "#76D6AE"
+warning = "#EDC46B"
+error = "#FFB4AB"
+border = "#856F94"
+focus = "#F678B2"
+selection = "#971B62"
+accent_text = "#FB2AA9"
+on_primary = "#060A13"
+on_secondary = "#060A13"
+on_selection = "#FFFDFF"

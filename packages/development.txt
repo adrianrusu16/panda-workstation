@@ -11,6 +11,7 @@ valgrind
 perf
 python
 python-pip
+uv
 nodejs
 npm
 rustup

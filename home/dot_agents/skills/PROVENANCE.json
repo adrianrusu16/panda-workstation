@@ -1,0 +1,284 @@
+{
+  "migration_phase": "finalized",
+  "schema_version": 1,
+  "skills": {
+    "better-accessibility": {
+      "adaptations": [],
+      "files": [
+        {
+          "path": "LICENSE",
+          "sha256": "ed1dfe988fc40511b4845ccd9050a143a2002fee3bedc8064c47fa342b5d8d4f",
+          "upstream_git_blob_sha1": "6a067e906e1346e640a0cda6ed37c5fb793104e4",
+          "upstream_path": "LICENSE"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "df0cafe0e75a08548cf46a2a430f46c198e7e0ee9d46bdf7884c2afefb44b70e",
+          "upstream_git_blob_sha1": "799e521bbc71644dfad3fdece85d40c900e31dba",
+          "upstream_path": "skills/better-accessibility/SKILL.md"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "98699206d4fb00b72bcaf69bb446f541644cc0cc3d23967e266731e100a55563",
+          "upstream_git_blob_sha1": "36b942fb8e5b86916b006c2fe4e07fdbde24a112",
+          "upstream_path": "skills/better-accessibility/agents/openai.yaml"
+        },
+        {
+          "path": "focus-and-keyboard.md",
+          "sha256": "3b97fab2629261751e33ffb4a22ef52fb8706082a914fa2243cf92e8180eb84b",
+          "upstream_git_blob_sha1": "9ee0660a833fd76aa0a74ad88a06b010ea456a81",
+          "upstream_path": "skills/better-accessibility/focus-and-keyboard.md"
+        },
+        {
+          "path": "forms.md",
+          "sha256": "66557dc714093f45f6cc0ab8e248092cb2e3bc994609c6e629135f0ddf09e0f4",
+          "upstream_git_blob_sha1": "6e9839d2ea1c2790efd8132027ebf44dd8f206e5",
+          "upstream_path": "skills/better-accessibility/forms.md"
+        },
+        {
+          "path": "hit-areas.md",
+          "sha256": "7ce9ee5c5420d046f1d87b466e5fe5978d90d17632a2ad084a803ad34d607d53",
+          "upstream_git_blob_sha1": "f44d07d20ecd529985b82883273c6830c8ecb9f1",
+          "upstream_path": "skills/better-accessibility/hit-areas.md"
+        },
+        {
+          "path": "motion-and-zoom.md",
+          "sha256": "1a15404327c8c73010888c7665b2083d9c1b312202cb6ad241b342d49a170714",
+          "upstream_git_blob_sha1": "919a6a9f21fd370cfec1a5a49a5fa3a7e346ce0c",
+          "upstream_path": "skills/better-accessibility/motion-and-zoom.md"
+        },
+        {
+          "path": "screen-readers.md",
+          "sha256": "0d0911a369bbf332a6237d2cf4c5209b13e7f02e5bb01a6d47bbca3f328df71a",
+          "upstream_git_blob_sha1": "275394c2b880277fff1abea51098243029dd684d",
+          "upstream_path": "skills/better-accessibility/screen-readers.md"
+        },
+        {
+          "path": "semantics-and-aria.md",
+          "sha256": "818ad7d45a8b25a3291e52bdc51ec316c4e00e22ed58940f26321e35365b741e",
+          "upstream_git_blob_sha1": "410c022391ab661c074141dab948f8b85a282e79",
+          "upstream_path": "skills/better-accessibility/semantics-and-aria.md"
+        }
+      ],
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "scope": "user",
+      "upstream": {
+        "commit": "d574cc8a576dc24256ad38268b8d03d86724a1b3",
+        "license_path": "LICENSE",
+        "repository": "https://github.com/jakubkrehel/skills",
+        "skill_directory": "skills/better-accessibility"
+      },
+      "verification": {
+        "cli_discovery_and_invocation": "verified",
+        "deployment": "verified",
+        "desktop_discovery_and_invocation": "verified",
+        "repository_copy_sha256": "verified",
+        "upstream_git_blobs": "verified"
+      }
+    },
+    "better-colors": {
+      "adaptations": [],
+      "files": [
+        {
+          "path": "LICENSE",
+          "sha256": "ed1dfe988fc40511b4845ccd9050a143a2002fee3bedc8064c47fa342b5d8d4f",
+          "upstream_git_blob_sha1": "6a067e906e1346e640a0cda6ed37c5fb793104e4",
+          "upstream_path": "LICENSE"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "e74f1c413a4094dc2a73fb0baa0da2241465e01d593b0257ba995500df9b0068",
+          "upstream_git_blob_sha1": "24a56620bf6e3308f496d8c62b723b3a7f0f0ca2",
+          "upstream_path": "skills/better-colors/SKILL.md"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "9568572146c8d7d1dc2e12536c2b8ea63480f83f2f2ebfcf2f9a500a56830d4a",
+          "upstream_git_blob_sha1": "27c2e70131abce32fd35a453a33747b26d2bc045",
+          "upstream_path": "skills/better-colors/agents/openai.yaml"
+        },
+        {
+          "path": "color-formats.md",
+          "sha256": "6c5d7f243dde1c2604c35f40a7668bc20ff8b79249fa52633ac4f1be02fa73ba",
+          "upstream_git_blob_sha1": "1a87448505f8030146820fc8470f277fb273921f",
+          "upstream_path": "skills/better-colors/color-formats.md"
+        },
+        {
+          "path": "color-usage.md",
+          "sha256": "02ee247c8782d256a0841c154aee5decb456966f0f7db8701bef37ed4694e773",
+          "upstream_git_blob_sha1": "2a2b8af8a9dc8a5d7698ca33807fce276e6e3de5",
+          "upstream_path": "skills/better-colors/color-usage.md"
+        },
+        {
+          "path": "contrast.md",
+          "sha256": "a524a229232a522fc752be9503bba8caffd76894d04c941a1e7e982817d6fefc",
+          "upstream_git_blob_sha1": "d84e9d94c95e4b7118cad2be56e3ccdeeb24aa7a",
+          "upstream_path": "skills/better-colors/contrast.md"
+        },
+        {
+          "path": "palette-generation.md",
+          "sha256": "0b50caa5e77085d1d762bb3d362c552103ebbf5ca5ad297b364f8172441c72a5",
+          "upstream_git_blob_sha1": "3c45253bdd2f673335b66ef30afbeedaca02af4c",
+          "upstream_path": "skills/better-colors/palette-generation.md"
+        },
+        {
+          "path": "palette-structure.md",
+          "sha256": "bba9cd296c1e4ee613420b32023b8ce1a1bb45d1340e99e906cee37413d3dd62",
+          "upstream_git_blob_sha1": "480781afbef455b3268cad43d6b38b5c8acc8337",
+          "upstream_path": "skills/better-colors/palette-structure.md"
+        },
+        {
+          "path": "token-naming.md",
+          "sha256": "2cc8c435a37cff3d4320076953431572fa77a6f58aaf88ff62381d2cdcfd022a",
+          "upstream_git_blob_sha1": "f69a0022dda0437986cc46c0505c8fcce113ea32",
+          "upstream_path": "skills/better-colors/token-naming.md"
+        }
+      ],
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "scope": "user",
+      "upstream": {
+        "commit": "d574cc8a576dc24256ad38268b8d03d86724a1b3",
+        "license_path": "LICENSE",
+        "repository": "https://github.com/jakubkrehel/skills",
+        "skill_directory": "skills/better-colors"
+      },
+      "verification": {
+        "cli_discovery_and_invocation": "verified",
+        "deployment": "verified",
+        "desktop_discovery_and_invocation": "verified",
+        "repository_copy_sha256": "verified",
+        "upstream_git_blobs": "verified"
+      }
+    },
+    "better-layout": {
+      "adaptations": [],
+      "files": [
+        {
+          "path": "LICENSE",
+          "sha256": "ed1dfe988fc40511b4845ccd9050a143a2002fee3bedc8064c47fa342b5d8d4f",
+          "upstream_git_blob_sha1": "6a067e906e1346e640a0cda6ed37c5fb793104e4",
+          "upstream_path": "LICENSE"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "8c5883ccb23c27c39b7c58d101154ff35e032410e0dc4794be9ab7fe070c2297",
+          "upstream_git_blob_sha1": "5bff16d51fabf517ca4a7f784f2f095d736b8291",
+          "upstream_path": "skills/better-layout/SKILL.md"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "d51a2ca663c9331f8f23b7a550e5f848f83e81361e21f2280cc384e99cc0ae15",
+          "upstream_git_blob_sha1": "34531649df1a7af9638b3497e162124630fed965",
+          "upstream_path": "skills/better-layout/agents/openai.yaml"
+        },
+        {
+          "path": "grouping-and-alignment.md",
+          "sha256": "30057c8e063a3cb0026140c82de0c16510080c7c306876caacba1206d7e2483a",
+          "upstream_git_blob_sha1": "848d886ecd10454ce2dfd4a60009868156ef9443",
+          "upstream_path": "skills/better-layout/grouping-and-alignment.md"
+        },
+        {
+          "path": "spacing-and-adaptivity.md",
+          "sha256": "1b7e015f520b5e34cf9712fbb6586deb57a7c9f9902b54aa465719e9e5678958",
+          "upstream_git_blob_sha1": "10dce94ddbdc4eebf661b7f34130ead08f14f52e",
+          "upstream_path": "skills/better-layout/spacing-and-adaptivity.md"
+        }
+      ],
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "scope": "user",
+      "upstream": {
+        "commit": "d574cc8a576dc24256ad38268b8d03d86724a1b3",
+        "license_path": "LICENSE",
+        "repository": "https://github.com/jakubkrehel/skills",
+        "skill_directory": "skills/better-layout"
+      },
+      "verification": {
+        "cli_discovery_and_invocation": "verified",
+        "deployment": "verified",
+        "desktop_discovery_and_invocation": "verified",
+        "repository_copy_sha256": "verified",
+        "upstream_git_blobs": "verified"
+      }
+    },
+    "better-ui": {
+      "adaptations": [],
+      "files": [
+        {
+          "path": "LICENSE",
+          "sha256": "ed1dfe988fc40511b4845ccd9050a143a2002fee3bedc8064c47fa342b5d8d4f",
+          "upstream_git_blob_sha1": "6a067e906e1346e640a0cda6ed37c5fb793104e4",
+          "upstream_path": "LICENSE"
+        },
+        {
+          "path": "SKILL.md",
+          "sha256": "fb9807bb5c59a3ca9d4a27b25f56b36e5596251d280fb30c4b7f2ff8b6f4fe2d",
+          "upstream_git_blob_sha1": "c38a3230e147220c2b8b9aa9992d67a621dd7b89",
+          "upstream_path": "skills/better-ui/SKILL.md"
+        },
+        {
+          "path": "agents/openai.yaml",
+          "sha256": "799e0b58bded32edf5c217f97e08c364660ec24234978b2e3f7dee1868bea871",
+          "upstream_git_blob_sha1": "913f2004ff9dca87bedbf9c6da8922ca8b8b2d79",
+          "upstream_path": "skills/better-ui/agents/openai.yaml"
+        },
+        {
+          "path": "animations.md",
+          "sha256": "0e9ee790191d0761a6adf27fdf1e4279d79ecbe5d0d916fc331a28a8c86f39b3",
+          "upstream_git_blob_sha1": "e24309ab099e012c95f171b0187bf6d3746249ae",
+          "upstream_path": "skills/better-ui/animations.md"
+        },
+        {
+          "path": "enter-exit.md",
+          "sha256": "de087d3bc69461343409c275dea7d94bca6c1158558b887b7909ce505cdfa70a",
+          "upstream_git_blob_sha1": "b2b2ec813b1f767a8f79442e134afd65abf80059",
+          "upstream_path": "skills/better-ui/enter-exit.md"
+        },
+        {
+          "path": "icon-transitions.md",
+          "sha256": "676b344e7b22c37692a520c7ea2ab8fad3b3c8943a833f8133e51042297e9f06",
+          "upstream_git_blob_sha1": "a8ae54ef48da7ff86db5422e64bb33d8d12a0996",
+          "upstream_path": "skills/better-ui/icon-transitions.md"
+        },
+        {
+          "path": "icons.md",
+          "sha256": "eac6195bb5d5ba77efd6d9d7751295a7b0d4dadf6a68146639091b02f1e3dbbd",
+          "upstream_git_blob_sha1": "b5dabd7181cd4b5c43df0581b458929723a244d8",
+          "upstream_path": "skills/better-ui/icons.md"
+        },
+        {
+          "path": "performance.md",
+          "sha256": "db59db84ab371903b7ebdb69f1e92bdc0f2e041331d9dd65d312e4d1b5d449d6",
+          "upstream_git_blob_sha1": "0a4a1e12b0a9167e81d27434fde812902490e10b",
+          "upstream_path": "skills/better-ui/performance.md"
+        },
+        {
+          "path": "surfaces.md",
+          "sha256": "35a76b7c4e6da0fc933559e73ca8712fb7b804c383c6f69c25be3b9616ff2721",
+          "upstream_git_blob_sha1": "8dcd37a45a4175e64b3c7422e26e8ce1e579eb92",
+          "upstream_path": "skills/better-ui/surfaces.md"
+        }
+      ],
+      "license": "MIT",
+      "license_file": "LICENSE",
+      "scope": "user",
+      "upstream": {
+        "commit": "d574cc8a576dc24256ad38268b8d03d86724a1b3",
+        "license_path": "LICENSE",
+        "repository": "https://github.com/jakubkrehel/skills",
+        "skill_directory": "skills/better-ui"
+      },
+      "verification": {
+        "cli_discovery_and_invocation": "verified",
+        "deployment": "verified",
+        "desktop_discovery_and_invocation": "verified",
+        "repository_copy_sha256": "verified",
+        "upstream_git_blobs": "verified"
+      }
+    }
+  },
+  "source_root": "home/dot_agents/skills",
+  "target_root": ".agents/skills"
+}

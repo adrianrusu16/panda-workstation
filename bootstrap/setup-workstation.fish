@@ -9,7 +9,7 @@ set -l stages \
     'chezmoi|setup-chezmoi.fish|🏠|Portable configuration|required' \
     'github|setup-github.fish|🔐|Git & GitHub|required' \
     'desktop|install-desktop.fish|🖥️|Desktop & applications|required' \
-    'plugins|setup-plugins.fish|🧩|Plugins & integrations|planned' \
+    'plugins|setup-plugins.fish|🧩|Plugins & integrations|required' \
     'development|setup-development.fish|🧪|Development environment|required' \
     'gaming|setup-gaming.fish|🎮|Gaming|planned' \
     'panda|setup-panda.fish|🐼|Panda experience|planned' \

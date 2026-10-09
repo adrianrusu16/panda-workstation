@@ -8,3 +8,14 @@ secrets/
 private/
 *.key
 *.pem
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Local AI plans and generated tool state
+.local-ai/
+docs/superpowers/
+.serena/
+graphify-out/
+tmp/

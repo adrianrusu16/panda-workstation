@@ -18,3 +18,13 @@ abbr -a gl "git log --oneline --graph --decorate -15"
 # Useful CLI shortcuts
 abbr -a ll "eza -lah --group-directories-first --icons=auto"
 abbr -a lt "eza --tree --level=2 --group-directories-first --icons=auto"
+
+# 🐼 Starship prompt — loaded after CachyOS defaults so it owns fish_prompt.
+if status is-interactive; and command -q starship
+    function starship_transient_prompt_func
+        starship module character
+    end
+
+    starship init fish | source
+    enable_transience
+end
