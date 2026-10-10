@@ -1,0 +1,358 @@
+"""Ghostty-only simulated transactions, failure injection and fresh-process recovery."""
+
+import copy
+import importlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import unittest
+from unittest.mock import patch
+
+from live_fixture_support import COMMON, fixture, tree
+sys.path.insert(0, str(COMMON))
+from state import ThemeState
+
+
+class LiveTransactionContracts(unittest.TestCase):
+    def setUp(self):
+        self.assertIsNotNone(importlib.util.find_spec("live_transaction"), "B1 transaction missing")
+        self.api = importlib.import_module("live_transaction")
+        self.fs = importlib.import_module("live_fs")
+        self.enrollment = importlib.import_module("enrollment")
+        self.root = fixture(self)
+        self.enrollment.enroll_fixture(self.root, version="1.3.1")
+        self.candidate = ThemeState("manual", "gothic", "gothic", "")
+        self.old = ThemeState("manual", "hybrid", "hybrid", "")
+
+    def switch(self, candidate=None, **kwargs):
+        return self.api.switch_simulated(candidate or self.candidate, self.root, **kwargs)
+
+    def managed(self):
+        with self.fs.SimulatedLiveFS(self.root) as fs:
+            return {path: fs.read(path) for path in self.fs.MANAGED}
+
+    def test_success_is_ghostty_simulation_only_and_never_deploys_hook(self):
+        before_source = (self.root / self.fs.SOURCE).read_bytes()
+        result = self.switch()
+        self.assertTrue(result.success, result.warnings)
+        self.assertEqual(result.active, "gothic")
+        self.assertIn("unverified", " ".join(result.warnings))
+        self.assertEqual((self.root / self.fs.SOURCE).read_bytes(), before_source)
+        self.assertEqual((self.root / self.fs.HOOK).read_bytes(), before_source)
+        self.assertFalse((self.root / "config/panda/theme-state.toml").exists())
+        data = json.loads((self.root / self.fs.SELECTION).read_bytes())
+        self.assertEqual(data["scope"], "ghostty-simulation-only")
+        self.assertEqual(data["selection"]["active"], "gothic")
+        self.assertEqual(json.loads((self.root / self.fs.JOURNAL).read_bytes())["payload"]["phase"], "committed")
+
+    def test_preview_is_write_free_and_supplied_plans_never_execute(self):
+        before = tree(self.root)
+        plan = self.api.prepare_simulated(self.candidate, self.root)
+        self.assertEqual(tree(self.root), before)
+        self.assertEqual(len(plan.entries), 4)
+        self.assertIn(b"config-file = ?../panda/generated/ghostty.conf", plan.hook_proposal)
+        for supplied in (plan, {}, object()):
+            result = self.switch(plan=supplied)
+            self.assertFalse(result.success)
+            self.assertEqual(result.rollback_status, "not-started")
+            self.assertEqual(tree(self.root), before)
+
+    def test_missing_or_invalid_enrollment_and_inputs_create_nothing(self):
+        marker = self.root / self.fs.MARKER
+        original = marker.read_bytes()
+        for content in (None, b"{}", b"invalid"):
+            if content is None: marker.unlink()
+            else: marker.write_bytes(content)
+            before = tree(self.root)
+            self.assertFalse(self.switch().success)
+            self.assertEqual(tree(self.root), before)
+        marker.write_bytes(original)
+        before = tree(self.root)
+        self.assertFalse(self.switch(candidate="gothic").success)
+        self.assertEqual(tree(self.root), before)
+        self.assertFalse(self.api.switch_simulated(self.candidate, Path.home()).success)
+        self.assertEqual(tree(self.root), before)
+
+    def test_source_and_deployed_hook_drift_each_refuse_before_lock_creation(self):
+        for relative in (self.fs.SOURCE, self.fs.HOOK):
+            path = self.root / relative
+            original = path.read_bytes()
+            info = path.stat()
+            path.write_bytes(original + b"# later edit\n")
+            before = tree(self.root)
+            self.assertFalse(self.switch().success)
+            self.assertEqual(tree(self.root), before)
+            path.write_bytes(original)
+            os.utime(path, ns=(info.st_atime_ns, info.st_mtime_ns))
+
+    def test_repeat_preserves_bytes_modes_mtimes_and_skips_refresh(self):
+        self.assertTrue(self.switch().success)
+        before = tree(self.root)
+        from adapters.live_ghostty import GhosttyModel
+        with patch.object(GhosttyModel, "refresh", side_effect=AssertionError("repeat refresh")):
+            self.assertTrue(self.switch().success)
+        self.assertEqual(tree(self.root), before)
+
+    def test_failure_at_each_write_boundary_restores_recognized_old_images(self):
+        self.assertTrue(self.switch(self.old).success)
+        before = self.managed()
+        original = self.fs.SimulatedLiveFS.replace
+        for target in (*self.fs.MANAGED, self.fs.JOURNAL):
+            for after_write in (False, True):
+                calls = 0
+                def fail(fs, relative, image, *, expected):
+                    nonlocal calls
+                    if relative == target:
+                        calls += 1
+                        # Final commit journal, rather than preparation.
+                        fail_now = calls == (2 if target == self.fs.JOURNAL else 1)
+                        if fail_now and not after_write: raise OSError("injected")
+                        result = original(fs, relative, image, expected=expected)
+                        if fail_now and after_write: raise OSError("injected")
+                        return result
+                    return original(fs, relative, image, expected=expected)
+                with self.subTest(target=target, after_write=after_write), patch.object(
+                        self.fs.SimulatedLiveFS, "replace", fail):
+                    result = self.switch()
+                self.assertFalse(result.success)
+                self.assertEqual(result.rollback_status, "restored", result.warnings)
+                self.assertEqual(self.managed(), before)
+
+    def test_render_verify_and_refresh_failures_cannot_commit_selection(self):
+        from adapters.live_ghostty import GhosttyModel
+        from adapters.base import Outcome
+        for method in ("prepare", "verify", "refresh"):
+            before = self.managed()
+            with self.subTest(method=method), patch.object(
+                    GhosttyModel, method, side_effect=ValueError("injected")):
+                result = self.switch()
+            self.assertFalse(result.success)
+            self.assertEqual(self.managed(), before)
+
+    def test_under_lock_drift_is_refused_and_late_edits_are_preserved(self):
+        from adapters.live_ghostty import GhosttyModel
+        original = GhosttyModel.verify
+        def edit(adapter, fs, prepared):
+            outcome = original(adapter, fs, prepared)
+            (self.root / self.fs.TARGET).write_bytes(b"external change\n")
+            return outcome
+        with patch.object(GhosttyModel, "verify", edit):
+            result = self.switch()
+        self.assertFalse(result.success)
+        self.assertEqual(result.rollback_status, "incomplete")
+        self.assertEqual((self.root / self.fs.TARGET).read_bytes(), b"external change\n")
+        before = tree(self.root)
+        recovery = self.api.recover_simulated(self.root)
+        self.assertFalse(recovery.success)
+        self.assertEqual(tree(self.root), before)
+
+    def test_process_lock_contention_creates_no_target_writes(self):
+        script = "import sys,time; sys.path.insert(0,sys.argv[1]); from live_fs import SimulatedLiveFS; from live_transaction import simulation_lock; from pathlib import Path; fs=SimulatedLiveFS(Path(sys.argv[2])); cm=simulation_lock(fs); cm.__enter__(); print('locked',flush=True); sys.stdin.readline()"
+        process = subprocess.Popen([sys.executable, "-B", "-c", script, str(COMMON), str(self.root)],
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        try:
+            self.assertEqual(process.stdout.readline().strip(), "locked")
+            before = tree(self.root)
+            self.assertFalse(self.switch().success)
+            self.assertEqual(tree(self.root), before)
+        finally:
+            process.communicate("done\n", timeout=10)
+
+    def test_abrupt_exit_is_recovered_by_fresh_process_and_repeated_recovery_is_safe(self):
+        script = "import sys,os; sys.path.insert(0,sys.argv[1]); from pathlib import Path; from live_fs import SimulatedLiveFS,TARGET; from live_transaction import switch_simulated; from state import ThemeState; original=SimulatedLiveFS.replace\ndef crash(fs,path,image,*,expected):\n original(fs,path,image,expected=expected)\n if path==TARGET: os._exit(23)\nSimulatedLiveFS.replace=crash\nswitch_simulated(ThemeState('manual','gothic','gothic',''),Path(sys.argv[2]))"
+        process = subprocess.run([sys.executable, "-B", "-c", script, str(COMMON), str(self.root)],
+                                 timeout=10, capture_output=True)
+        self.assertEqual(process.returncode, 23, process.stderr)
+        self.assertFalse(self.switch().success)
+        script = "import sys; sys.path.insert(0,sys.argv[1]); from pathlib import Path; from live_transaction import recover_simulated; r=recover_simulated(Path(sys.argv[2])); print(r.rollback_status); sys.exit(0 if r.success else 1)"
+        process = subprocess.run([sys.executable, "-B", "-c", script, str(COMMON), str(self.root)],
+                                 timeout=10, capture_output=True, text=True)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertEqual(process.stdout.strip(), "restored")
+        self.assertFalse((self.root / self.fs.TARGET).exists())
+        before = tree(self.root)
+        self.assertTrue(self.api.recover_simulated(self.root).success)
+        self.assertEqual(tree(self.root), before)
+
+    def test_corrupt_or_incomplete_journal_never_authorizes_restore(self):
+        self.assertTrue(self.switch().success)
+        journal = self.root / self.fs.JOURNAL
+        data = json.loads(journal.read_bytes())
+        for content in (b"invalid", json.dumps({"payload": data["payload"], "sha256": "0"*64}).encode()):
+            journal.write_bytes(content)
+            before = tree(self.root)
+            self.assertFalse(self.api.recover_simulated(self.root).success)
+            self.assertEqual(tree(self.root), before)
+
+    def test_semantically_forged_journals_are_refused_even_with_valid_checksum(self):
+        from enrollment import encode_record, digest
+        self.assertTrue(self.switch().success)
+        journal = self.root / self.fs.JOURNAL
+        original = json.loads(journal.read_bytes())["payload"]
+        changes = []
+        omitted = copy.deepcopy(original)
+        omitted["entries"].pop(0)
+        changes.append(omitted)
+        unsafe = copy.deepcopy(original)
+        unsafe["entries"][0]["path"] = "config/ghostty/config.ghostty"
+        changes.append(unsafe)
+        for field, value in (("mode", 0o666), ("mode", -128), ("mtime_ns", 2**63),
+                             ("atime_ns", True), ("content", "bad!")):
+            changed = copy.deepcopy(original)
+            changed["entries"][0]["after"][field] = value
+            changes.append(changed)
+        changed = copy.deepcopy(original)
+        changed["created_dirs"] = ["source"]
+        changes.append(changed)
+        for payload in changes:
+            journal.write_bytes(encode_record({"payload": payload, "sha256": digest(encode_record(payload))}))
+            before = tree(self.root)
+            self.assertFalse(self.api.recover_simulated(self.root).success)
+            self.assertEqual(tree(self.root), before)
+
+    def test_actual_under_lock_input_drift_prevents_journal_and_target_writes(self):
+        from contextlib import contextmanager
+        original_lock = self.api.simulation_lock
+        @contextmanager
+        def drift(fs):
+            with original_lock(fs):
+                (self.root / self.fs.HOOK).write_bytes(b"external under-lock edit\n")
+                yield
+        with patch.object(self.api, "simulation_lock", drift):
+            result = self.switch()
+        self.assertFalse(result.success)
+        self.assertEqual(result.rollback_status, "not-started")
+        self.assertFalse((self.root / self.fs.JOURNAL).exists())
+        self.assertFalse((self.root / self.fs.TARGET).exists())
+
+    def test_unowned_fragment_and_oversized_reason_are_refused_before_locks(self):
+        from selection import Decision
+        target = self.root / self.fs.TARGET
+        target.parent.mkdir(mode=0o700, parents=True)
+        target.write_bytes(b"user content\n")
+        before = tree(self.root)
+        self.assertFalse(self.switch().success)
+        self.assertEqual(tree(self.root), before)
+        target.unlink()
+        before = tree(self.root)
+        self.assertFalse(self.switch(decision=Decision("gothic", "x"*65536, "manual")).success)
+        self.assertEqual(tree(self.root), before)
+
+    def test_restore_failure_retains_record_and_later_recovery_restores_old_slice(self):
+        self.assertTrue(self.switch(self.old).success)
+        before = self.managed()
+        from adapters.live_ghostty import GhosttyModel
+        original = self.fs.SimulatedLiveFS.replace
+        def refuse_restore(fs, path, image, *, expected):
+            if path == self.fs.TARGET and image == before[path]:
+                raise OSError("injected restore failure")
+            return original(fs, path, image, expected=expected)
+        with patch.object(GhosttyModel, "refresh", side_effect=OSError("refresh failed")), patch.object(
+                self.fs.SimulatedLiveFS, "replace", refuse_restore):
+            result = self.switch()
+        self.assertFalse(result.success)
+        self.assertEqual(result.rollback_status, "incomplete")
+        self.assertEqual(result.active, "hybrid")  # Last good simulated selection, not current appearance.
+        result = self.api.recover_simulated(self.root)
+        self.assertTrue(result.success, result.warnings)
+        self.assertEqual(self.managed(), before)
+
+    def test_keyboard_interrupt_restores_before_propagation(self):
+        from adapters.live_ghostty import GhosttyModel
+        self.assertTrue(self.switch(self.old).success)
+        before = self.managed()
+        with patch.object(GhosttyModel, "refresh", side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt): self.switch()
+        self.assertEqual(self.managed(), before)
+
+    def test_all_palettes_and_explicit_auto_preserve_scoped_manual_history(self):
+        from selection import Decision
+        for slug in ("minimal", "cyber", "gothic", "hybrid", "pandawave"):
+            candidate = ThemeState("manual", slug, slug, "")
+            self.assertTrue(self.switch(candidate).success)
+        candidate = ThemeState("auto", "hybrid", "pandawave", "")
+        before = tree(self.root)
+        self.assertFalse(self.switch(candidate).success)
+        self.assertEqual(tree(self.root), before)
+        self.assertTrue(self.switch(candidate, decision=Decision("hybrid", "daytime", "schedule")).success)
+        self.assertEqual(json.loads((self.root / self.fs.SELECTION).read_bytes())["selection"]["last_manual"],
+                         "pandawave")
+
+    def test_new_file_rollback_removes_only_created_empty_directories(self):
+        from adapters.live_ghostty import GhosttyModel
+        panda = self.root / "config/panda"
+        panda.mkdir(mode=0o700)
+        unrelated = panda / "notes.txt"
+        unrelated.write_bytes(b"keep me")
+        with patch.object(GhosttyModel, "refresh", side_effect=ValueError("failed")):
+            result = self.switch()
+        self.assertEqual(result.rollback_status, "restored", result.warnings)
+        self.assertEqual(unrelated.read_bytes(), b"keep me")
+        self.assertFalse((panda / "generated").exists())
+
+    def test_oversized_config_and_malformed_marker_are_zero_write_preflights(self):
+        path = self.root / self.fs.HOOK
+        path.write_bytes(b"#"*65537)
+        before = tree(self.root)
+        self.assertFalse(self.switch().success)
+        self.assertEqual(tree(self.root), before)
+
+    def test_prepared_journal_without_any_target_write_can_be_recovered(self):
+        original = self.fs.SimulatedLiveFS.replace
+        def fail_after_preparation(fs, path, image, *, expected):
+            original(fs, path, image, expected=expected)
+            if path == self.fs.JOURNAL:
+                raise OSError("prepared journal persisted before interruption")
+        with patch.object(self.fs.SimulatedLiveFS, "replace", fail_after_preparation):
+            self.assertFalse(self.switch().success)
+        self.assertFalse((self.root / self.fs.TARGET).exists())
+        result = self.api.recover_simulated(self.root)
+        self.assertTrue(result.success, result.warnings)
+        self.assertEqual(result.rollback_status, "restored")
+
+    def test_existing_cli_flags_cannot_apply_or_enroll_a_b1_root(self):
+        for args in (("init-fixture", "--allow-fixture-writes"),
+                     ("gothic", "--allow-fixture-writes"),
+                     ("doctor", "--recover", "--allow-fixture-writes")):
+            before = tree(self.root)
+            process = subprocess.run([sys.executable, "-B", str(COMMON / "cli.py"), *args,
+                                      "--fixture-root", str(self.root)], timeout=10, capture_output=True)
+            self.assertNotEqual(process.returncode, 0)
+            self.assertEqual(tree(self.root), before)
+
+    def test_recovery_rejects_negative_mode_before_even_creating_a_lock(self):
+        from enrollment import digest, encode_record
+        planned = self.api.prepare_simulated(self.candidate, self.root)
+        with self.fs.SimulatedLiveFS(self.root) as fs:
+            self.api._journal(fs, planned.entries, planned.created_dirs, "prepared")
+        journal = self.root / self.fs.JOURNAL
+        payload = json.loads(journal.read_bytes())["payload"]
+        payload["entries"][0]["after"]["mode"] = -128
+        journal.write_bytes(encode_record({"payload": payload, "sha256": digest(encode_record(payload))}))
+        before = tree(self.root)
+        result = self.api.recover_simulated(self.root)
+        self.assertFalse(result.success)
+        self.assertEqual(tree(self.root), before)
+        self.assertFalse((self.root / self.fs.LOCK).exists())
+
+    def test_rollback_preserves_preexisting_empty_panda_directory(self):
+        from adapters.live_ghostty import GhosttyModel
+        panda = self.root / "config/panda"
+        panda.mkdir(mode=0o700)
+        identity = panda.stat().st_ino
+        with patch.object(GhosttyModel, "refresh", side_effect=ValueError("failed")):
+            result = self.switch()
+        self.assertEqual(result.rollback_status, "restored", result.warnings)
+        self.assertTrue(panda.is_dir())
+        self.assertEqual(panda.stat().st_ino, identity)
+        self.assertEqual(list(panda.iterdir()), [])
+
+    def test_rollback_removes_new_panda_directory_with_preexisting_state_directory(self):
+        from adapters.live_ghostty import GhosttyModel
+        (self.root / "state/panda-ghostty-simulation").mkdir(mode=0o700)
+        with patch.object(GhosttyModel, "refresh", side_effect=ValueError("failed")):
+            result = self.switch()
+        self.assertEqual(result.rollback_status, "restored", result.warnings)
+        self.assertFalse((self.root / "config/panda").exists())
