@@ -51,11 +51,14 @@ def _root(root):
     return root
 
 
-def _directory(info, *, root=False):
+def _directory(fd, *, root=False):
+    info = os.fstat(fd)
     mode = stat.S_IMODE(info.st_mode)
     if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or
-            mode & 0o022 or mode & 0o700 != 0o700 or (root and mode != 0o700)):
-        raise ValueError("unsafe simulation directory ownership or mode")
+            mode > 0o777 or mode & 0o022 or mode & 0o700 != 0o700 or (root and mode != 0o700) or
+            os.listxattr(fd)):
+        raise ValueError("unsafe simulation directory ownership, mode or extended metadata")
+    return info
 
 
 def validate_image(image):
@@ -81,11 +84,11 @@ class _TreeIO:
         self.enrollment = None
         try:
             self.fd = self._open_root()
-            _directory(os.fstat(self.fd), root=True)
+            _directory(self.fd, root=True)
             for name in ("home", "config", "data", "state", "cache", "source"):
                 child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=self.fd)
                 try:
-                    _directory(os.fstat(child), root=True)
+                    _directory(child, root=True)
                     self.pins[name] = self._identity(child)
                 finally:
                     os.close(child)
@@ -108,10 +111,7 @@ class _TreeIO:
 
     @staticmethod
     def _directory_image(fd):
-        info = os.fstat(fd)
-        _directory(info)
-        if os.listxattr(fd):
-            raise ValueError("unsupported directory extended metadata")
+        info = _directory(fd)
         return {"device": info.st_dev, "inode": info.st_ino, "uid": info.st_uid,
                 "gid": info.st_gid, "mode": stat.S_IMODE(info.st_mode),
                 "mtime_ns": info.st_mtime_ns, "ctime_ns": info.st_ctime_ns}
@@ -145,7 +145,7 @@ class _TreeIO:
     def check_pins(self):
         fresh = self._open_root()
         try:
-            _directory(os.fstat(fresh), root=True)
+            _directory(fresh, root=True)
             if self._identity(fresh) != self._identity(self.fd):
                 raise ValueError("simulation root replaced")
             for path, identity in self.pins.items():
@@ -155,7 +155,7 @@ class _TreeIO:
                         child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
                         os.close(current)
                         current = child
-                        _directory(os.fstat(current))
+                        _directory(current)
                     if self._identity(current) != identity:
                         raise ValueError("simulation parent directory replaced")
                 finally:
@@ -183,7 +183,7 @@ class _TreeIO:
                     created = True
                     child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
                 try:
-                    _directory(os.fstat(child))
+                    _directory(child)
                     identity = self._identity(child)
                     if prefix in self.pins and self.pins[prefix] != identity:
                         raise ValueError("simulation parent replaced")
@@ -305,7 +305,7 @@ class SimulatedLiveFS(_TreeIO):
                     child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
                     os.close(current)
                     current = child
-                    _directory(os.fstat(current))
+                    _directory(current)
                     prefix = "/".join(parts[:index+1])
                     identity = self._identity(current)
                     if prefix in self.pins and self.pins[prefix] != identity:
@@ -329,7 +329,7 @@ class SimulatedLiveFS(_TreeIO):
                 child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
                 os.close(current)
                 current = child
-                _directory(os.fstat(current))
+                _directory(current)
             return self._directory_image(current)
         except FileNotFoundError:
             return None
@@ -359,8 +359,9 @@ class SimulatedLiveFS(_TreeIO):
                 self.created[record["path"]] = dict(record["identity"])
 
     def sync_restoration(self, records):
-        """Retry completed cleanup/journal durability without changing the tree."""
-        parents = [r["path"].rsplit("/", 1)[0] for r in reversed(directory_records(records))]
+        """Reconstruct all managed-parent durability obligations, including existing parents."""
+        parents = [path.rsplit("/", 1)[0] for path in MANAGED]
+        parents.extend(r["path"].rsplit("/", 1)[0] for r in reversed(directory_records(records)))
         parents.extend(("config", JOURNAL.rsplit("/", 1)[0]))
         for relative in dict.fromkeys(parents):
             self.check_pins()
@@ -373,7 +374,7 @@ class SimulatedLiveFS(_TreeIO):
                         break  # Sync the nearest existing ancestor of the removed parent.
                     os.close(current)
                     current = child
-                    _directory(os.fstat(current))
+                    _directory(current)
                 os.fsync(current)
                 self.check_pins()
             finally:

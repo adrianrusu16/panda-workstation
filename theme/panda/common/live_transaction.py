@@ -21,6 +21,10 @@ SCOPE = "ghostty-simulation-only"
 WARNING = "B1 Ghostty simulation only; native parser/reload and Wayland appearance unverified"
 
 
+class _RecoveryRequired(ValueError):
+    """A retained record cannot yet be accepted as completed."""
+
+
 @dataclass(frozen=True)
 class Entry:
     relative: str
@@ -80,6 +84,12 @@ def _images(fs):
 
 
 def _prepare(fs, candidate, decision):
+    # A partial rollback need not form a valid complete slice; classify its record first.
+    journal = _load_journal(fs)
+    if journal is not None and journal[2] in ("prepared", "incomplete"):
+        raise _RecoveryRequired("interrupted simulation requires explicit recovery")
+    if journal is not None:
+        _check_completed(fs, journal)
     if not isinstance(candidate, ThemeState):
         raise ValueError("simulation requires a four-field ThemeState candidate")
     if decision is None:
@@ -98,12 +108,6 @@ def _prepare(fs, candidate, decision):
         raise ValueError("Ghostty simulation must be opaque")
     old = _images(fs)
     _validate_slice(old)
-    journal = _load_journal(fs)
-    if journal is not None and journal[2] in ("prepared", "incomplete"):
-        raise ValueError("interrupted simulation requires explicit recovery")
-    if journal is not None and journal[2] == "restored":
-        fs.check_directories(journal[1], completed=True)
-        fs.sync_restoration(journal[1])
     lock = fs.read(LOCK)
     if lock is not None and (lock.mode != 0o600 or lock.content):
         raise ValueError("invalid simulation lock")
@@ -219,6 +223,19 @@ def _load_journal(fs):
     return tuple(entries), directory_records(data["created_dirs"]), data["phase"]
 
 
+def _check_completed(fs, record):
+    entries, directories, phase = record
+    try:
+        fs.check_directories(directories, completed=phase == "restored")
+        for entry in entries:
+            expected = entry.before if phase == "restored" else entry.after
+            if fs.read(entry.relative) != expected:
+                raise ValueError("completed record differs from current images")
+        fs.sync_restoration(directories)
+    except (OSError, ValueError) as error:
+        raise _RecoveryRequired("completed simulation requires recovery or manual review") from error
+
+
 def _restore(fs, entries, directories):
     errors = []
     fs.on_directory_change = None
@@ -244,6 +261,11 @@ def _restore(fs, entries, directories):
     except (OSError, ValueError):
         errors.append("simulation directory cleanup incomplete")
     try:
+        # Already-recognized before-images can still owe a sync from a failed rename/unlink.
+        fs.sync_restoration(directories)
+    except (OSError, ValueError):
+        errors.append("simulation managed-parent durability incomplete")
+    try:
         _journal(fs, entries, fs.updated_records(directories), "incomplete" if errors else "restored")
     except (OSError, ValueError):
         errors.append("simulation recovery journal update failed; record retained where available")
@@ -264,6 +286,7 @@ def _diagnostic(error):
 def switch_simulated(candidate, root, *, decision=None, plan=None):
     """Fresh internal preparation under lock; supplied previews are always refused."""
     previous = None
+    recovery_required = False
     try:
         if plan is not None:
             raise ValueError("supplied simulation plans are preview-only")
@@ -281,13 +304,15 @@ def switch_simulated(candidate, root, *, decision=None, plan=None):
                 if all(e.before == e.after for e in prepared.entries):
                     if not adapter.verify(fs, prepared.entries[0].after.content).success:
                         raise ValueError("unchanged simulation verification failed")
+                    fs.sync_restoration(())
                     return SwitchResult(True, candidate.active, (WARNING,), "not-needed")
-                _journal(fs, prepared.entries, fs.records_for(prepared.created_dirs), "prepared")
-                # Persist actual mkdir identities and owned directory mutations before
-                # returning from the operation. A crash before this callback remains ambiguous.
-                fs.on_directory_change = lambda: _journal(
-                    fs, prepared.entries, fs.records_for(prepared.created_dirs), "prepared")
+                recovery_required = True  # A journal rename may succeed before the writer raises.
                 try:
+                    _journal(fs, prepared.entries, fs.records_for(prepared.created_dirs), "prepared")
+                    # Persist actual mkdir identities and owned directory mutations before
+                    # returning from the operation. A crash before this callback remains ambiguous.
+                    fs.on_directory_change = lambda: _journal(
+                        fs, prepared.entries, fs.records_for(prepared.created_dirs), "prepared")
                     target = prepared.entries[0]
                     fs.replace(target.relative, target.after, expected=target.before)
                     if not adapter.verify(fs, target.after.content).success or fs.read(TARGET) != target.after:
@@ -307,16 +332,21 @@ def switch_simulated(candidate, root, *, decision=None, plan=None):
                     if _images(fs) != {e.relative: e.after for e in prepared.entries}:
                         raise ValueError("simulation slice changed before commit")
                     fs.on_directory_change = None
+                    fs.sync_restoration(fs.records_for(prepared.created_dirs))
                     _journal(fs, prepared.entries, fs.records_for(prepared.created_dirs), "committed")
                     return SwitchResult(True, candidate.active, (WARNING, refresh.message), "not-needed")
                 except BaseException as error:
-                    errors = _restore(fs, prepared.entries, fs.records_for(prepared.created_dirs))
+                    try:
+                        errors = _restore(fs, prepared.entries, fs.records_for(prepared.created_dirs))
+                    except Exception:
+                        errors = ("simulation restoration setup failed; recovery required; record retained where available",)
                     if not isinstance(error, Exception):
                         raise
                     return SwitchResult(False, previous.active if previous else None,
                                         (_diagnostic(error), *errors), "incomplete" if errors else "restored")
     except (OSError, ValueError, TypeError, KeyError, RecursionError) as error:
-        return SwitchResult(False, previous.active if previous else None, (_diagnostic(error),), "not-started")
+        status = "incomplete" if recovery_required or isinstance(error, _RecoveryRequired) else "not-started"
+        return SwitchResult(False, previous.active if previous else None, (_diagnostic(error),), status)
 
 
 def recover_simulated(root):
@@ -326,9 +356,8 @@ def recover_simulated(root):
             fs.check_enrollment()
             record = _load_journal(fs)
             if record is None or record[2] in ("committed", "restored"):
-                if record is not None and record[2] == "restored":
-                    fs.check_directories(record[1], completed=True)
-                    fs.sync_restoration(record[1])
+                if record is not None:
+                    _check_completed(fs, record)
                 current = _validate_slice(_images(fs))
                 return SwitchResult(True, current.active if current else None, (WARNING,), "not-needed")
             entries, directories, _ = record

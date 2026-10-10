@@ -113,17 +113,34 @@ Unrelated later contents survive. Failure and incomplete restoration remain
 distinct. A failed result's `active` is the last known-good *simulated*
 selection, not evidence of current files, native configuration or appearance.
 
-Journal preparation failures occur before target writes. If the prepared record
-was already persisted, explicit recovery is required even when no fragment was
-written. Recovery validates the complete checksummed record, enrollment binding,
+Journal preparation failures occur before target writes. From the first prepared
+journal write attempt, failures are recovery-required unless full restoration,
+cleanup, parent durability and the final journal update are verified. This also
+applies when provenance validation or rollback setup itself fails. A rename can
+succeed before its writer raises, so these failures cannot be labeled
+`not-started` merely because the write call did not return. Before preparation,
+unsafe inputs remain zero-write refusals. A validated pending journal is checked
+before current-slice or candidate validation, so mixed images from an incomplete
+rollback and external edits keep repeated switches `incomplete` without writes.
+Recovery validates the complete checksummed record, enrollment binding,
 exact ordered paths, image limits/metadata, canonical fragment and scoped
 selection/decision/ownership consistency before restoring anything. Later edits
-cause refusal and retained records. Repeated completed recovery is read-only;
+cause refusal and retained records. Repeated completed recovery changes no files;
 `restored` records must also have no pending application directory cleanup.
-Before accepting such a record, recovery and preparation re-fsync cleanup parents
-(or their nearest existing ancestor), `config`, and the journal parent. These
-durability retries change no directory entries, file bytes or metadata. They also
-run when the journal has no created-directory records.
+Both `committed` and `restored` records must match their respective after-images
+or before-images. A different valid simulated slice is still an external change
+and cannot be silently accepted as this record's completed transaction.
+
+Parent durability obligations are reconstructed deterministically from every
+managed path plus cleanup and journal paths, including preexisting directories.
+Restoration retries these fsyncs even when current bytes already match the
+before-images. Preparation and recovery also retry them before accepting a
+completed record; byte-identical switches and final commit verify them too.
+The generated-file parent, state/index/decision/selection/journal parent, cleanup
+parents and `config` are synced, or their nearest existing ancestor when removed.
+These retries change no directory entries, file bytes or metadata and need no
+in-memory debt flag or new journal schema. Persistent EIO returns `incomplete`
+with retained evidence; clearing the fault permits a later verified retry.
 
 Schema-2 directory records are limited to `config/panda` and
 `config/panda/generated`, in that order. A pending identity is `null` and authorizes
@@ -165,7 +182,11 @@ application directories remain.
 operation rejects real roots and Phase 3A roots. Reads/writes use exact allowlists,
 descriptor-relative no-follow traversal, singly linked owned regular files,
 safe modes and bounded images. Unsupported extended attributes/ACL names are
-refused. Parent identities are pinned and rechecked, as is the lock inode.
+refused on files and every opened directory, including prospective target and
+transaction-metadata ancestors. Setgid, setuid and sticky directory bits are
+unsupported: preflight refuses them before lock, journal, child or temporary-file
+creation. Existing directories are never chmodded to repair inheritance.
+Parent identities are pinned and rechecked, as is the lock inode.
 The enrollment source/hook paths are never writable. No backend dispatch can
 convert simulation enrollment or Phase 3A CLI flags into real-path writes.
 
@@ -187,6 +208,10 @@ verification/refresh failures, later edits, incomplete restore, lock contention,
 fresh-process abrupt-exit recovery, mkdir/provenance interruption, external empty
 directories, directory replacement/timestamp drift, cleanup EIO/fsync failures,
 retry, repeated recovery and corrupted/semantically incomplete or legacy journals.
+Additional regressions cover preexisting-parent persistent/one-shot fsync EIO,
+missing and existing before-images, fresh-process durability retries, completed
+record/image mismatch, unsupported ancestor modes/xattrs with unchanged metadata,
+and post-preparation write/provenance failures with truthful rollback status.
 Native programs and real GUI sessions are not test subjects.
 
 Run the full suite and Fish validations with sanitized disposable HOME and all

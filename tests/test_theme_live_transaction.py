@@ -34,6 +34,283 @@ class LiveTransactionContracts(unittest.TestCase):
         with self.fs.SimulatedLiveFS(self.root) as fs:
             return {path: fs.read(path) for path in self.fs.MANAGED}
 
+    def preexisting_slice(self, *, existing):
+        self.root = fixture(self)
+        self.enrollment.enroll_fixture(self.root, version="1.3.1")
+        (self.root / "config/panda").mkdir(mode=0o700)
+        (self.root / "config/panda/generated").mkdir(mode=0o700)
+        (self.root / "state/panda-ghostty-simulation").mkdir(mode=0o700)
+        if existing:
+            self.assertTrue(self.switch(self.old).success)
+        return self.managed()
+
+    def parent_sync_fault(self, parent, *, once=False, after_preparation=False):
+        identity = (parent.stat().st_dev, parent.stat().st_ino)
+        original = os.fsync
+        failed = False
+        armed = not after_preparation
+        def fsync(fd):
+            nonlocal failed, armed
+            info = os.fstat(fd)
+            if (info.st_dev, info.st_ino) == identity:
+                if not armed:
+                    journal = self.root / self.fs.JOURNAL
+                    armed = journal.exists() and json.loads(journal.read_bytes())["payload"]["phase"] == "prepared"
+                if armed and (not once or not failed):
+                    failed = True
+                    raise OSError(errno.EIO, "parent durability failure")
+            return original(fd)
+        return fsync
+
+    def test_preexisting_generated_parent_eio_stays_incomplete_until_retry(self):
+        for existing in (False, True):
+            with self.subTest(existing=existing):
+                before = self.preexisting_slice(existing=existing)
+                fail = self.parent_sync_fault(self.root / "config/panda/generated", after_preparation=True)
+                with patch("live_fs.os.fsync", side_effect=fail):
+                    result = self.switch()
+                    self.assertFalse(result.success)
+                    self.assertEqual(result.rollback_status, "incomplete")
+                    for _ in range(2):
+                        recovery = self.api.recover_simulated(self.root)
+                        self.assertFalse(recovery.success, recovery.warnings)
+                        self.assertEqual(recovery.rollback_status, "incomplete")
+                        self.assertEqual(json.loads((self.root / self.fs.JOURNAL).read_bytes())[
+                            "payload"]["phase"], "incomplete")
+                    self.assertEqual(self.managed(), before)
+                recovery = self.api.recover_simulated(self.root)
+                self.assertTrue(recovery.success, recovery.warnings)
+                self.assertEqual(recovery.rollback_status, "restored")
+                self.assertEqual(self.managed(), before)
+                snapshot = tree(self.root)
+                self.assertEqual(self.api.recover_simulated(self.root).rollback_status, "not-needed")
+                self.assertEqual(tree(self.root), snapshot)
+
+    def test_one_shot_generated_parent_eio_allows_verified_restoration(self):
+        for existing in (False, True):
+            with self.subTest(existing=existing):
+                before = self.preexisting_slice(existing=existing)
+                fail = self.parent_sync_fault(self.root / "config/panda/generated", once=True,
+                                              after_preparation=True)
+                with patch("live_fs.os.fsync", side_effect=fail):
+                    result = self.switch()
+                self.assertFalse(result.success)
+                self.assertEqual(result.rollback_status, "restored", result.warnings)
+                self.assertEqual(self.managed(), before)
+                self.assertTrue(self.api.recover_simulated(self.root).success)
+
+    def test_metadata_parent_eio_retains_evidence_until_fault_clears(self):
+        for existing in (False, True):
+            with self.subTest(existing=existing):
+                before = self.preexisting_slice(existing=existing)
+                fail = self.parent_sync_fault(self.root / "state/panda-ghostty-simulation")
+                original = self.fs.SimulatedLiveFS.replace
+                armed = False
+                def replace(fs, path, image, *, expected):
+                    nonlocal armed
+                    if path == self.fs.INDEX:
+                        armed = True
+                    return original(fs, path, image, expected=expected)
+                def fsync(fd):
+                    return fail(fd) if armed else os_fsync(fd)
+                os_fsync = os.fsync
+                with patch.object(self.fs.SimulatedLiveFS, "replace", replace), patch(
+                        "live_fs.os.fsync", side_effect=fsync):
+                    result = self.switch()
+                    self.assertFalse(result.success)
+                    self.assertEqual(result.rollback_status, "incomplete")
+                    self.assertTrue((self.root / self.fs.JOURNAL).is_file())
+                    self.assertFalse(self.api.recover_simulated(self.root).success)
+                self.assertTrue(self.api.recover_simulated(self.root).success)
+                self.assertEqual(self.managed(), before)
+
+    def test_fresh_process_retries_preexisting_parent_durability(self):
+        script = "import sys,os,json; sys.path.insert(0,sys.argv[1]); from pathlib import Path; import live_fs; from live_transaction import recover_simulated; root=Path(sys.argv[2]); p=root/'config/panda/generated'; identity=(p.stat().st_dev,p.stat().st_ino); original=os.fsync\ndef fail(fd):\n info=os.fstat(fd)\n if (info.st_dev,info.st_ino)==identity: raise OSError(5,'durability failure')\n return original(fd)\nlive_fs.os.fsync=fail\nr=recover_simulated(root); print(json.dumps([r.success,r.rollback_status])); sys.exit(0 if r.success else 1)"
+        for existing in (False, True):
+            with self.subTest(existing=existing):
+                before = self.preexisting_slice(existing=existing)
+                fail = self.parent_sync_fault(self.root / "config/panda/generated", after_preparation=True)
+                with patch("live_fs.os.fsync", side_effect=fail):
+                    self.assertEqual(self.switch().rollback_status, "incomplete")
+                process = subprocess.run([sys.executable, "-B", "-c", script, str(COMMON), str(self.root)],
+                                         timeout=10, capture_output=True, text=True)
+                self.assertEqual(process.returncode, 1, process.stderr)
+                self.assertEqual(json.loads(process.stdout), [False, "incomplete"])
+                self.assertEqual(self.managed(), before)
+                self.assertTrue(self.api.recover_simulated(self.root).success)
+
+    def test_completed_records_cannot_bypass_managed_parent_durability(self):
+        from adapters.live_ghostty import GhosttyModel
+        for phase in ("committed", "restored"):
+            with self.subTest(phase=phase):
+                before = self.preexisting_slice(existing=True)
+                if phase == "restored":
+                    with patch.object(GhosttyModel, "refresh", side_effect=OSError("refresh failed")):
+                        self.assertEqual(self.switch().rollback_status, "restored")
+                snapshot = tree(self.root)
+                fail = self.parent_sync_fault(self.root / "config/panda/generated")
+                with patch("live_fs.os.fsync", side_effect=fail):
+                    recovery = self.api.recover_simulated(self.root)
+                    self.assertFalse(recovery.success)
+                    self.assertEqual(recovery.rollback_status, "incomplete")
+                    repeated = self.switch(self.old)
+                    self.assertFalse(repeated.success)
+                    self.assertEqual(repeated.rollback_status, "incomplete")
+                self.assertEqual(tree(self.root), snapshot)
+                self.assertEqual(self.managed(), before)
+                self.assertTrue(self.api.recover_simulated(self.root).success)
+
+    def test_completed_journal_refuses_a_different_valid_external_slice(self):
+        from adapters.live_ghostty import GhosttyModel
+        for phase in ("committed", "restored"):
+            with self.subTest(phase=phase):
+                self.preexisting_slice(existing=True)
+                if phase == "restored":
+                    with patch.object(GhosttyModel, "refresh", side_effect=OSError("refresh failed")):
+                        self.assertEqual(self.switch().rollback_status, "restored")
+                journal = self.root / self.fs.JOURNAL
+                original = journal.read_bytes()
+                self.assertTrue(self.switch().success)
+                journal.write_bytes(original)
+                before = tree(self.root)
+                recovery = self.api.recover_simulated(self.root)
+                self.assertFalse(recovery.success)
+                self.assertEqual(recovery.rollback_status, "incomplete")
+                self.assertFalse(self.switch(self.old).success)
+                self.assertEqual(tree(self.root), before)
+
+    def metadata_snapshot(self):
+        import stat
+        result = {}
+        for path in (self.root, *self.root.rglob("*")):
+            info = path.lstat()
+            content = None
+            if stat.S_ISREG(info.st_mode):
+                with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NOATIME), "rb") as handle:
+                    content = handle.read()
+            result[str(path.relative_to(self.root))] = (
+                info.st_mode, info.st_uid, info.st_gid, info.st_ino, info.st_nlink,
+                info.st_atime_ns, info.st_mtime_ns, info.st_ctime_ns, content)
+        return result
+
+    def test_setgid_ancestors_are_zero_write_preflight_refusals(self):
+        ancestors = ("config", "config/panda", "config/panda/generated", "state",
+                     "state/panda-ghostty-simulation", "config/ghostty", "source/home",
+                     "source/home/dot_config", "source/home/dot_config/ghostty")
+        cases = [(path, 0o2700) for path in ancestors] + [
+            ("config/panda", 0o4700), ("config/panda", 0o1700)]
+        for relative, mode in cases:
+            with self.subTest(relative=relative, mode=oct(mode)):
+                self.root = fixture(self)
+                self.enrollment.enroll_fixture(self.root, version="1.3.1")
+                parent = self.root / relative
+                parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                parent.chmod(mode)
+                before = self.metadata_snapshot()
+                result = self.switch()
+                self.assertFalse(result.success)
+                self.assertEqual(result.rollback_status, "not-started")
+                self.assertEqual(self.metadata_snapshot(), before)
+                self.assertFalse((self.root / self.fs.LOCK).exists())
+                self.assertFalse((self.root / self.fs.JOURNAL).exists())
+
+    def test_extended_metadata_ancestors_are_zero_write_preflight_refusals(self):
+        for relative in ("config", "state", "source", "config/panda", "config/panda/generated",
+                         "state/panda-ghostty-simulation", "config/ghostty", "source/home/dot_config"):
+            with self.subTest(relative=relative):
+                self.root = fixture(self)
+                self.enrollment.enroll_fixture(self.root, version="1.3.1")
+                parent = self.root / relative
+                parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+                os.setxattr(parent, "user.panda-test", b"unsupported ancestor metadata")
+                before = self.metadata_snapshot()
+                result = self.switch()
+                self.assertFalse(result.success)
+                self.assertEqual(result.rollback_status, "not-started")
+                self.assertEqual(self.metadata_snapshot(), before)
+                self.assertEqual(os.getxattr(parent, "user.panda-test"), b"unsupported ancestor metadata")
+                self.assertFalse((self.root / self.fs.LOCK).exists())
+                self.assertFalse((self.root / self.fs.JOURNAL).exists())
+
+    def test_exception_after_prepared_write_never_reports_not_started(self):
+        before = self.preexisting_slice(existing=False)
+        original = self.api._journal
+        failed = False
+        def journal(fs, entries, directories, phase):
+            nonlocal failed
+            original(fs, entries, directories, phase)
+            if phase == "prepared" and not failed:
+                failed = True
+                raise OSError(errno.EIO, "failed after durable preparation")
+        with patch.object(self.api, "_journal", journal):
+            result = self.switch()
+        self.assertFalse(result.success)
+        self.assertEqual(result.rollback_status, "restored", result.warnings)
+        self.assertEqual(self.managed(), before)
+        self.assertEqual(json.loads((self.root / self.fs.JOURNAL).read_bytes())["payload"]["phase"],
+                         "restored")
+
+    def test_post_prepared_provenance_failure_is_incomplete(self):
+        original_journal = self.api._journal
+        original_records = self.fs.SimulatedLiveFS.records_for
+        armed = False
+        def journal(fs, entries, directories, phase):
+            nonlocal armed
+            original_journal(fs, entries, directories, phase)
+            if phase == "prepared":
+                armed = True
+        def records(fs, planned):
+            if armed:
+                raise ValueError("provenance unavailable after preparation")
+            return original_records(fs, planned)
+        with patch.object(self.api, "_journal", journal), patch.object(
+                self.fs.SimulatedLiveFS, "records_for", records):
+            result = self.switch()
+        self.assertFalse(result.success)
+        self.assertEqual(result.rollback_status, "incomplete")
+        self.assertEqual(json.loads((self.root / self.fs.JOURNAL).read_bytes())["payload"]["phase"],
+                         "prepared")
+        before = tree(self.root)
+        self.assertFalse(self.api.recover_simulated(self.root).success)
+        self.assertEqual(tree(self.root), before)
+
+    def test_pending_journal_blocks_repeats_before_slice_validation(self):
+        from adapters.live_ghostty import GhosttyModel
+        for external in (False, True):
+            with self.subTest(external=external):
+                old = self.preexisting_slice(existing=True)
+                original = self.fs.SimulatedLiveFS.replace
+                original_verify = GhosttyModel.verify
+                def fail(fs, path, image, *, expected):
+                    if ((path == self.fs.INDEX and image != old[path]) or
+                            (path == self.fs.TARGET and image == old[path])):
+                        raise OSError(errno.EIO, "apply or restoration failure")
+                    return original(fs, path, image, expected=expected)
+                def edit(adapter, fs, prepared):
+                    result = original_verify(adapter, fs, prepared)
+                    (self.root / self.fs.TARGET).write_bytes(b"external post-verification content")
+                    return result
+                fault = patch.object(GhosttyModel, "verify", edit) if external else patch.object(
+                    self.fs.SimulatedLiveFS, "replace", fail)
+                with fault:
+                    result = self.switch()
+                self.assertFalse(result.success)
+                self.assertEqual(result.rollback_status, "incomplete")
+                before = self.metadata_snapshot()
+                for candidate in (self.candidate, "invalid candidate"):
+                    repeated = self.switch(candidate=candidate)
+                    self.assertFalse(repeated.success)
+                    self.assertEqual(repeated.rollback_status, "incomplete")
+                    self.assertEqual(self.metadata_snapshot(), before)
+                recovery = self.api.recover_simulated(self.root)
+                if external:
+                    self.assertFalse(recovery.success)
+                    self.assertEqual(self.metadata_snapshot(), before)
+                else:
+                    self.assertTrue(recovery.success, recovery.warnings)
+                    self.assertEqual(recovery.rollback_status, "restored")
+                    self.assertEqual(self.managed(), old)
+
     def test_success_is_ghostty_simulation_only_and_never_deploys_hook(self):
         before_source = (self.root / self.fs.SOURCE).read_bytes()
         result = self.switch()
