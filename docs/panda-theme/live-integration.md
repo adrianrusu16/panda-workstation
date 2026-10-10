@@ -176,6 +176,15 @@ mismatched stamps require manual review. Cleanup never promotes an incomplete
 result to `restored` or `not-needed` while recorded
 application directories remain.
 
+An independently reproduced informational edge case requires manual review:
+a committed-journal rename can succeed while its parent-directory fsync fails,
+followed by failures of the rollback-journal writes. Even when all managed files
+have been restored to verified before-images, the retained journal can still
+show `committed`. Later recovery conservatively reports `incomplete`, even after
+the faults clear, and preserves the files and recovery evidence without replay
+or deletion. Manual inspection and reconciliation of that evidence are required;
+automatic recovery has not succeeded in this case.
+
 ## File capability and limits
 
 `live_fs.py` is independent of `FixtureFS`; Phase 3A guards are unchanged. Every
@@ -231,4 +240,5 @@ Wayland inspection; exercise controlled failure and restore the starting state.
 Kitty's automatic reload, Konsole's profile reference, Starship's full-config
 ownership/palette wiring, Fastfetch's config invocation and Fish's session hooks
 remain separate adapter decisions. No other adapter or Phase 4 capability is
-enrolled by B1. Changes remain uncommitted and unpublished for review.
+enrolled by B1. The committed B1 work remains fixture-only. Gates B2 and B3 have
+not been approved.
