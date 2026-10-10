@@ -23,7 +23,7 @@ use these HOME/XDG roots; no installed application or interactive shell runs.
 | `state/panda-ghostty-simulation/managed-files.json` | Scoped fragment ownership hash |
 | `state/panda-ghostty-simulation/decision.json` | Scoped simulated selection explanation |
 | `state/panda-ghostty-simulation/selection.json` | Four-field proposal inside a `ghostty-simulation-only` envelope |
-| `state/panda-ghostty-simulation/journal.json` | Checksummed before/after recovery images, enrollment binding and phase |
+| `state/panda-ghostty-simulation/journal.json` | Schema-2 checksummed recovery images, directory provenance, enrollment binding and phase |
 | `state/panda-ghostty-simulation/lock` | Persistent advisory lock inode |
 
 No `panda/theme-state.toml` is written. A Ghostty-only simulation must not imply
@@ -89,8 +89,10 @@ read-only inventory/preview API is still a separately approved B2 deliverable.
 3. Validate the existing lock and recovery journal before any directory or lock
    creation. A pending journal blocks further switching.
 4. Acquire the nonblocking fixture lock. Recheck input fingerprints and current
-   images; regenerate the internal plan under the lock. Every supplied execution
-   plan, including a valid preview, is refused before writes.
+   images and intended missing directories; regenerate the internal plan under
+   the lock. Directories created by lock acquisition are accounted for separately;
+   external creation makes the preview stale before any application. Every
+   supplied execution plan, including a valid preview, is refused before writes.
 5. Persist/fsync the prepared journal before changing the fragment.
 6. Apply by same-directory atomic replacement, verify, and perform the refresh
    model. The refresh model invokes no native program and always labels native
@@ -104,9 +106,11 @@ requires its Phase 2 decision and preserves manual history. No context detector,
 watcher, timer, installation or notification is added.
 
 On caught failure, reverse restoration accepts only recognized before/after
-images and verifies the result. It removes only created files and recorded empty
-directories; unrelated later contents survive. Failure and incomplete restoration
-remain distinct. A failed result's `active` is the last known-good *simulated*
+images and verifies the result. Cleanup accepts only actually created, still-empty
+application directories whose recorded provenance matches. The persistent
+`state/panda-ghostty-simulation` directory remains with its lock and recovery record.
+Unrelated later contents survive. Failure and incomplete restoration remain
+distinct. A failed result's `active` is the last known-good *simulated*
 selection, not evidence of current files, native configuration or appearance.
 
 Journal preparation failures occur before target writes. If the prepared record
@@ -114,7 +118,46 @@ was already persisted, explicit recovery is required even when no fragment was
 written. Recovery validates the complete checksummed record, enrollment binding,
 exact ordered paths, image limits/metadata, canonical fragment and scoped
 selection/decision/ownership consistency before restoring anything. Later edits
-cause refusal and retained records. Repeated completed recovery is read-only.
+cause refusal and retained records. Repeated completed recovery is read-only;
+`restored` records must also have no pending application directory cleanup.
+Before accepting such a record, recovery and preparation re-fsync cleanup parents
+(or their nearest existing ancestor), `config`, and the journal parent. These
+durability retries change no directory entries, file bytes or metadata. They also
+run when the journal has no created-directory records.
+
+Schema-2 directory records are limited to `config/panda` and
+`config/panda/generated`, in that order. A pending identity is `null` and authorizes
+no removal of an existing directory. After mkdir, identity comes from the opened
+directory descriptor: device/inode, uid/gid, mode, mtime and ctime. Each legitimate
+child creation or file replacement/removal refreshes the owned directory stamp.
+The prepared journal is persisted again after mkdir/fsync and application file
+changes, before those operations return. Recovery rechecks these stamps before
+locking and under lock. Replacement, changed permissions/metadata, or later child
+creation/removal makes provenance ambiguous even if the directory is now empty;
+recovery preserves it and reports incomplete/manual review.
+
+A crash between mkdir or an owned directory mutation and provenance persistence
+cannot safely establish the new stamp. Recovery preserves the unknown/changed
+directory and retains the record for manual review; harmless empty directories or
+partial managed images may remain. There is no claim of closing that crash window.
+Schema-1 journals contain only path lists. They are retained and refused without
+lock creation or automatic replay, including records marked `restored` or
+`committed`; there is no inferred migration to schema 2. Selection metadata and
+enrollment keep their existing schema versions.
+
+Cleanup treats absence as benign. A populated directory is preserved and cleanup
+remains incomplete. Other rmdir failures and parent fsync failures propagate into
+an incomplete result with retained recovery images and updated known provenance.
+Recovery can retry after a transient failure, including a failed fsync after a
+successful removal. A final recovery-journal failure triggers a best-effort
+`incomplete` replacement. If that replacement cannot be written, a `restored`
+record may already be visible from the preceding rename even though its fsync
+failed. Its phase alone never proves success: recovery must retry the parent
+durability checks, and continuing fsync failures remain incomplete. If updating
+the recovery record itself fails, the previous record remains where available;
+mismatched stamps require manual review. Cleanup never promotes an incomplete
+result to `restored` or `not-needed` while recorded
+application directories remain.
 
 ## File capability and limits
 
@@ -129,7 +172,8 @@ convert simulation enrollment or Phase 3A CLI flags into real-path writes.
 Individual replacements are atomic; the multi-file transaction is not. Checksums
 detect corruption, not malicious same-user tampering. Advisory locks and
 check-before-rename do not provide filesystem compare-and-swap or hostile
-same-user isolation. Bytes, modes and mtimes are compared for restoration; inode
+same-user isolation. Mount aliases have not been validated. Bytes, modes and
+mtimes are compared for restoration; inode
 identity, ctime and directory timestamps are not restored. A crash during staging
 may leave a `.panda-b1-*` temporary file; recovery never glob-deletes artifacts.
 Power loss, SIGKILL, ENOSPC, reboot, hardware failure and network-filesystem
@@ -140,8 +184,10 @@ durability have not been demonstrated.
 Focused regressions cover fail-closed enrollment, capability separation, source
 and deployed drift, include modeling, every managed-write failure boundary,
 verification/refresh failures, later edits, incomplete restore, lock contention,
-fresh-process abrupt-exit recovery, repeated recovery and corrupted/semantically
-incomplete journals. Native programs and real GUI sessions are not test subjects.
+fresh-process abrupt-exit recovery, mkdir/provenance interruption, external empty
+directories, directory replacement/timestamp drift, cleanup EIO/fsync failures,
+retry, repeated recovery and corrupted/semantically incomplete or legacy journals.
+Native programs and real GUI sessions are not test subjects.
 
 Run the full suite and Fish validations with sanitized disposable HOME and all
 four XDG roots. Python uses `-B`; Fish startup is permitted only in those fixtures.

@@ -11,7 +11,7 @@ from adapters.live_ghostty import GhosttyModel, model_hook, effective_model
 from enrollment import decode_record, digest, encode_record
 from fixture_fs import FileImage, new_image
 from live_fs import (SimulatedLiveFS, TARGET, HOOK, MARKER, INDEX, DECISION, SELECTION,
-                     JOURNAL, LOCK, MANAGED, CREATABLE_DIRS, validate_image)
+                     JOURNAL, LOCK, MANAGED, directory_records, validate_image)
 from palette import load_family
 from selection import Decision
 from state import ThemeState
@@ -35,9 +35,9 @@ class SimulationPlan:
     created_dirs: tuple[str, ...]
 
 
-def _schema(data, fields):
+def _schema(data, fields, *, version=1):
     if (not isinstance(data, dict) or set(data) != {"schema_version", "scope", *fields} or
-            type(data["schema_version"]) is not int or data["schema_version"] != 1 or data["scope"] != SCOPE):
+            type(data["schema_version"]) is not int or data["schema_version"] != version or data["scope"] != SCOPE):
         raise ValueError("invalid scoped simulation metadata")
     return data
 
@@ -101,6 +101,9 @@ def _prepare(fs, candidate, decision):
     journal = _load_journal(fs)
     if journal is not None and journal[2] in ("prepared", "incomplete"):
         raise ValueError("interrupted simulation requires explicit recovery")
+    if journal is not None and journal[2] == "restored":
+        fs.check_directories(journal[1], completed=True)
+        fs.sync_restoration(journal[1])
     lock = fs.read(LOCK)
     if lock is not None and (lock.mode != 0o600 or lock.content):
         raise ValueError("invalid simulation lock")
@@ -173,8 +176,9 @@ def _image_from(data):
 
 
 def _journal(fs, entries, directories, phase):
-    payload = {"schema_version": 1, "scope": SCOPE, "phase": phase,
-               "enrollment_sha256": digest(fs.marker_image.content), "created_dirs": list(directories),
+    payload = {"schema_version": 2, "scope": SCOPE, "phase": phase,
+               "enrollment_sha256": digest(fs.marker_image.content),
+               "created_dirs": list(directory_records(directories)),
                "entries": [{"path": e.relative, "before": _image_data(e.before),
                             "after": _image_data(e.after)} for e in entries]}
     fs.replace(JOURNAL, new_image(encode_record({"payload": payload, "sha256": digest(encode_record(payload))})),
@@ -196,12 +200,10 @@ def _load_journal(fs):
     if (not isinstance(envelope, dict) or set(envelope) != {"payload", "sha256"} or
             envelope["sha256"] != digest(encode_record(envelope["payload"]))):
         raise ValueError("corrupt simulation recovery journal")
-    data = _schema(envelope["payload"], {"phase", "enrollment_sha256", "created_dirs", "entries"})
+    data = _schema(envelope["payload"], {"phase", "enrollment_sha256", "created_dirs", "entries"}, version=2)
     if (data["phase"] not in ("prepared", "committed", "restored", "incomplete") or
             data["enrollment_sha256"] != digest(fs.marker_image.content) or
             not isinstance(data["created_dirs"], list) or
-            any(not isinstance(p, str) or p not in CREATABLE_DIRS for p in data["created_dirs"]) or
-            len(set(data["created_dirs"])) != len(data["created_dirs"]) or
             not isinstance(data["entries"], list) or len(data["entries"]) != len(MANAGED)):
         raise ValueError("unsupported simulation recovery scope")
     entries = []
@@ -214,11 +216,17 @@ def _load_journal(fs):
         entries.append(Entry(path, before, after))
     for field in ("before", "after"):
         _validate_slice({e.relative: getattr(e, field) for e in entries})
-    return tuple(entries), tuple(data["created_dirs"]), data["phase"]
+    return tuple(entries), directory_records(data["created_dirs"]), data["phase"]
 
 
 def _restore(fs, entries, directories):
     errors = []
+    fs.on_directory_change = None
+    try:
+        fs.track_directories(directories)
+    except (OSError, ValueError):
+        # Never restore files through directories whose recorded provenance has drifted.
+        return ("simulation directory provenance unknown or changed; manual review required; record retained",)
     for entry in reversed(entries):
         try:
             current = fs.read(entry.relative)
@@ -236,9 +244,15 @@ def _restore(fs, entries, directories):
     except (OSError, ValueError):
         errors.append("simulation directory cleanup incomplete")
     try:
-        _journal(fs, entries, directories, "incomplete" if errors else "restored")
+        _journal(fs, entries, fs.updated_records(directories), "incomplete" if errors else "restored")
     except (OSError, ValueError):
         errors.append("simulation recovery journal update failed; record retained where available")
+        # Rename may have succeeded before its parent fsync failed. Do not leave
+        # an apparently completed record when a pending replacement can be saved.
+        try:
+            _journal(fs, entries, fs.updated_records(directories), "incomplete")
+        except (OSError, ValueError):
+            pass  # The original failure is reported; recovery retries restored-record durability too.
     return tuple(errors)
 
 
@@ -259,14 +273,20 @@ def switch_simulated(candidate, root, *, decision=None, plan=None):
             with simulation_lock(fs):
                 prepared = _prepare(fs, candidate, decision)
                 if (prepared.hook_proposal != preview.hook_proposal or
-                        any(a.before != b.before for a, b in zip(prepared.entries, preview.entries))):
+                        any(a.before != b.before for a, b in zip(prepared.entries, preview.entries)) or
+                        prepared.created_dirs != tuple(p for p in preview.created_dirs if p not in fs.created) or
+                        any(p not in preview.created_dirs for p in fs.created)):
                     raise ValueError("simulation changed while waiting for lock")
                 adapter = GhosttyModel()
                 if all(e.before == e.after for e in prepared.entries):
                     if not adapter.verify(fs, prepared.entries[0].after.content).success:
                         raise ValueError("unchanged simulation verification failed")
                     return SwitchResult(True, candidate.active, (WARNING,), "not-needed")
-                _journal(fs, prepared.entries, preview.created_dirs, "prepared")
+                _journal(fs, prepared.entries, fs.records_for(prepared.created_dirs), "prepared")
+                # Persist actual mkdir identities and owned directory mutations before
+                # returning from the operation. A crash before this callback remains ambiguous.
+                fs.on_directory_change = lambda: _journal(
+                    fs, prepared.entries, fs.records_for(prepared.created_dirs), "prepared")
                 try:
                     target = prepared.entries[0]
                     fs.replace(target.relative, target.after, expected=target.before)
@@ -286,10 +306,11 @@ def switch_simulated(candidate, root, *, decision=None, plan=None):
                     fs.check_enrollment()
                     if _images(fs) != {e.relative: e.after for e in prepared.entries}:
                         raise ValueError("simulation slice changed before commit")
-                    _journal(fs, prepared.entries, preview.created_dirs, "committed")
+                    fs.on_directory_change = None
+                    _journal(fs, prepared.entries, fs.records_for(prepared.created_dirs), "committed")
                     return SwitchResult(True, candidate.active, (WARNING, refresh.message), "not-needed")
                 except BaseException as error:
-                    errors = _restore(fs, prepared.entries, preview.created_dirs)
+                    errors = _restore(fs, prepared.entries, fs.records_for(prepared.created_dirs))
                     if not isinstance(error, Exception):
                         raise
                     return SwitchResult(False, previous.active if previous else None,
@@ -305,9 +326,13 @@ def recover_simulated(root):
             fs.check_enrollment()
             record = _load_journal(fs)
             if record is None or record[2] in ("committed", "restored"):
+                if record is not None and record[2] == "restored":
+                    fs.check_directories(record[1], completed=True)
+                    fs.sync_restoration(record[1])
                 current = _validate_slice(_images(fs))
                 return SwitchResult(True, current.active if current else None, (WARNING,), "not-needed")
             entries, directories, _ = record
+            fs.check_directories(directories)
             # Refuse the whole recovery before opening/creating a lock if any image is ambiguous.
             for entry in entries:
                 if fs.read(entry.relative) not in (entry.before, entry.after):
@@ -316,6 +341,7 @@ def recover_simulated(root):
                 fs.check_enrollment()
                 if _load_journal(fs) != record:
                     raise ValueError("recovery record changed under lock")
+                fs.check_directories(directories)
                 for entry in entries:
                     if fs.read(entry.relative) not in (entry.before, entry.after):
                         raise ValueError("later edit under recovery lock")
