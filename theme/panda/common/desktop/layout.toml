@@ -1,0 +1,55 @@
+schema_version = 1
+margin = 24
+gap = 12
+
+[top_bar]
+height = 48
+length_mode = "fill"
+alignment = "center"
+opacity = "opaque"
+roles = ["launcher", "workspaces", "system_tray", "clock"]
+
+[dock]
+height = 56
+floating = true
+bottom_clearance = 8
+length_mode = "fit"
+alignment = "center"
+icon_size = 40
+spacing = 8
+padding = 8
+plugin = "org.kde.plasma.icontasks"
+
+# Logical-pixel preferences for offline planning, not verified native minima.
+[profiles.compact]
+width = 288
+heights = [88, 120, 112, 96, 96]
+
+[profiles.expanded]
+width = 352
+heights = [104, 168, 144, 120, 120]
+
+[widgets.clock]
+plugin = "org.kde.plasma.digitalclock"
+package = "plasma-workspace"
+face = ""
+
+[widgets.media]
+plugin = "org.kde.plasma.mediacontroller"
+package = "plasma-workspace"
+face = ""
+
+[widgets.weather]
+plugin = "org.kde.plasma.weather"
+package = "kdeplasma-addons"
+face = ""
+
+[widgets.cpu]
+plugin = "org.kde.plasma.systemmonitor.cpu"
+package = "plasma-workspace"
+face = "org.kde.ksysguard.linechart"
+
+[widgets.ram]
+plugin = "org.kde.plasma.systemmonitor.memory"
+package = "plasma-workspace"
+face = "org.kde.ksysguard.horizontalbars"

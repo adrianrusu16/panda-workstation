@@ -1,2 +1,9 @@
 wl-clipboard
 xclip
+
+# Official KDE desktop widgets and native sensor faces (no activation here).
+plasma-desktop
+plasma-workspace
+kdeplasma-addons
+libksysguard
+ksystemstats
