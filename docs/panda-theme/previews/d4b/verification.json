@@ -1,0 +1,599 @@
+{
+  "bounds_failures": [],
+  "contrast": {
+    "cyber": {
+      "candidates": [
+        {
+          "background": "surface",
+          "foreground": "primary",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 10.45120339097222
+        },
+        {
+          "background": "surface",
+          "foreground": "secondary",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 11.083211943886988
+        }
+      ],
+      "used": [
+        {
+          "background": "surface",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 16.50302727188341
+        },
+        {
+          "background": "surface2",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 14.984925987355096
+        },
+        {
+          "background": "surface",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 6.934036064803115
+        },
+        {
+          "background": "surface2",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 6.296179210813809
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 10.45120339097222
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 9.489804913510278
+        },
+        {
+          "background": "surface",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 4.034207906142936
+        },
+        {
+          "background": "surface2",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 3.6631041017637216
+        },
+        {
+          "background": "surface",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 10.45120339097222
+        },
+        {
+          "background": "surface2",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 9.489804913510278
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 10.45120339097222
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 9.489804913510278
+        },
+        {
+          "background": "selection",
+          "foreground": "on_selection",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 6.794434130394822
+        }
+      ]
+    },
+    "gothic": {
+      "candidates": [
+        {
+          "background": "surface",
+          "foreground": "primary",
+          "minimum": 3,
+          "pass": false,
+          "ratio": 1.7622137681392076
+        },
+        {
+          "background": "surface",
+          "foreground": "secondary",
+          "minimum": 3,
+          "pass": false,
+          "ratio": 2.5588311890307702
+        }
+      ],
+      "used": [
+        {
+          "background": "surface",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 15.865095663727075
+        },
+        {
+          "background": "surface2",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 14.700457096293917
+        },
+        {
+          "background": "surface",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 5.5817149411412155
+        },
+        {
+          "background": "surface2",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 5.1719676171629745
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 9.0257236363899
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 8.363155564394846
+        },
+        {
+          "background": "surface",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 3.829135058743331
+        },
+        {
+          "background": "surface2",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 3.548042623888434
+        },
+        {
+          "background": "surface",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 9.290252459727965
+        },
+        {
+          "background": "surface2",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 8.608265628691855
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 9.0257236363899
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 8.363155564394846
+        },
+        {
+          "background": "selection",
+          "foreground": "on_selection",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 9.002934803125315
+        }
+      ]
+    },
+    "hybrid": {
+      "candidates": [
+        {
+          "background": "surface",
+          "foreground": "primary",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 8.49892666482536
+        },
+        {
+          "background": "surface",
+          "foreground": "secondary",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 9.633059679928667
+        }
+      ],
+      "used": [
+        {
+          "background": "surface",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 14.669961480558513
+        },
+        {
+          "background": "surface2",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 12.967527956248727
+        },
+        {
+          "background": "surface",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 5.71842279233946
+        },
+        {
+          "background": "surface2",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 5.054805871411783
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 8.49892666482536
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 7.512635208366935
+        },
+        {
+          "background": "surface",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 3.8933134716549
+        },
+        {
+          "background": "surface2",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 3.441498558331769
+        },
+        {
+          "background": "surface",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 8.49892666482536
+        },
+        {
+          "background": "surface2",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 7.512635208366935
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 8.49892666482536
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 7.512635208366935
+        },
+        {
+          "background": "selection",
+          "foreground": "on_selection",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 6.235864131712946
+        }
+      ]
+    },
+    "minimal": {
+      "candidates": [
+        {
+          "background": "surface",
+          "foreground": "primary",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 13.883166420251317
+        },
+        {
+          "background": "surface",
+          "foreground": "secondary",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 9.465149196433224
+        }
+      ],
+      "used": [
+        {
+          "background": "surface",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 16.163820571672062
+        },
+        {
+          "background": "surface2",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 14.722890917630915
+        },
+        {
+          "background": "surface",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 5.849355154405913
+        },
+        {
+          "background": "surface2",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 5.327912265230731
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 13.883166420251317
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 12.645546508657667
+        },
+        {
+          "background": "surface",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 3.315549445408417
+        },
+        {
+          "background": "surface2",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 3.019983586201749
+        },
+        {
+          "background": "surface",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 13.883166420251317
+        },
+        {
+          "background": "surface2",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 12.645546508657667
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 13.883166420251317
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 12.645546508657667
+        },
+        {
+          "background": "selection",
+          "foreground": "on_selection",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 6.902282052414311
+        }
+      ]
+    },
+    "wave": {
+      "candidates": [
+        {
+          "background": "surface",
+          "foreground": "primary",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 5.254771096607268
+        },
+        {
+          "background": "surface",
+          "foreground": "secondary",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 5.136626500747376
+        }
+      ],
+      "used": [
+        {
+          "background": "surface",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 18.151356151826167
+        },
+        {
+          "background": "surface2",
+          "foreground": "text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 16.699493962566493
+        },
+        {
+          "background": "surface",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 7.661678758985609
+        },
+        {
+          "background": "surface2",
+          "foreground": "muted",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 7.048848422597434
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 5.254771096607268
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 4.8344607129332005
+        },
+        {
+          "background": "surface",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 4.111032100020673
+        },
+        {
+          "background": "surface2",
+          "foreground": "border",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 3.782205316229517
+        },
+        {
+          "background": "surface",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 7.216428722616178
+        },
+        {
+          "background": "surface2",
+          "foreground": "focus",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 6.639212347364798
+        },
+        {
+          "background": "surface",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 5.254771096607268
+        },
+        {
+          "background": "surface2",
+          "foreground": "accent_text",
+          "minimum": 3,
+          "pass": true,
+          "ratio": 4.8344607129332005
+        },
+        {
+          "background": "selection",
+          "foreground": "on_selection",
+          "minimum": 4.5,
+          "pass": true,
+          "ratio": 7.831666665499597
+        }
+      ]
+    }
+  },
+  "expected_refusals": 5,
+  "font_metrics": {
+    "cairo": "1.18.6",
+    "fallback": false,
+    "family": "Noto Sans",
+    "font_file": "NotoSans-Regular.ttf",
+    "fontconfig": 21803,
+    "hint_metrics": "off",
+    "language": "en",
+    "pango": "1.58.2",
+    "resolution": 96,
+    "sha256": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+    "version": "2.015"
+  },
+  "geometry_accepts": 55,
+  "input_sha256": {
+    "tests/fixtures/desktop/visual/d4a-baseline.json": "28172ae45a9fe5240988b9274b313656c12eac700924edb00db0712cd741c361",
+    "tests/fixtures/desktop/visual/dock-seven.json": "a20ab7a15b18b5c14935e21f4ebf792865df8d5d7364c731dd1d27daef24b2e2",
+    "tests/fixtures/desktop/visual/long-text.json": "dca724d4832a405dc9876e498eccf0955a17ca5871d57e01ce7cfd6aaf9b8ca2",
+    "tests/fixtures/desktop/visual/paused.json": "7bc56d85feaab106ea712b28c349e6b82b3f7518d9a08aeda462ebb5bc395f51",
+    "tests/fixtures/desktop/visual/playing.json": "41d6c21f15f812017f2e1eafd3d46ad57ab9f0b1312908ae247efdf6366ed462",
+    "tests/fixtures/desktop/visual/unavailable.json": "5038cf8e4f02c636310100eae4dc15e12fdc113c88e6c81a760fa15fbab3610e",
+    "theme/panda/common/desktop/visual.toml": "f1fbeb5214d2dfa8b88d910139d2d50912c3cec43d1906aa892eb8b7ead6c778"
+  },
+  "native_verified": false,
+  "raster_environment": {
+    "librsvg": "2.63.3",
+    "python": "3.14.8"
+  },
+  "renderer_sha256": {
+    "theme/panda/common/desktop_cli.py": "832fb10b3b4b78b9a4bc8ae4b8021c16be3a638b9daf1b43c95d592684b3f544",
+    "theme/panda/common/desktop_visual.py": "f761cbac1630f2b2c7e28ceb94853b99667589e1ccc37aadaec95c3ace8dacc4",
+    "theme/panda/common/desktop_visual_export.py": "8eb31f96ee1796f58a73f6222a1f933039f5e37a17b90fb08f11404f3cc7d31d",
+    "theme/panda/common/desktop_visual_fixture.py": "a5dde531beb89a9795e2e2bf794e197e86d822d8945755c75622839243ae990a",
+    "theme/panda/common/visual_assets.py": "86d2f8cea87831331a8a19ced08e53264d6d05cc85ce69e6391e403f52f794c2",
+    "theme/panda/common/visual_style.py": "5092d29c63b915abb416dc24b326f96ecaedf5f7c88e8233b62bcf398f1a5a13",
+    "theme/panda/common/visual_svg.py": "669ad1f3216172e3d1115eb638291f67c29532fccc3803e84b794bea346b7108",
+    "theme/panda/common/visual_text.py": "587f6cf1b7e02a74da1de4db71ecd69cb6b3fb05fbeca2d91088079bc08acf28"
+  }
+}
