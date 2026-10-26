@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "scope": "panda-desktop-offline-fixture",
+  "output": {
+    "name": "synthetic-eDP-1",
+    "width": 1920,
+    "height": 1080,
+    "scale": 1
+  },
+  "desktop_id": 149,
+  "desktop_count": 1,
+  "panels": [
+    {
+      "id": 150,
+      "applet_ids": [
+        151,
+        152
+      ]
+    }
+  ],
+  "applets": [
+    {
+      "id": 151,
+      "containment_id": 150,
+      "plugin": "org.kde.plasma.icontasks",
+      "geometry": null,
+      "config": {
+        "launchers": [
+          "applications:org.kde.dolphin.desktop",
+          "applications:org.kde.konsole.desktop"
+        ]
+      }
+    },
+    {
+      "id": 152,
+      "containment_id": 150,
+      "plugin": "org.kde.plasma.systemtray",
+      "geometry": null,
+      "config": {
+        "fixture_sentinel": "preserve exactly"
+      }
+    }
+  ],
+  "bindings": {
+    "clock": null,
+    "media": null,
+    "weather": null,
+    "cpu": null,
+    "ram": null
+  },
+  "applications": [
+    "org.kde.dolphin.desktop",
+    "org.kde.konsole.desktop",
+    "org.kde.kate.desktop",
+    "org.kde.ark.desktop",
+    "org.kde.gwenview.desktop",
+    "org.kde.elisa.desktop",
+    "systemsettings.desktop"
+  ],
+  "installed_packages": [
+    "plasma-desktop",
+    "plasma-workspace",
+    "kdeplasma-addons",
+    "libksysguard",
+    "ksystemstats"
+  ],
+  "providers": {
+    "clock": "12:34 \u00b7 synthetic",
+    "media": "No players \u00b7 synthetic",
+    "weather": "Provider unconfigured",
+    "cpu": "Unavailable \u00b7 synthetic",
+    "ram": "Unavailable \u00b7 synthetic"
+  }
+}

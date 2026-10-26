@@ -1,0 +1,37 @@
+{
+  "files": {
+    "COPYING-Breeze.txt": "3b3a63d45374d8300bb841d0298e7a4c0affebeb0677a6963a345a290823b09b",
+    "GPL-3.0.txt": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+    "OFL-NotoSans.txt": "e2e177a32561584d4fc13aaa3cd8e53758a12910f013fe9ca125419111722029",
+    "breeze-icons.json": "ff698a3e9d6f84cee6643fb63275eba1e50d84a534460470bebfd8ce5a3ace23",
+    "cyber-overlook.png": "bc21387ebaf407beed04596b89809950722c692e23c6ded487dca9adb95f92b7"
+  },
+  "font": {
+    "copyright": "Copyright 2022 The Noto Project Authors",
+    "family": "Noto Sans",
+    "license": "SIL Open Font License 1.1",
+    "license_normalization": "Trailing whitespace removed; full license wording preserved. Raw upstream notice retained in development review inputs.",
+    "license_source_sha256": "cee9892f9f0cc8fe882c9e9537ee6a89621d86ee7ceaf70b02e2b2b1c25c061a",
+    "license_url": "https://raw.githubusercontent.com/notofonts/latin-greek-cyrillic/main/OFL.txt",
+    "source": "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+    "style": "Regular",
+    "version": "2.015"
+  },
+  "icons": {
+    "license_normalization": "Trailing whitespace removed; full license wording preserved. Raw upstream notice retained in development review inputs.",
+    "license_notice_url": "https://raw.githubusercontent.com/KDE/breeze-icons/master/COPYING-ICONS",
+    "license_source_sha256": "38db4d88ea3a691d6a43bf016339b55eb8b367dd7e4cb39bd8cfaa36779a6e77",
+    "package": "breeze-icons 6.31.0-1.1",
+    "source": "https://invent.kde.org/frameworks/breeze-icons"
+  },
+  "schema_version": 1,
+  "wallpaper": {
+    "archive": "Panda_Desktop_Design_Library_2026-10-18.zip",
+    "archive_sha256": "aa23ddfba4f38486fab4b20cc1eb8a88f111f66edde11b99ab6b3d99c5b975fb",
+    "member": "wallpapers/qhd/panda-cyber-neon-overlook-qhd-2560x1440.png",
+    "member_sha256": "bc21387ebaf407beed04596b89809950722c692e23c6ded487dca9adb95f92b7",
+    "provenance": "User-approved Panda design library; documented generated wallpaper-only illustration; QHD resize of 1672x941 original, not native QHD generation.",
+    "reference_only_sha256": "72ba7d7fed06dc49a30b98d91e44808be821ddc6d9c82b19cfb08885ee6c22f3"
+  }
+}

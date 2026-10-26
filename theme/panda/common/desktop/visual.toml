@@ -1,0 +1,22 @@
+schema_version = 1
+radius = 12
+font = "Noto Sans"
+[padding]
+compact = 12
+expanded = 16
+[type]
+label = 13
+body = 14
+title = 16
+clock_compact = 38
+clock_expanded = 44
+value_compact = 24
+value_expanded = 28
+[tokens]
+panel = "surface"
+track = "surface2"
+content = "text"
+label = "muted"
+graph = "accent_text"
+boundary = "border"
+focus = "focus"

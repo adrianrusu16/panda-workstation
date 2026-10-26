@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "scope": "panda-visual-synthetic",
+  "clock": {
+    "time": "22:37",
+    "date": "Monday, 21 April",
+    "short_date": "Mon 21 Apr"
+  },
+  "media": {
+    "state": "no-player",
+    "title": "",
+    "artist": "",
+    "artwork": "none",
+    "elapsed": null,
+    "duration": null,
+    "players": 0
+  },
+  "weather": {
+    "state": "offline",
+    "location": "Demo City",
+    "condition": "Clear evening",
+    "temperature": null,
+    "low": null,
+    "high": null
+  },
+  "cpu": {
+    "state": "missing",
+    "percent": null,
+    "history": [],
+    "window_seconds": 60
+  },
+  "ram": {
+    "state": "missing",
+    "used_gib": null,
+    "total_gib": null
+  },
+  "dock": [
+    {
+      "application": "org.kde.dolphin.desktop",
+      "icon": "files",
+      "running": true,
+      "selected": false
+    },
+    {
+      "application": "org.kde.konsole.desktop",
+      "icon": "terminal",
+      "running": true,
+      "selected": true
+    },
+    {
+      "application": "org.kde.kate.desktop",
+      "icon": "editor",
+      "running": true,
+      "selected": false
+    },
+    {
+      "application": "org.kde.ark.desktop",
+      "icon": "archive",
+      "running": false,
+      "selected": false
+    },
+    {
+      "application": "org.kde.gwenview.desktop",
+      "icon": "photos",
+      "running": false,
+      "selected": false
+    },
+    {
+      "application": "org.kde.elisa.desktop",
+      "icon": "music",
+      "running": true,
+      "selected": false
+    },
+    {
+      "application": "systemsettings.desktop",
+      "icon": "settings",
+      "running": false,
+      "selected": false
+    }
+  ]
+}

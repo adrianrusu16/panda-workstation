@@ -1,0 +1,25 @@
+{
+  "base_commit": "bdfa0bf58c8091b4899401bd8b42bfda12e82cb3",
+  "files": {
+    "tests/fixtures/desktop/fhd.json": "9364ad848da673586782aa81bc43f8e90cd4106b18ee6a65537eb61a42434995",
+    "theme/panda/common/desktop/layout.toml": "7b83d3fc7997cf036ff69094e7286b63a62dca9e0c796e85dec09a2425f1f2f6",
+    "theme/panda/cyber/theme.toml": "38e8d769fcfb0c0c299fb0807202290e164acd76844e96148aaba85be3906aca",
+    "theme/panda/gothic/theme.toml": "bbee4cd112882de240f1670cbf0d52c63ddf7943f13fbbe79f9f5b0ee0fb3ada",
+    "theme/panda/hybrid/theme.toml": "92de8a629e61bf5c1d446d71ee70a858d76943fda9f1f6583bcaf7e5ccf5f159",
+    "theme/panda/minimal/theme.toml": "0a4a975960d9886ab57f0f4901112e6f0536f328d3efa1a85ed8f98116abad08",
+    "theme/panda/pandawave/theme.toml": "52919e136dd6e56e33762b6f08cc60b077dfbe6f301404d8312110e46cee6bed"
+  },
+  "structures": {
+    "fhd/1.25/compact": "5211789c722e52f155b34e16cb15afc43b7e863b56f21f4692cd0d51f7cfdd95",
+    "fhd/1.25/expanded": "104b5c43dc6694a7bb96ef315c206b644f69087624e45d984577615356dd4d2e",
+    "fhd/1.5/compact": "f08916ad78d5f4e69faf5ae20f97799afda3d474e6bf52b069c6009169a2654d",
+    "fhd/1/compact": "643388a1c11c061cdde20ee9040bb67bf057c7d6584c958eacce17d6300c9789",
+    "fhd/1/expanded": "1265ee64ebe23113c9c1a1300ef3197165b59e63281f5fbb70648714fc6799b8",
+    "qhd/1.25/compact": "973c989c0f33063a5fb8a077f409dc380d460e3869eed7196a1f39216c9d1feb",
+    "qhd/1.25/expanded": "e889220839942f403cc81680da3e9fbbb07c3867f348f5d9c3bf25dcf4c90533",
+    "qhd/1.5/compact": "e47fc33d37694008430b51778aec765205616f06c440523a87249c5acfbae3a6",
+    "qhd/1.5/expanded": "fcd44776cc4ba0c776ba901ad090a4a8625cbc443c9da214a6694093d4d201ac",
+    "qhd/1/compact": "7edb563cc75d8e97c730bf84e1cbbccffdf3ebb7e60fe414983841f0783fb19e",
+    "qhd/1/expanded": "d8be725148b77fd9f53055cf80b8e0cc2fb24967d41893099ef74db9189d1e8d"
+  }
+}
