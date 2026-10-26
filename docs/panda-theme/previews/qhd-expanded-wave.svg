@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2048 1152" role="img" aria-labelledby="title desc">
+<title id="title">Panda Desktop D4A offline schematic</title>
+<desc id="desc">Synthetic fixture preview. Native widget rendering and sizing remain unverified.</desc>
+<rect x="0" y="0" width="2048" height="1152" fill="#060A13"/>
+<rect x="0" y="0" width="2048" height="48" fill="#101420" stroke="#856F94"/>
+<text x="24" y="30" fill="#FFFDFF" font-family="sans-serif" font-size="15">Panda  |  1 existing workspace(s)  |  System tray  |  12:34 · synthetic</text>
+<text x="24" y="92" fill="#FB2AA9" font-family="sans-serif" font-size="20">OFFLINE SCHEMATIC</text>
+<text x="24" y="122" fill="#A4A7B3" font-family="sans-serif" font-size="15">Native rendering and card sizes unverified</text>
+<text x="24" y="150" fill="#A4A7B3" font-family="sans-serif" font-size="15">Right column: calculated placement preference</text>
+<text x="24" y="178" fill="#A4A7B3" font-family="sans-serif" font-size="15">pandawave / expanded / 1.25 scale</text>
+<rect x="1672" y="72" width="352" height="104" fill="#101420" stroke="#856F94"/>
+<text x="1688" y="99" fill="#FB2AA9" font-family="sans-serif" font-size="15">CLOCK</text>
+<text x="1688" y="125" fill="#FFFDFF" font-family="sans-serif" font-size="15">12:34 · synthetic</text>
+<rect x="1672" y="188" width="352" height="168" fill="#101420" stroke="#856F94"/>
+<text x="1688" y="215" fill="#FB2AA9" font-family="sans-serif" font-size="15">MEDIA</text>
+<text x="1688" y="241" fill="#FFFDFF" font-family="sans-serif" font-size="15">No players · synthetic</text>
+<rect x="1672" y="368" width="352" height="144" fill="#101420" stroke="#856F94"/>
+<text x="1688" y="395" fill="#FB2AA9" font-family="sans-serif" font-size="15">WEATHER</text>
+<text x="1688" y="421" fill="#FFFDFF" font-family="sans-serif" font-size="15">Provider unconfigured</text>
+<rect x="1672" y="524" width="352" height="120" fill="#101420" stroke="#856F94"/>
+<text x="1688" y="551" fill="#FB2AA9" font-family="sans-serif" font-size="15">CPU</text>
+<text x="1688" y="577" fill="#FFFDFF" font-family="sans-serif" font-size="15">Unavailable · synthetic</text>
+<rect x="1672" y="656" width="352" height="120" fill="#101420" stroke="#856F94"/>
+<text x="1688" y="683" fill="#FB2AA9" font-family="sans-serif" font-size="15">RAM</text>
+<text x="1688" y="709" fill="#FFFDFF" font-family="sans-serif" font-size="15">Unavailable · synthetic</text>
+<rect x="972" y="1088" width="104" height="56" fill="#101420" stroke="#856F94"/>
+<text x="982" y="1122" fill="#FB2AA9" font-family="sans-serif" font-size="15">1</text>
+<text x="1034" y="1122" fill="#FB2AA9" font-family="sans-serif" font-size="15">2</text>
+</svg>
