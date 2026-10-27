@@ -1,0 +1,178 @@
+{
+  "baseline_plasma": "6.7.5",
+  "fixture_sha256": "1e020ef4b60c99c7b5ecaf1282d5f3af3986f8da73f0dc3eb6b6aa34675b3843",
+  "installed_plasma": "6.8.1",
+  "native_verified": false,
+  "preserved_fixture": {
+    "applets": [
+      {
+        "config": {},
+        "containment_id": 20,
+        "geometry": null,
+        "id": 21,
+        "plugin": "org.kde.plasma.kickoff"
+      },
+      {
+        "config": {},
+        "containment_id": 20,
+        "geometry": null,
+        "id": 22,
+        "plugin": "org.kde.plasma.pager"
+      },
+      {
+        "config": {
+          "fixture_notice": "synthetic pins; real serialized launcher list was absent",
+          "launchers": [
+            "applications:org.example.Editor.desktop",
+            "applications:org.example.Terminal.desktop"
+          ]
+        },
+        "containment_id": 20,
+        "geometry": null,
+        "id": 23,
+        "plugin": "org.kde.plasma.icontasks"
+      },
+      {
+        "config": {},
+        "containment_id": 20,
+        "geometry": null,
+        "id": 24,
+        "plugin": "org.kde.plasma.marginsseparator"
+      },
+      {
+        "config": {
+          "fixture_notice": "illustrative nested role; real tray has additional preserved applets",
+          "nested_applets": [
+            {
+              "id": 31,
+              "plugin": "org.kde.plasma.weather"
+            }
+          ]
+        },
+        "containment_id": 20,
+        "geometry": null,
+        "id": 25,
+        "plugin": "org.kde.plasma.systemtray"
+      },
+      {
+        "config": {
+          "fixture_sentinel": "panel clock must remain"
+        },
+        "containment_id": 20,
+        "geometry": null,
+        "id": 26,
+        "plugin": "org.kde.plasma.digitalclock"
+      },
+      {
+        "config": {},
+        "containment_id": 20,
+        "geometry": null,
+        "id": 27,
+        "plugin": "org.kde.plasma.showdesktop"
+      }
+    ],
+    "applications": [
+      "org.example.Editor.desktop",
+      "org.example.Terminal.desktop"
+    ],
+    "bindings": {
+      "clock": null,
+      "cpu": null,
+      "media": null,
+      "ram": null,
+      "weather": null
+    },
+    "desktop_count": 1,
+    "desktop_id": 10,
+    "installed_packages": [
+      "plasma-desktop",
+      "plasma-workspace",
+      "kdeplasma-addons",
+      "libksysguard",
+      "ksystemstats"
+    ],
+    "output": {
+      "height": 1080,
+      "name": "synthetic-saved-fhd",
+      "scale": 1,
+      "width": 1920
+    },
+    "panels": [
+      {
+        "applet_ids": [
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27
+        ],
+        "id": 20
+      }
+    ],
+    "providers": {
+      "clock": "Unobserved",
+      "cpu": "Unobserved",
+      "media": "Unobserved",
+      "ram": "Unobserved",
+      "weather": "Unobserved"
+    },
+    "schema_version": 1,
+    "scope": "panda-desktop-offline-fixture"
+  },
+  "ready_for_native_test": false,
+  "roles": [
+    {
+      "background_request": "StandardBackground",
+      "binding": "new_instance_proposed",
+      "geometry_method": "future-operator-edit-mode-only",
+      "instance_id": null,
+      "plugin": "org.kde.plasma.digitalclock",
+      "rect": [
+        1608.0,
+        72,
+        288,
+        88
+      ],
+      "role": "clock",
+      "settings": {
+        "Appearance/autoFontAndSize": true,
+        "Appearance/customDateFormat": "dddd, d MMMM",
+        "Appearance/dateDisplayFormat": 2,
+        "Appearance/dateFormat": "custom",
+        "Appearance/showDate": true,
+        "Appearance/showSeconds": 0,
+        "Appearance/use24hFormat": 2
+      }
+    },
+    {
+      "background_request": "stock-style-inheritance",
+      "binding": "new_instance_proposed",
+      "geometry_method": "future-operator-edit-mode-only",
+      "instance_id": null,
+      "plugin": "org.kde.plasma.mediacontroller",
+      "rect": [
+        1608.0,
+        172,
+        288,
+        120
+      ],
+      "role": "media",
+      "settings": {}
+    }
+  ],
+  "schema_version": 1,
+  "scope": "offline-clock-media-candidate",
+  "stop_conditions": [
+    "separate-native-authorization-required",
+    "running-version-and-output-unobserved",
+    "recovery-prerequisites-unresolved",
+    "native-minima-and-font-metrics-unmeasured",
+    "widget-geometry-script-setter-is-no-op-in-baseline",
+    "runtime-task-pins-not-established",
+    "installed-version-differs-from-baseline",
+    "clock-new-instance-authorization-required",
+    "media-new-instance-authorization-required"
+  ]
+}

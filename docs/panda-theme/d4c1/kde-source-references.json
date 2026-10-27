@@ -1,0 +1,249 @@
+{
+  "baseline": "6.7.5",
+  "provenance_check": "Initial tag-addressed tree response sha equalled resolved commit SHA; tree membership was separately verified against commit.tree.sha. All entries and selected blob hashes match.",
+  "repositories": {
+    "kdeplasma-addons": {
+      "all_tree_entries_match_immutable_tree": true,
+      "commit": "fa98db42c07adb9f459deecc00a9e0ae0206ab56",
+      "initial_tree_response_sha": "fa98db42c07adb9f459deecc00a9e0ae0206ab56",
+      "tag": "v6.7.5",
+      "tree": "b20e045e6c159e3cca3d66d84231e9cf4d60c9c0"
+    },
+    "libplasma": {
+      "all_tree_entries_match_immutable_tree": true,
+      "commit": "3992079c1036f18c78f8fdda78be3697b689071c",
+      "initial_tree_response_sha": "3992079c1036f18c78f8fdda78be3697b689071c",
+      "tag": "v6.7.5",
+      "tree": "f6c80ae8b5df21932282b1fb70b1aa5eae17d71c"
+    },
+    "plasma-workspace": {
+      "all_tree_entries_match_immutable_tree": true,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "initial_tree_response_sha": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "tag": "v6.7.5",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a"
+    }
+  },
+  "sources": [
+    {
+      "bytes": 14276,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "1f14d5a560ae774e567f1888c03286762cfef62a",
+      "path": "applets/digital-clock/configAppearance.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/digital-clock/configAppearance.qml",
+      "repo": "plasma-workspace",
+      "sha256": "14be521b060a599851e4681d1a560e229c42ee02c3c7732aaf90d1df2d83e5ec",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/digital-clock/configAppearance.qml"
+    },
+    {
+      "bytes": 6906,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "5116bf3fa536fb6f6691b9c04542cea4148853c3",
+      "path": "applets/digital-clock/main.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/digital-clock/main.qml",
+      "repo": "plasma-workspace",
+      "sha256": "99b0fa6fcad563043f9a3ef8156387cb30c2455765358903419022ac611ff963",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/digital-clock/main.qml"
+    },
+    {
+      "bytes": 4734,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "6716b906c574c769fc7aeb9faf5bc2a11df2ceb3",
+      "path": "applets/digital-clock/main.xml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/digital-clock/main.xml",
+      "repo": "plasma-workspace",
+      "sha256": "06b085a2451b7197253c4c425c61f150ce89ef2f127c7186eb90039e5ddd7c21",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/digital-clock/main.xml"
+    },
+    {
+      "bytes": 8678,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "f3126221f04a723be0468a60943f6de0420b07ed",
+      "path": "applets/mediacontroller/AlbumArtStackView.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/mediacontroller/AlbumArtStackView.qml",
+      "repo": "plasma-workspace",
+      "sha256": "4a02527163d5381f09ed0949f756dd5763046f1c77ce90ff6730754d7dd90fde",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/mediacontroller/AlbumArtStackView.qml"
+    },
+    {
+      "bytes": 8762,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "e828b2169689f6c72320615d024fc5ed016578b5",
+      "path": "applets/mediacontroller/CompactRepresentation.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/mediacontroller/CompactRepresentation.qml",
+      "repo": "plasma-workspace",
+      "sha256": "5dea2171aff4b2c4f20607fa950431589da92adafa622b3b779e474851023432",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/mediacontroller/CompactRepresentation.qml"
+    },
+    {
+      "bytes": 39510,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "047a674f2c515623fb8c714de2a605cd922ed305",
+      "path": "applets/mediacontroller/ExpandedRepresentation.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/mediacontroller/ExpandedRepresentation.qml",
+      "repo": "plasma-workspace",
+      "sha256": "cec979a5967d49b0cdc17440af516299ddd4450e64ccc49251855afdd210ca0e",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/mediacontroller/ExpandedRepresentation.qml"
+    },
+    {
+      "bytes": 894,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "ba59ccc2cc4ab51eb907d56df5b8d78f580b52de",
+      "path": "applets/mediacontroller/globalconfig.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/mediacontroller/globalconfig.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "019649fde5eab7ebee2a16a5c8756db257e2157e93f46f3cc0d22174ba2ecb83",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/mediacontroller/globalconfig.cpp"
+    },
+    {
+      "bytes": 710,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "0f9172f21b8289f7bd9aa4c05aaa8682e07f0f09",
+      "path": "applets/mediacontroller/globalconfig.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/mediacontroller/globalconfig.h",
+      "repo": "plasma-workspace",
+      "sha256": "f3e16d0112f210cc4aebd9c9b9d56a8eb6afcc1df4158e96a2040989a2e53b07",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/mediacontroller/globalconfig.h"
+    },
+    {
+      "bytes": 8059,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "5cedeff1546aafeff36c1859449643fd03405eab",
+      "path": "applets/mediacontroller/main.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/mediacontroller/main.qml",
+      "repo": "plasma-workspace",
+      "sha256": "3fe6ef0b9dc083dd5e6e703dc7e75ea78ddcffe362301832564bfec51606f3e6",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/mediacontroller/main.qml"
+    },
+    {
+      "bytes": 234,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "47581ef31c90849627e2a2f0ba48dcf37c5c2236",
+      "path": "applets/systemmonitor/cpu/contents/config/faceproperties",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/systemmonitor/cpu/contents/config/faceproperties",
+      "repo": "plasma-workspace",
+      "sha256": "7926c499065162679eff88d3114f4426de2d0505f31085d2f4136680c1d1f50e",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/systemmonitor/cpu/contents/config/faceproperties"
+    },
+    {
+      "bytes": 239,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "3bf41bb8cebd6fe7476b20f98bfe5be8b241f2d9",
+      "path": "applets/systemmonitor/memory/contents/config/faceproperties",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/systemmonitor/memory/contents/config/faceproperties",
+      "repo": "plasma-workspace",
+      "sha256": "8860e9add7aa6ad74e50cd1d20024e3d39b1cd9b2f25f6cb2819deddb28f6396",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/systemmonitor/memory/contents/config/faceproperties"
+    },
+    {
+      "bytes": 753,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "a7d3191ceb31d08237a98b5c24f727e1f34d19e0",
+      "path": "applets/systemmonitor/systemmonitor/package/contents/config/main.xml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/systemmonitor/systemmonitor/package/contents/config/main.xml",
+      "repo": "plasma-workspace",
+      "sha256": "9d22f6e07141f0c9346cade67302186f9fbd860dbda666552a2abb9bbaec6580",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/systemmonitor/systemmonitor/package/contents/config/main.xml"
+    },
+    {
+      "bytes": 2280,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "382818a0cbff5b010e028969c1a6ebb694487974",
+      "path": "applets/systemmonitor/systemmonitor/package/contents/ui/FullRepresentation.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/systemmonitor/systemmonitor/package/contents/ui/FullRepresentation.qml",
+      "repo": "plasma-workspace",
+      "sha256": "64e4d5bdee0908d60f43c58d0831c9613d393d39dc5d172c00651f3162399a6b",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/systemmonitor/systemmonitor/package/contents/ui/FullRepresentation.qml"
+    },
+    {
+      "bytes": 3775,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "357c9b18fa968906eaccc15d5ebef31519449195",
+      "path": "applets/systemmonitor/systemmonitor/package/contents/ui/main.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/applets/systemmonitor/systemmonitor/package/contents/ui/main.qml",
+      "repo": "plasma-workspace",
+      "sha256": "103c0a4ed2451ee498079cb080963b30573aa646ac55a9ac7e74482a5fe98cee",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/applets/systemmonitor/systemmonitor/package/contents/ui/main.qml"
+    },
+    {
+      "bytes": 10135,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "f7e9b3d7d8c9ee145c5c071f1629647374d93da4",
+      "path": "shell/scripting/panel.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/shell/scripting/panel.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "af30acdf4524517e2e676634723b9a7edbc06f931c2603d17047b17790fb4208",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/shell/scripting/panel.cpp"
+    },
+    {
+      "bytes": 4990,
+      "commit": "cc1ab7963f94a9b76836412855caed6b94066188",
+      "git_blob": "f59f5701fbb474697d92179133d6b072cb091dac",
+      "path": "shell/scripting/widget.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/cc1ab7963f94a9b76836412855caed6b94066188/shell/scripting/widget.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "6c498a3d6427a4c86f94f96e0faa62ae529712043d250c7b23e68a946ccb86fd",
+      "tree": "e9cdd1eba192844941c84b7c95170ebcd7b61a9a",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.7.5/shell/scripting/widget.cpp"
+    },
+    {
+      "bytes": 1766,
+      "commit": "fa98db42c07adb9f459deecc00a9e0ae0206ab56",
+      "git_blob": "61f9b9d7982de886f29a70b20e6d98e81f2c316a",
+      "path": "applets/weather/main.xml",
+      "reference": "https://github.com/KDE/kdeplasma-addons/blob/fa98db42c07adb9f459deecc00a9e0ae0206ab56/applets/weather/main.xml",
+      "repo": "kdeplasma-addons",
+      "sha256": "a49bd3fc9d3af02bd45d1edd3d7a9212556722c533c7e29afdc2eb2e77ade2a3",
+      "tree": "b20e045e6c159e3cca3d66d84231e9cf4d60c9c0",
+      "url": "https://raw.githubusercontent.com/KDE/kdeplasma-addons/v6.7.5/applets/weather/main.xml"
+    },
+    {
+      "bytes": 9794,
+      "commit": "fa98db42c07adb9f459deecc00a9e0ae0206ab56",
+      "git_blob": "8cc7e22ad5d73bccf11b71bb4cdbaa26351cb6a7",
+      "path": "applets/weather/qml/main.qml",
+      "reference": "https://github.com/KDE/kdeplasma-addons/blob/fa98db42c07adb9f459deecc00a9e0ae0206ab56/applets/weather/qml/main.qml",
+      "repo": "kdeplasma-addons",
+      "sha256": "9e7b6e8a1e3f5366a03e6961f458641becf8f60e3ea4ead4be99e9b187e3eb86",
+      "tree": "b20e045e6c159e3cca3d66d84231e9cf4d60c9c0",
+      "url": "https://raw.githubusercontent.com/KDE/kdeplasma-addons/v6.7.5/applets/weather/qml/main.qml"
+    },
+    {
+      "bytes": 27245,
+      "commit": "3992079c1036f18c78f8fdda78be3697b689071c",
+      "git_blob": "22f626068640a9e7d69cfccf6a9fc21090ccd1b0",
+      "path": "src/plasma/applet.cpp",
+      "reference": "https://github.com/KDE/libplasma/blob/3992079c1036f18c78f8fdda78be3697b689071c/src/plasma/applet.cpp",
+      "repo": "libplasma",
+      "sha256": "fa22d7100eddea31fd11fd2e9d38447835648be33e5d0789a737ca79e652caaf",
+      "tree": "f6c80ae8b5df21932282b1fb70b1aa5eae17d71c",
+      "url": "https://raw.githubusercontent.com/KDE/libplasma/v6.7.5/src/plasma/applet.cpp"
+    },
+    {
+      "bytes": 13538,
+      "commit": "3992079c1036f18c78f8fdda78be3697b689071c",
+      "git_blob": "2427750b4f73aadd5cf7c345d22fec02608a68a6",
+      "path": "src/plasmaquick/plasmoid/plasmoiditem.cpp",
+      "reference": "https://github.com/KDE/libplasma/blob/3992079c1036f18c78f8fdda78be3697b689071c/src/plasmaquick/plasmoid/plasmoiditem.cpp",
+      "repo": "libplasma",
+      "sha256": "49c942eff52c20ee53677bbd45828f47ce5fac2b40c0ba8108961c40af0e99fd",
+      "tree": "f6c80ae8b5df21932282b1fb70b1aa5eae17d71c",
+      "url": "https://raw.githubusercontent.com/KDE/libplasma/v6.7.5/src/plasmaquick/plasmoid/plasmoiditem.cpp"
+    }
+  ]
+}
