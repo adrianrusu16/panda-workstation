@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "radius": 12,
+  "slice_size": 12,
+  "border_width": 1,
+  "assets": {
+    "widgets/background.svg": 12,
+    "widgets/translucentbackground.svg": 12,
+    "widgets/panel-background.svg": 8,
+    "dialogs/background.svg": 16
+  },
+  "background": "surface",
+  "border": "border",
+  "fallback": "breeze-dark"
+}

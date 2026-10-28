@@ -1,0 +1,1654 @@
+{
+  "background_fixtures": {
+    "dark": "#070B10",
+    "light": "#F1F3F4",
+    "wallpaper_sha256": "bc21387ebaf407beed04596b89809950722c692e23c6ded487dca9adb95f92b7"
+  },
+  "border_width": 1,
+  "contrast_failures": [],
+  "d4b_references_sha256": {
+    "cyber-composition.png": "7ebde8673818e1907b0875945fd68d2939f394dd664ea9102d7f62ed8a64645f",
+    "fhd-compact-cyber.png": "939c3a2be1705eb7f0b3f2e69209c74d8d5023ac46e9e6aab2c10835626b08b1",
+    "five-flavor-comparison.png": "1e9ca2499ef46d5a2714b81f896344a74ef2a3265923e18812d8717a7c44d962"
+  },
+  "flavors": {
+    "cyber": {
+      "border_surface_ratio": 4.034207906142936,
+      "colors": {
+        "Colors:Button": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 9.489804913510278
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 9.489804913510278
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.296179210813809
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 9.489804913510278
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 5.789767047340815
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 8.48825558559075
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 14.984925987355096
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 10.063675466638339
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 9.489804913510278
+          }
+        },
+        "Colors:Complementary": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 10.45120339097222
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 10.45120339097222
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.934036064803115
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 10.45120339097222
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.376320013908998
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.348188542134126
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.50302727188341
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 11.083211943886988
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 10.45120339097222
+          }
+        },
+        "Colors:Header": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 10.45120339097222
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 10.45120339097222
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.934036064803115
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 10.45120339097222
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.376320013908998
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.348188542134126
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.50302727188341
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 11.083211943886988
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 10.45120339097222
+          }
+        },
+        "Colors:Selection": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 4.302847705057189
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 4.302847705057189
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.794434130394822
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 6.794434130394822
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.794434130394822
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 6.794434130394822
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 6.794434130394822
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 6.794434130394822
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 6.794434130394822
+          }
+        },
+        "Colors:Tooltip": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 10.45120339097222
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 10.45120339097222
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.934036064803115
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 10.45120339097222
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.376320013908998
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.348188542134126
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.50302727188341
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 11.083211943886988
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 10.45120339097222
+          }
+        },
+        "Colors:View": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 11.334009933186646
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 11.334009933186646
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 7.519749706855728
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 11.334009933186646
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.914923733782447
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 10.137824117495581
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 17.897027550793542
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 12.019403848951645
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 11.334009933186646
+          }
+        },
+        "Colors:Window": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 10.45120339097222
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 10.45120339097222
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.934036064803115
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 10.45120339097222
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.376320013908998
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.348188542134126
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.50302727188341
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 11.083211943886988
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 10.45120339097222
+          }
+        }
+      },
+      "external_border_contrast": {
+        "dark": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 4.374974897174085,
+          "samples": 656,
+          "threshold": 3
+        },
+        "light": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 4.051558220997143,
+          "samples": 656,
+          "threshold": 3
+        },
+        "wallpaper": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 479,
+          "minimum_ratio": 1.000389565709983,
+          "samples": 656,
+          "threshold": 3
+        }
+      },
+      "structure_sha256": "2efc782a4085132ed588a27dba0d90bf38681f22d09a28294da7ae2c785cf56b"
+    },
+    "gothic": {
+      "border_surface_ratio": 3.829135058743331,
+      "colors": {
+        "Colors:Button": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 8.608265628691855
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 8.608265628691855
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.1719676171629745
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 8.363155564394846
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 7.9482322534392225
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 8.553902668845005
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 14.700457096293917
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 7.750327219325965
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 8.363155564394846
+          }
+        },
+        "Colors:Complementary": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 9.290252459727965
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 9.290252459727965
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.5817149411412155
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 9.0257236363899
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 8.577928171371271
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.231582613417467
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 15.865095663727075
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 8.36434418020874
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 9.0257236363899
+          }
+        },
+        "Colors:Header": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 9.290252459727965
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 9.290252459727965
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.5817149411412155
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 9.0257236363899
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 8.577928171371271
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.231582613417467
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 15.865095663727075
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 8.36434418020874
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 9.0257236363899
+          }
+        },
+        "Colors:Selection": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 5.271921390977393
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 5.271921390977393
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 9.002934803125315
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 9.002934803125315
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 9.002934803125315
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.002934803125315
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 9.002934803125315
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.002934803125315
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 9.002934803125315
+          }
+        },
+        "Colors:Tooltip": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 9.290252459727965
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 9.290252459727965
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.5817149411412155
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 9.0257236363899
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 8.577928171371271
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.231582613417467
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 15.865095663727075
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 8.36434418020874
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 9.0257236363899
+          }
+        },
+        "Colors:View": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 9.905361112026206
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 9.905361112026206
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.95128091040217
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 9.623317805769313
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 9.145873753030717
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.842806728643005
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.915525418418973
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 8.918148341973952
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 9.623317805769313
+          }
+        },
+        "Colors:Window": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 9.290252459727965
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 9.290252459727965
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.5817149411412155
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 9.0257236363899
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 8.577928171371271
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.231582613417467
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 15.865095663727075
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 8.36434418020874
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 9.0257236363899
+          }
+        }
+      },
+      "external_border_contrast": {
+        "dark": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 4.010275675855393,
+          "samples": 656,
+          "threshold": 3
+        },
+        "light": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 4.420011725882399,
+          "samples": 656,
+          "threshold": 3
+        },
+        "wallpaper": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 589,
+          "minimum_ratio": 1.0038917446951574,
+          "samples": 656,
+          "threshold": 3
+        }
+      },
+      "structure_sha256": "2efc782a4085132ed588a27dba0d90bf38681f22d09a28294da7ae2c785cf56b"
+    },
+    "hybrid": {
+      "border_surface_ratio": 3.8933134716549,
+      "colors": {
+        "Colors:Button": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 7.512635208366935
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 7.512635208366935
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.054805871411783
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 7.512635208366935
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 5.3638801274734815
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 7.863871737875445
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 12.967527956248727
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 8.515153285796602
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 7.512635208366935
+          }
+        },
+        "Colors:Complementary": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 8.49892666482536
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 8.49892666482536
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.71842279233946
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 8.49892666482536
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.068073662293631
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 8.896275055038158
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 14.669961480558513
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.633059679928667
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 8.49892666482536
+          }
+        },
+        "Colors:Header": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 8.49892666482536
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 8.49892666482536
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.71842279233946
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 8.49892666482536
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.068073662293631
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 8.896275055038158
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 14.669961480558513
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.633059679928667
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 8.49892666482536
+          }
+        },
+        "Colors:Selection": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 3.6126987802578374
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 3.6126987802578374
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.235864131712946
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 6.235864131712946
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.235864131712946
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 6.235864131712946
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 6.235864131712946
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 6.235864131712946
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 6.235864131712946
+          }
+        },
+        "Colors:Tooltip": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 8.49892666482536
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 8.49892666482536
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.71842279233946
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 8.49892666482536
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.068073662293631
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 8.896275055038158
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 14.669961480558513
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.633059679928667
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 8.49892666482536
+          }
+        },
+        "Colors:View": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 9.28982531783249
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 9.28982531783249
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.250571505012165
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 9.28982531783249
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.632760413353471
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.7241504133385
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.035128310701836
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 10.529499221726905
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 9.28982531783249
+          }
+        },
+        "Colors:Window": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 8.49892666482536
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 8.49892666482536
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.71842279233946
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 8.49892666482536
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.068073662293631
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 8.896275055038158
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 14.669961480558513
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.633059679928667
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 8.49892666482536
+          }
+        }
+      },
+      "external_border_contrast": {
+        "dark": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 4.4366576983881485,
+          "samples": 656,
+          "threshold": 3
+        },
+        "light": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 3.9952294534107318,
+          "samples": 656,
+          "threshold": 3
+        },
+        "wallpaper": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 461,
+          "minimum_ratio": 1.0105858305954267,
+          "samples": 656,
+          "threshold": 3
+        }
+      },
+      "structure_sha256": "2efc782a4085132ed588a27dba0d90bf38681f22d09a28294da7ae2c785cf56b"
+    },
+    "minimal": {
+      "border_surface_ratio": 3.315549445408417,
+      "colors": {
+        "Colors:Button": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 12.645546508657667
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 12.645546508657667
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.327912265230731
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 12.645546508657667
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.879102128749044
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 8.589403970105192
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 14.722890917630915
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 8.621375034465181
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 12.645546508657667
+          }
+        },
+        "Colors:Complementary": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 13.883166420251317
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 13.883166420251317
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.849355154405913
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 13.883166420251317
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 7.55236000357456
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.43004912330958
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.163820571672062
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.465149196433224
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 13.883166420251317
+          }
+        },
+        "Colors:Header": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 13.883166420251317
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 13.883166420251317
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.849355154405913
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 13.883166420251317
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 7.55236000357456
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.43004912330958
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.163820571672062
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.465149196433224
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 13.883166420251317
+          }
+        },
+        "Colors:Selection": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 5.928396073705553
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 5.928396073705553
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.902282052414311
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 6.902282052414311
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 6.902282052414311
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 6.902282052414311
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 6.902282052414311
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 6.902282052414311
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 6.902282052414311
+          }
+        },
+        "Colors:Tooltip": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 13.883166420251317
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 13.883166420251317
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.849355154405913
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 13.883166420251317
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 7.55236000357456
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.43004912330958
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.163820571672062
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.465149196433224
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 13.883166420251317
+          }
+        },
+        "Colors:View": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 15.02247572638216
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 15.02247572638216
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 6.329377114854214
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 15.02247572638216
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 8.172137493439664
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 10.203917446877734
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 17.4902896668687
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 10.241897975276862
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 15.02247572638216
+          }
+        },
+        "Colors:Window": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 13.883166420251317
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 13.883166420251317
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 5.849355154405913
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 13.883166420251317
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 7.55236000357456
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 9.43004912330958
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.163820571672062
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.465149196433224
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 13.883166420251317
+          }
+        }
+      },
+      "external_border_contrast": {
+        "dark": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 3.6358766224242545,
+          "samples": 656,
+          "threshold": 3
+        },
+        "light": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 4.875155939555281,
+          "samples": 656,
+          "threshold": 3
+        },
+        "wallpaper": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 632,
+          "minimum_ratio": 1.015074464890567,
+          "samples": 656,
+          "threshold": 3
+        }
+      },
+      "structure_sha256": "2efc782a4085132ed588a27dba0d90bf38681f22d09a28294da7ae2c785cf56b"
+    },
+    "pandawave": {
+      "border_surface_ratio": 4.111032100020673,
+      "colors": {
+        "Colors:Button": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 6.639212347364798
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 6.639212347364798
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 7.048848422597434
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 4.8344607129332005
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 9.956017941353561
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 10.230202817879194
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 16.699493962566493
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 9.65945795358427
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 4.8344607129332005
+          }
+        },
+        "Colors:Complementary": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 7.216428722616178
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 7.216428722616178
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 7.661678758985609
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 5.254771096607268
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 10.821599020459548
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 11.11962166452393
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 18.151356151826167
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 10.499255962014301
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 5.254771096607268
+          }
+        },
+        "Colors:Header": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 7.216428722616178
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 7.216428722616178
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 7.661678758985609
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 5.254771096607268
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 10.821599020459548
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 11.11962166452393
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 18.151356151826167
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 10.499255962014301
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 5.254771096607268
+          }
+        },
+        "Colors:Selection": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 3.1136331521532585
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 3.1136331521532585
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 7.831666665499597
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 7.831666665499597
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 7.831666665499597
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 7.831666665499597
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 7.831666665499597
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 7.831666665499597
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 7.831666665499597
+          }
+        },
+        "Colors:Tooltip": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 7.216428722616178
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 7.216428722616178
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 7.661678758985609
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 5.254771096607268
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 10.821599020459548
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 11.11962166452393
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 18.151356151826167
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 10.499255962014301
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 5.254771096607268
+          }
+        },
+        "Colors:View": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 7.777020988960178
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 7.777020988960178
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 8.256859287276384
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 5.662976339310486
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 11.662250948654043
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 11.98342482110017
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 19.561404012547005
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 11.314867384354736
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 5.662976339310486
+          }
+        },
+        "Colors:Window": {
+          "DecorationFocus": {
+            "minimum": 3,
+            "ratio": 7.216428722616178
+          },
+          "DecorationHover": {
+            "minimum": 3,
+            "ratio": 7.216428722616178
+          },
+          "ForegroundInactive": {
+            "minimum": 4.5,
+            "ratio": 7.661678758985609
+          },
+          "ForegroundLink": {
+            "minimum": 4.5,
+            "ratio": 5.254771096607268
+          },
+          "ForegroundNegative": {
+            "minimum": 4.5,
+            "ratio": 10.821599020459548
+          },
+          "ForegroundNeutral": {
+            "minimum": 4.5,
+            "ratio": 11.11962166452393
+          },
+          "ForegroundNormal": {
+            "minimum": 4.5,
+            "ratio": 18.151356151826167
+          },
+          "ForegroundPositive": {
+            "minimum": 4.5,
+            "ratio": 10.499255962014301
+          },
+          "ForegroundVisited": {
+            "minimum": 4.5,
+            "ratio": 5.254771096607268
+          }
+        }
+      },
+      "external_border_contrast": {
+        "dark": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 4.414481534329277,
+          "samples": 656,
+          "threshold": 3
+        },
+        "light": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 0,
+          "minimum_ratio": 4.0152995031147976,
+          "samples": 656,
+          "threshold": 3
+        },
+        "wallpaper": {
+          "classification": "wallpaper/fixture advisory; no palette mutation",
+          "fails": 464,
+          "minimum_ratio": 1.0055345242521412,
+          "samples": 656,
+          "threshold": 3
+        }
+      },
+      "structure_sha256": "2efc782a4085132ed588a27dba0d90bf38681f22d09a28294da7ae2c785cf56b"
+    }
+  },
+  "font": {
+    "cairo": "1.18.6",
+    "fallback": false,
+    "family": "Noto Sans",
+    "font_file": "NotoSans-Regular.ttf",
+    "fontconfig": 21803,
+    "hint_metrics": "off",
+    "language": "en",
+    "pango": "1.58.2",
+    "resolution": 96,
+    "sha256": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+    "version": "2.015"
+  },
+  "frame_radius": 12,
+  "label": "OFFLINE SVG NINE-SLICE MODEL \u2014 NATIVE UNVERIFIED",
+  "native_verified": false,
+  "package_sha256": {
+    "panda-cyber-s1/LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "panda-cyber-s1/colors": "4ba3e0c89892b5a9da394a6f29250177969a9174a8e36802557fc7a313dd182a",
+    "panda-cyber-s1/dialogs/background.svg": "54de342fd8660d7db76b3fac3585e0249a77af41f5fb66b8e52cce957b82870a",
+    "panda-cyber-s1/metadata.json": "e1f375f9861ed13f76a44a1e48777f2574e940103023e1613b13580ed0e48ded",
+    "panda-cyber-s1/plasmarc": "202eb5bd775688c4e48af32f6185bf7d1e29ef4d5a18968bbc783bd6d73f1051",
+    "panda-cyber-s1/widgets/background.svg": "acdc56b7cae58f5943d7f18371e69161fdc8d4ed1ebd6a9b2929e797073609fe",
+    "panda-cyber-s1/widgets/panel-background.svg": "ba573a9c7ffafcf5d98cd6b382aecc22683594017c6542399abc81add872ba22",
+    "panda-cyber-s1/widgets/translucentbackground.svg": "acdc56b7cae58f5943d7f18371e69161fdc8d4ed1ebd6a9b2929e797073609fe",
+    "panda-gothic-s1/LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "panda-gothic-s1/colors": "d2055ca0356df29a12e3d4bb17bee366581d939c3e58ca3cd3bdf306e50398ab",
+    "panda-gothic-s1/dialogs/background.svg": "7f586305cce5869630b892ff3d77d5ef62a6a3fe87b2560e05109fb12e16a950",
+    "panda-gothic-s1/metadata.json": "a7d6cbf05dc9ba2f6d28fb8f42cfd61b8b6f828e7d5af3d6701b971ebb3a2db0",
+    "panda-gothic-s1/plasmarc": "202eb5bd775688c4e48af32f6185bf7d1e29ef4d5a18968bbc783bd6d73f1051",
+    "panda-gothic-s1/widgets/background.svg": "758d5c83b44d9559bdeb65752436278262d06d31d41556b1de82a95bb21b9867",
+    "panda-gothic-s1/widgets/panel-background.svg": "6cad112e59f16ec57c6ed812ca401dcc0aa36dcc769864824de59a40e43dd2b8",
+    "panda-gothic-s1/widgets/translucentbackground.svg": "758d5c83b44d9559bdeb65752436278262d06d31d41556b1de82a95bb21b9867",
+    "panda-hybrid-s1/LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "panda-hybrid-s1/colors": "b97173ef86d9c8c6764a789102292a8e3ffe9b1813a17314455c7cf44e13993a",
+    "panda-hybrid-s1/dialogs/background.svg": "86542dd2d128431c6e01a88a889c8fc5a7e85c6cd7b38a12d640f6be4dcdd265",
+    "panda-hybrid-s1/metadata.json": "df11df67e1c96c38097652d820aba8b82987d662dfa591af658db7924f21bd0f",
+    "panda-hybrid-s1/plasmarc": "202eb5bd775688c4e48af32f6185bf7d1e29ef4d5a18968bbc783bd6d73f1051",
+    "panda-hybrid-s1/widgets/background.svg": "6adfd057add9ae3615a6e4b72312fc278d23af2fa7a17dec7123942e381cf46c",
+    "panda-hybrid-s1/widgets/panel-background.svg": "f7c6d35f4283d6ada987fafc5d5b5d82d6b71fb40bb35ed915e57661a36a620b",
+    "panda-hybrid-s1/widgets/translucentbackground.svg": "6adfd057add9ae3615a6e4b72312fc278d23af2fa7a17dec7123942e381cf46c",
+    "panda-minimal-s1/LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "panda-minimal-s1/colors": "54589490a441f649da11f5cdb7ffef455261090a31aac6887f0f61e39215bf31",
+    "panda-minimal-s1/dialogs/background.svg": "cf269f2be8a1d3f2470b9e1429552f85552ade782409696554d5e7d136c18911",
+    "panda-minimal-s1/metadata.json": "f3dd8ec0c6e5347af7d9ce6eaa7037e50a7fb605e50ab9a7e37f9a009b755018",
+    "panda-minimal-s1/plasmarc": "202eb5bd775688c4e48af32f6185bf7d1e29ef4d5a18968bbc783bd6d73f1051",
+    "panda-minimal-s1/widgets/background.svg": "e411a113314b9e48351f16308a83c05e5a079f072e04b7e918b9f6e7bb7e6632",
+    "panda-minimal-s1/widgets/panel-background.svg": "e76f50cfaa2126b18aad9600c4bfdddc2eb07a6558310e8ba4c6b26f0ae79ca5",
+    "panda-minimal-s1/widgets/translucentbackground.svg": "e411a113314b9e48351f16308a83c05e5a079f072e04b7e918b9f6e7bb7e6632",
+    "panda-pandawave-s1/LICENSE": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+    "panda-pandawave-s1/colors": "c1936f443fb241daee9523811dc5291b040c0ac22b2393188576534aa715baf8",
+    "panda-pandawave-s1/dialogs/background.svg": "0faebb806dacedbf26e032282c00e57239b41779de57893b4df3a3598c39fe1f",
+    "panda-pandawave-s1/metadata.json": "9b415fd674007fbe7162d32312808df834fc5ef6f5795d01b4b87cee1710893c",
+    "panda-pandawave-s1/plasmarc": "202eb5bd775688c4e48af32f6185bf7d1e29ef4d5a18968bbc783bd6d73f1051",
+    "panda-pandawave-s1/widgets/background.svg": "4b2e812617c0644ba178623dd8db9c0517caae8a59c0f4cd39a3f4cdc12ef8a2",
+    "panda-pandawave-s1/widgets/panel-background.svg": "7f07da44f13b7624e035cacf009382fc3e9d90b82cdf0bc44700107f384ad637",
+    "panda-pandawave-s1/widgets/translucentbackground.svg": "4b2e812617c0644ba178623dd8db9c0517caae8a59c0f4cd39a3f4cdc12ef8a2"
+  },
+  "raster_environment": {
+    "cairo": "1.18.6"
+  },
+  "raster_model": "librsvg pieces, integer device-pixel seams; not KSvg",
+  "selection_candidate_advisories": [
+    {
+      "background": "selection",
+      "flavor": "minimal",
+      "foreground": "success",
+      "minimum": 4.5,
+      "ratio": 4.041812338381248
+    },
+    {
+      "background": "selection",
+      "flavor": "minimal",
+      "foreground": "warning",
+      "minimum": 4.5,
+      "ratio": 4.026823889104326
+    },
+    {
+      "background": "selection",
+      "flavor": "minimal",
+      "foreground": "error",
+      "minimum": 4.5,
+      "ratio": 3.2250122225064977
+    },
+    {
+      "background": "selection",
+      "flavor": "cyber",
+      "foreground": "accent_text",
+      "minimum": 4.5,
+      "ratio": 4.302847705057189
+    },
+    {
+      "background": "selection",
+      "flavor": "cyber",
+      "foreground": "accent_text",
+      "minimum": 4.5,
+      "ratio": 4.302847705057189
+    },
+    {
+      "background": "selection",
+      "flavor": "cyber",
+      "foreground": "warning",
+      "minimum": 4.5,
+      "ratio": 3.8487272814639892
+    },
+    {
+      "background": "selection",
+      "flavor": "cyber",
+      "foreground": "error",
+      "minimum": 4.5,
+      "ratio": 2.625184192880424
+    },
+    {
+      "background": "selection",
+      "flavor": "hybrid",
+      "foreground": "accent_text",
+      "minimum": 4.5,
+      "ratio": 3.6126987802578374
+    },
+    {
+      "background": "selection",
+      "flavor": "hybrid",
+      "foreground": "accent_text",
+      "minimum": 4.5,
+      "ratio": 3.6126987802578374
+    },
+    {
+      "background": "selection",
+      "flavor": "hybrid",
+      "foreground": "success",
+      "minimum": 4.5,
+      "ratio": 4.094792710691587
+    },
+    {
+      "background": "selection",
+      "flavor": "hybrid",
+      "foreground": "warning",
+      "minimum": 4.5,
+      "ratio": 3.781602466719838
+    },
+    {
+      "background": "selection",
+      "flavor": "hybrid",
+      "foreground": "error",
+      "minimum": 4.5,
+      "ratio": 2.5793989268094686
+    },
+    {
+      "background": "selection",
+      "flavor": "pandawave",
+      "foreground": "accent_text",
+      "minimum": 4.5,
+      "ratio": 2.2672474325280385
+    },
+    {
+      "background": "selection",
+      "flavor": "pandawave",
+      "foreground": "accent_text",
+      "minimum": 4.5,
+      "ratio": 2.2672474325280385
+    }
+  ],
+  "selection_mapping": "all selected foreground states use canonical on_selection; no palette values changed"
+}

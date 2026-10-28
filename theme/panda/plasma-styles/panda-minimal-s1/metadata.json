@@ -1,0 +1,10 @@
+{
+  "KPlugin": {
+    "Description": "Opaque Panda frame candidate; native verification pending",
+    "Id": "panda-minimal-s1",
+    "License": "GPL-3.0-or-later",
+    "Name": "Panda Minimal S1",
+    "Version": "0.1.0"
+  },
+  "X-Plasma-API": "5.0"
+}
