@@ -153,3 +153,36 @@ available. The guard accepts only that particular empty-output case; nonzero
 exit codes accompanied by diagnostics still fail closed. `pacman -Sp` preview
 records now validate both package names and Arch-style version tokens, so
 malformed two-word output cannot accidentally pass the safety check.
+
+## G1.3 — One-command orchestration and automatic verification
+
+The same `bootstrap/panda-setup.fish` command selects all desired modules and
+stores, performs complete G1.2 cached-database checks, verifies usable disk
+space on the root/home/package-cache volumes, installs only missing packages,
+installs a single **user-scoped** Heroic Flatpak for GOG/Epic if selected, then
+verifies installed package manifests and Heroic automatically. It does not
+invoke Steam or other GUI launchers as installation side effects.
+
+The disk gate requires at least **8 GiB reported free** on each relevant volume.
+This covers launcher package installation as a conservative minimum, **not**
+a full games library, especially Cyberpunk 2077 or Mortal Kombat 1.
+Failure to read disk capacity stops the installation; the storage and
+transaction guards repeat after the explicit confirmation and before changes.
+
+```fish
+# Interactive, select modules/stores, review plan, type APPLY when prompted:
+fish bootstrap/panda-setup.fish --interactive --enable-flathub --apply
+
+# One-command gaming-only setup: same guards and automatic post-install checks:
+fish bootstrap/panda-gaming.fish --stores steam,gog,epic,other --enable-flathub --apply
+
+# Non-mutating verification of currently installed selections:
+fish bootstrap/panda-gaming.fish --stores steam,gog,epic,other --verify
+```
+
+After installation, Steam, Heroic and Lutris may still require interactive
+first-run dialogs, user logins, Steam Play/Proton settings and per-game
+configuration. The manager never collects credentials, downloads games,
+changes the boot/GPU policy, or claims that first-run GUI operation was tested.
+`--verify` checks installed package state, not that a game can launch.
+Android/AOSP remains a planning-only option and blocks any combined apply.

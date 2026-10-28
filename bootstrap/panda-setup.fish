@@ -12,13 +12,13 @@ function panda_setup_usage
     echo 'Usage:'
     echo '  fish bootstrap/panda-setup.fish [--interactive] [--modules workspace,desktop,gaming,android,virtualization]'
     echo '                                 [--stores steam,gog,epic,other] [--gpu auto|intel|amd]'
-    echo '                                 [--enable-flathub] [--dry-run | --check | --apply [--yes]]'
-    echo '  fish bootstrap/panda-gaming.fish [--stores steam,gog,epic,other] [--gpu auto|intel|amd] [--dry-run | --apply]'
+    echo '                                 [--enable-flathub] [--dry-run | --check | --verify | --apply [--yes]]'
+    echo '  fish bootstrap/panda-gaming.fish [--stores steam,gog,epic,other] [--gpu auto|intel|amd] [--dry-run | --check | --verify | --apply]'
     echo 'Without --apply, all selections are READ-ONLY preview operations.'
-    echo '--check validates readiness without installing or changing anything.'
+    echo '--check validates readiness; --verify checks installed components. Neither writes.'
 end
 
-argparse 'help' 'interactive' 'modules=' 'only=' 'stores=' 'gpu=' 'dry-run' 'check' 'apply' 'yes' 'enable-flathub' -- $argv
+argparse 'help' 'interactive' 'modules=' 'only=' 'stores=' 'gpu=' 'dry-run' 'check' 'verify' 'apply' 'yes' 'enable-flathub' -- $argv
 or exit 2
 if test (count $argv) -gt 0
     ui_error 'Unexpected positional arguments'
@@ -34,13 +34,13 @@ if set -q _flag_help
     exit 0
 end
 set -l selected_modes 0
-for mode in _flag_dry_run _flag_check _flag_apply
+for mode in _flag_dry_run _flag_check _flag_verify _flag_apply
     if set -q $mode
         set selected_modes (math $selected_modes + 1)
     end
 end
 if test $selected_modes -gt 1
-    ui_error 'Choose only one of --dry-run, --check, or --apply'
+    ui_error 'Choose only one of --dry-run, --check, --verify, or --apply'
     exit 2
 end
 if set -q _flag_only; and set -q _flag_modules
@@ -57,12 +57,16 @@ set -l stores
 set -l gpu auto
 set -l apply 0
 set -l check 0
+set -l verify 0
 set -l enable_flathub 0
 if set -q _flag_apply
     set apply 1
 end
 if set -q _flag_check
     set check 1
+end
+if set -q _flag_verify
+    set verify 1
 end
 if set -q _flag_enable_flathub
     set enable_flathub 1
@@ -233,11 +237,23 @@ for name in $manifest_names
     or exit 1
 end
 
+# Use one selected manifest list for preflight and final verification.
+set -l transaction_manifests
+for name in $manifest_names
+    set -a transaction_manifests "$repo_root/setup/manifests/$name.txt"
+end
+if contains workspace $modules
+    set -a transaction_manifests "$repo_root/packages/core.txt" "$repo_root/packages/development.txt"
+end
+if contains desktop $modules
+    set -a transaction_manifests "$repo_root/packages/desktop.txt"
+end
+
 ui_section '🔍' 'Safety checks'
 # Read-only checks in both plan and apply modes. A failed plan explains blockers,
 # but only --apply performs strict eligibility enforcement.
 set -l strict 0
-if test $apply -eq 1; or test $check -eq 1
+if test $apply -eq 1; or test $check -eq 1; or test $verify -eq 1
     set strict 1
 end
 if contains gaming $modules
@@ -245,7 +261,7 @@ if contains gaming $modules
     or exit 1
 end
 
-if test $apply -eq 0; and test $check -eq 0
+if test $apply -eq 0; and test $check -eq 0; and test $verify -eq 0
     ui_success 'DRY RUN COMPLETE: no packages, repos, files, services, VMs, or boot settings changed.'
     exit 0
 end
@@ -254,6 +270,13 @@ end
 if contains android $modules
     ui_error 'Android / AOSP implementation is pending; no selected modules were applied.'
     exit 1
+end
+if test $verify -eq 1
+    ui_section '🔍' 'Installed component verification'
+    panda_setup_verify_installation "$heroic" $transaction_manifests
+    or exit 1
+    ui_success 'VERIFICATION COMPLETE: no installations or configuration changes made.'
+    exit 0
 end
 # These preflights are shared by --check and --apply. They do not write.
 if not command -sq pacman; or not command -sq sudo
@@ -265,19 +288,13 @@ panda_setup_preflight_scripts "$script_dir" $modules
 or exit 1
 panda_setup_preflight_packages "$repo_root" $modules -- $manifest_names
 or exit 1
-# Check all selected pacman packages in one offline dependency-resolution plan.
-set -l transaction_manifests
-for name in $manifest_names
-    set -a transaction_manifests "$repo_root/setup/manifests/$name.txt"
-end
-if contains workspace $modules
-    set -a transaction_manifests "$repo_root/packages/core.txt" "$repo_root/packages/development.txt"
-end
-if contains desktop $modules
-    set -a transaction_manifests "$repo_root/packages/desktop.txt"
-end
+# Check the complete selected transaction against cached pacman databases.
 panda_setup_guard_transaction $transaction_manifests
 or exit 1
+if contains gaming $modules
+    panda_setup_check_disk_space
+    or exit 1
+end
 if contains gaming $modules
     panda_setup_multilib_check
     or exit 1
@@ -308,6 +325,10 @@ end
 # confirmation prompt, and another package manager could have changed state.
 panda_setup_guard_transaction $transaction_manifests
 or exit 1
+if contains gaming $modules
+    panda_setup_check_disk_space
+    or exit 1
+end
 
 # Actual changes: existing idempotent manifest helper; never pacman -Sy.
 for name in $manifest_names
@@ -348,5 +369,12 @@ end
 if contains desktop $modules
     fish "$script_dir/install-desktop.fish" --profile plasma
     or exit $status
+end
+ui_section '🔍' 'Automatic installation verification'
+panda_setup_verify_installation "$heroic" $transaction_manifests
+or exit 1
+if contains gaming $modules
+    ui_info 'Launch Steam/Heroic/Lutris normally to sign in and complete their first-run setup.'
+    ui_info 'Proton/game downloads and store authentication require user actions; nothing is enabled in the GPU/boot configuration.'
 end
 ui_success 'Selected implemented modules completed. No machine/boot changes were requested.'

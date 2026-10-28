@@ -141,6 +141,28 @@ class G11PreflightContracts(unittest.TestCase):
         self.assertNotRegex(source, r'flatpak info (?!\-\-user)com\.heroicgameslauncher\.hgl')
 
 
+class G13Contracts(unittest.TestCase):
+    def test_one_installer_performs_post_apply_verification(self):
+        source=MAIN.read_text()
+        self.assertIn('panda_setup_verify_installation "$heroic" $transaction_manifests',source)
+        self.assertIn('--verify',source)
+        self.assertLess(source.index('panda_setup_guard_transaction $transaction_manifests'),
+                        source.index('install_manifest "$repo_root/setup/manifests/'))
+        self.assertLess(source.index('panda_setup_check_disk_space'),
+                        source.index('install_manifest "$repo_root/setup/manifests/'))
+
+    def test_disk_and_verification_helpers_are_read_only(self):
+        source=HELPERS.read_text()
+        self.assertIn('function panda_setup_check_disk_space',source)
+        self.assertIn('function panda_setup_verify_installation',source)
+        self.assertIn('df -Pk --',source)
+        self.assertIn('flatpak info --user com.heroicgameslauncher.hgl',source)
+        # These helpers must not start apps or modify the host.
+        for forbidden in ('sudo ', 'systemctl ', 'modprobe ', 'pacman -Sy', 'flatpak install'):
+            guarded=source[source.index('function panda_setup_check_disk_space'):]
+            self.assertNotIn(forbidden,guarded)
+
+
 @unittest.skipUnless(shutil.which('fish'), 'Requires Fish on the host or CI')
 class G11MockedApplyTests(unittest.TestCase):
     '''Run real Fish setup manager against disposable fake pacman/flatpak programs.
@@ -252,6 +274,16 @@ echo panda-test-host
 ''')
         self.make_exe('lspci', '''#!/bin/sh
 echo 'Kernel driver in use: i915'
+''')
+        # Disk checks are run against a fake df, never host storage.
+        self.make_exe('df', '''#!/bin/sh
+if [ "$MOCK_DF_FAIL" = "1" ]; then echo 'df: unavailable' >&2; exit 42; fi
+echo 'Filesystem 1024-blocks Used Available Capacity Mounted on'
+if [ "$MOCK_DF_LOW" = "1" ]; then
+    echo '/dev/test 1000000 999900 100 100% /'
+else
+    echo '/dev/test 20000000 1000000 19000000 5% /'
+fi
 ''')
         self.make_exe('flatpak', r'''#!/usr/bin/env python3
 import os,sys,pathlib
@@ -440,6 +472,56 @@ sys.exit(89)
     def test_check_and_apply_conflict(self):
         r=self.run_manager('--modules','virtualization','--check','--apply')
         self.assertEqual(r.returncode, 2)
+        self.assert_no_apply()
+
+    def test_disk_space_failure_blocks_gaming_apply(self):
+        env=dict(self.env, MOCK_DF_LOW='1')
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--apply','--yes',env=env)
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('Less than 8 GiB',r.stdout+r.stderr)
+        self.assert_no_apply()
+
+    def test_unreadable_disk_capacity_blocks_gaming_check(self):
+        env=dict(self.env, MOCK_DF_FAIL='1')
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--check',env=env)
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('Cannot determine free space',r.stdout+r.stderr)
+        self.assert_no_apply()
+
+    def test_apply_then_verify_is_one_idempotent_workflow(self):
+        args=['--modules','gaming','--stores','steam,gog,epic,other',
+              '--gpu','intel','--enable-flathub']
+        before=self.run_manager(*args,'--verify')
+        self.assertNotEqual(before.returncode,0)
+        self.assertIn('package missing',before.stdout+before.stderr)
+        self.assert_no_apply()
+        applied=self.run_manager(*args,'--apply','--yes')
+        self.assertEqual(applied.returncode,0,applied.stdout+applied.stderr)
+        self.assertIn('Automatic installation verification',applied.stdout)
+        expected=self.events.read_text()
+        verified=self.run_manager(*args,'--verify')
+        self.assertEqual(verified.returncode,0,verified.stdout+verified.stderr)
+        self.assertIn('VERIFICATION COMPLETE',verified.stdout)
+        self.assertEqual(self.events.read_text(),expected)
+        again=self.run_manager(*args,'--apply','--yes')
+        self.assertEqual(again.returncode,0,again.stdout+again.stderr)
+        self.assertEqual(self.events.read_text(),expected)
+
+    def test_verify_blocks_when_installed_package_missing(self):
+        # Verifies user package inventory; never starts game clients.
+        self.installed.write_text('fish\nsteam\n')
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--verify')
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('package missing',r.stdout+r.stderr)
+        self.assert_no_apply()
+
+    def test_verify_and_apply_are_exclusive(self):
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--verify','--apply')
+        self.assertEqual(r.returncode,2)
         self.assert_no_apply()
 
 

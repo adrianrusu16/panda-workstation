@@ -384,3 +384,74 @@ function panda_setup_guard_transaction
     ui_warn 'Offline preview cannot prove sync databases are fresh or guarantee a future install.'
     return 0
 end
+
+# Validate usable space on the root, user home and pacman cache volumes.
+# 8 GiB is a conservative minimum for launcher packages and first-run runtimes,
+# not a promise that any large game itself will fit.
+function panda_setup_check_disk_space
+    if not command -sq df
+        ui_error 'df is required for the disk-space safety check.'
+        return 1
+    end
+    set -l minimum_kib 8388608
+    for directory in / "$HOME" /var/cache/pacman/pkg
+        set -l usage (df -Pk -- "$directory" 2>&1)
+        set -l disk_status $status
+        if test $disk_status -ne 0; or test (count $usage) -ne 2
+            ui_error "Cannot determine free space for $directory."
+            for line in $usage
+                printf '  df: %s\n' "$line" >&2
+            end
+            return 1
+        end
+        set -l columns (string split -n ' ' -- (string trim -- "$usage[2]"))
+        if test (count $columns) -lt 5; or not string match -qr '^[0-9]+$' -- "$columns[4]"
+            ui_error "Invalid disk capacity output for $directory."
+            return 1
+        end
+        if test "$columns[4]" -lt $minimum_kib
+            ui_error "Less than 8 GiB available for $directory; package install blocked."
+            return 1
+        end
+    end
+    ui_success 'Disk-space preflight: root, home and pacman cache each report at least 8 GiB free.'
+    return 0
+end
+
+# Verify installed package manifests and Heroic without starting any GUI app.
+# The caller passes a 0/1 Heroic flag followed by manifest paths.
+function panda_setup_verify_installation --argument-names heroic
+    set -e argv[1]
+    set -l installed (panda_installed_inventory)
+    or return 1
+    set -l verified
+    for manifest in $argv
+        if not test -f "$manifest"
+            ui_error "Missing verification manifest: $manifest"
+            return 1
+        end
+        while read -l line
+            set line (string trim -- "$line")
+            if test -z "$line"; or string match -q '#*' -- "$line"
+                continue
+            end
+            if not contains -- "$line" $installed
+                ui_error "Selected package missing after installation: $line"
+                return 1
+            end
+            if not contains -- "$line" $verified
+                set -a verified "$line"
+            end
+        end < "$manifest"
+    end
+    if test "$heroic" = 1
+        if not command -sq flatpak; or not flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
+            ui_error 'Selected Heroic user Flatpak is not installed.'
+            return 1
+        end
+        ui_success 'Heroic user-scoped installation verified.'
+    end
+    ui_success (count $verified)' selected pacman packages verified.'
+    ui_info 'Verification does not launch Steam, modify drivers, or sign into game stores.'
+    return 0
+end
