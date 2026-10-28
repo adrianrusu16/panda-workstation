@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="64" viewBox="0 0 112 64">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later; generated from canonical Panda tokens -->
+<g id="topleft"><g><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L12 12 Z"/><path data-panda-token="border" fill="#856F94" d="M12 0 A12 12 0 0 0 0 12 L1 12 A11 11 0 0 1 12 1 Z"/></g></g>
+<g id="top"><rect x="12" y="0" width="12" height="12" fill="#101420" data-panda-token="surface"/><rect x="12" y="0" width="12" height="1" fill="#856F94" data-panda-token="border"/></g>
+<g id="topright"><g transform="translate(36 0) scale(-1 1)"><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L12 12 Z"/><path data-panda-token="border" fill="#856F94" d="M12 0 A12 12 0 0 0 0 12 L1 12 A11 11 0 0 1 12 1 Z"/></g></g>
+<g id="left"><rect x="0" y="12" width="12" height="12" fill="#101420" data-panda-token="surface"/><rect x="0" y="12" width="1" height="12" fill="#856F94" data-panda-token="border"/></g>
+<g id="center"><rect x="12" y="12" width="12" height="12" fill="#101420" data-panda-token="surface"/></g>
+<g id="right"><rect x="24" y="12" width="12" height="12" fill="#101420" data-panda-token="surface"/><rect x="35" y="12" width="1" height="12" fill="#856F94" data-panda-token="border"/></g>
+<g id="bottomleft"><g transform="translate(0 36) scale(1 -1)"><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L12 12 Z"/><path data-panda-token="border" fill="#856F94" d="M12 0 A12 12 0 0 0 0 12 L1 12 A11 11 0 0 1 12 1 Z"/></g></g>
+<g id="bottom"><rect x="12" y="24" width="12" height="12" fill="#101420" data-panda-token="surface"/><rect x="12" y="35" width="12" height="1" fill="#856F94" data-panda-token="border"/></g>
+<g id="bottomright"><g transform="translate(36 36) scale(-1 -1)"><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L12 12 Z"/><path data-panda-token="border" fill="#856F94" d="M12 0 A12 12 0 0 0 0 12 L1 12 A11 11 0 0 1 12 1 Z"/></g></g>
+<g id="mask-topleft" transform="translate(48 0)"><g><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L12 12 Z"/><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L1 12 A11 11 0 0 1 12 1 Z"/></g></g>
+<g id="mask-top" transform="translate(48 0)"><rect x="12" y="0" width="12" height="12" fill="#101420" data-panda-token="surface"/><rect x="12" y="0" width="12" height="1" fill="#101420" data-panda-token="surface"/></g>
+<g id="mask-topright" transform="translate(48 0)"><g transform="translate(36 0) scale(-1 1)"><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L12 12 Z"/><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L1 12 A11 11 0 0 1 12 1 Z"/></g></g>
+<g id="mask-left" transform="translate(48 0)"><rect x="0" y="12" width="12" height="12" fill="#101420" data-panda-token="surface"/><rect x="0" y="12" width="1" height="12" fill="#101420" data-panda-token="surface"/></g>
+<g id="mask-center" transform="translate(48 0)"><rect x="12" y="12" width="12" height="12" fill="#101420" data-panda-token="surface"/></g>
+<g id="mask-right" transform="translate(48 0)"><rect x="24" y="12" width="12" height="12" fill="#101420" data-panda-token="surface"/><rect x="35" y="12" width="1" height="12" fill="#101420" data-panda-token="surface"/></g>
+<g id="mask-bottomleft" transform="translate(48 0)"><g transform="translate(0 36) scale(1 -1)"><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L12 12 Z"/><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L1 12 A11 11 0 0 1 12 1 Z"/></g></g>
+<g id="mask-bottom" transform="translate(48 0)"><rect x="12" y="24" width="12" height="12" fill="#101420" data-panda-token="surface"/><rect x="12" y="35" width="12" height="1" fill="#101420" data-panda-token="surface"/></g>
+<g id="mask-bottomright" transform="translate(48 0)"><g transform="translate(36 36) scale(-1 -1)"><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L12 12 Z"/><path data-panda-token="surface" fill="#101420" d="M12 0 A12 12 0 0 0 0 12 L1 12 A11 11 0 0 1 12 1 Z"/></g></g>
+<rect id="hint-top-margin" x="90" y="0" width="1" height="12" opacity="0" fill="#101420" data-panda-token="surface"/>
+<rect id="hint-right-margin" x="90" y="16" width="12" height="1" opacity="0" fill="#101420" data-panda-token="surface"/>
+<rect id="hint-bottom-margin" x="90" y="32" width="1" height="12" opacity="0" fill="#101420" data-panda-token="surface"/>
+<rect id="hint-left-margin" x="90" y="48" width="12" height="1" opacity="0" fill="#101420" data-panda-token="surface"/>
+<rect id="hint-stretch-borders" x="89" y="63" width="1" height="1" opacity="0" fill="#101420" data-panda-token="surface"/>
+</svg>

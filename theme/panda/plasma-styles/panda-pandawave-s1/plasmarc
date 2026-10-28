@@ -1,0 +1,11 @@
+[Settings]
+FallbackTheme=breeze-dark
+
+[BlurBehindEffect]
+enabled=false
+
+[ContrastEffect]
+enabled=false
+
+[AdaptiveTransparency]
+enabled=false

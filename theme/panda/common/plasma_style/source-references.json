@@ -1,0 +1,215 @@
+{
+  "purpose": "D4C3-S1 static Plasma Style contract evidence; not runtime observations",
+  "schema_version": 1,
+  "sources": [
+    {
+      "bytes": 9804,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "a498990c2e9d76062c89d9df627726ff196a12a3",
+      "path": "src/desktoptheme/breeze-dark/metadata.json.cmake",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze-dark/metadata.json.cmake",
+      "repo": "libplasma",
+      "sha256": "e209775d0690ea255d11439794396f8aa3d81022d10cf0bc4a6b3185c8c6a8cf",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 136,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "933472f53985bf0b880b960b9c14315f73a612ac",
+      "path": "src/desktoptheme/breeze-dark/plasmarc",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze-dark/plasmarc",
+      "repo": "libplasma",
+      "sha256": "0f0779456add2067868249218f270be65a6360c25285a6765b915ce01c588b76",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 9014,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "bc313fda935f45311221a595c1f679a25eb42bf7",
+      "path": "src/desktoptheme/breeze/metadata.json.cmake",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze/metadata.json.cmake",
+      "repo": "libplasma",
+      "sha256": "ce6845488d11bef4c86ab42b5bcbb2d44079c43531c932b41be66cf9908203db",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 136,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "933472f53985bf0b880b960b9c14315f73a612ac",
+      "path": "src/desktoptheme/breeze/plasmarc",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze/plasmarc",
+      "repo": "libplasma",
+      "sha256": "0f0779456add2067868249218f270be65a6360c25285a6765b915ce01c588b76",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 29125,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "bd4c86c5b09a5528ffa176379f7be8c2909b2545",
+      "path": "src/desktoptheme/breeze/widgets/background.svg",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze/widgets/background.svg",
+      "repo": "libplasma",
+      "sha256": "c67d94fa2d1da0374ef77385d8582bbfb2de13eaf90023adde490d5e36d20683",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 18850,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "57497669f12bf83c196410d0ff58e1fef8510fa2",
+      "path": "src/desktoptheme/breeze/solid/widgets/background.svg",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze/solid/widgets/background.svg",
+      "repo": "libplasma",
+      "sha256": "8ee1ed83756e688f10b60b004d04b4c37a031486d6039af190530f1e42779366",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 19324,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "300d5a0bc9c6ad63e96060cea19ee957497e9772",
+      "path": "src/desktoptheme/breeze/widgets/panel-background.svg",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze/widgets/panel-background.svg",
+      "repo": "libplasma",
+      "sha256": "d3727dff45616c762ad38016ea11471c14a5a24cbe5696fc60e4060217167165",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 13525,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "42cdf7138325734b68fc49b93dc96151221bbd23",
+      "path": "src/desktoptheme/breeze/opaque/widgets/panel-background.svg",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze/opaque/widgets/panel-background.svg",
+      "repo": "libplasma",
+      "sha256": "695d900d9a8ccab7c7e530bc19b0ea68f6b3d6c336fc4d54fe256ac0cb2ace43",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 18499,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "bacfbf27f086f8b0d73bae4efe11f0f14645fcc1",
+      "path": "src/desktoptheme/breeze/solid/widgets/panel-background.svg",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze/solid/widgets/panel-background.svg",
+      "repo": "libplasma",
+      "sha256": "4afc5322f22494450a36a00451c1f077b80f21f3d0b7bd13be313387a5d1a414",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 18797,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "8f1b4ee4b695a56da1dfd4cd9e94ab9fdc311b4d",
+      "path": "src/desktoptheme/breeze/dialogs/background.svg",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/desktoptheme/breeze/dialogs/background.svg",
+      "repo": "libplasma",
+      "sha256": "0134781e8ac85d66ae2241fd7aafa193cb51a5c8afaf14faa12a2308be39d36b",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 4236,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "2665364eba32b182f5a2b09e1713216cb55d5b9d",
+      "path": "src/plasma/packagestructure/plasma_theme_packagestructure.cpp",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/packagestructure/plasma_theme_packagestructure.cpp",
+      "repo": "libplasma",
+      "sha256": "2a3c41b188e4bfc32719ca0db0a1de5b7f3bcad8788f65d44710c5905b97cdb1",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 90,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "e90a71aefa357f3e9a371c9d9dc5cda894ac7c5b",
+      "path": "src/plasma/packagestructure/plasma_theme_packagestructure.json",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/packagestructure/plasma_theme_packagestructure.json",
+      "repo": "libplasma",
+      "sha256": "816b30876d434999d9cb9d4af51933740ddb51ec76af7fa89a4787d024140d60",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 17014,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "fcba0a277e955559e8afe05f08660f910ece72cd",
+      "path": "src/plasma/private/theme_p.cpp",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/private/theme_p.cpp",
+      "repo": "libplasma",
+      "sha256": "0898ba18450250442e6de194a9e4f5d89bd585772a7b4a6bdb2364cbf5d921c3",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 4738,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "ad5c1badc1d93786bf17f02389d11b9956126aa2",
+      "path": "src/plasma/theme.cpp",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/theme.cpp",
+      "repo": "libplasma",
+      "sha256": "0799e4072e0526d6ff3f28a04244f649ea5dc7dc083ee133bdc379344d5b5c85",
+      "tag": "v6.8.1",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 36359,
+      "commit": "7367d0da1442deba4cabb2ad878b0a75f4b36a88",
+      "git_blob": "ff9a62c71c191eac78e5fbdad74ecbccc3bdb7b0",
+      "path": "src/ksvg/framesvg.cpp",
+      "reference": "https://github.com/KDE/ksvg/blob/7367d0da1442deba4cabb2ad878b0a75f4b36a88/src/ksvg/framesvg.cpp",
+      "repo": "ksvg",
+      "sha256": "254c8a6ffd552c5472b3d03008a3edd0179e2e0441571f42d8f4de88f78135b3",
+      "tag": "v6.31.0",
+      "tree": "f037e2db0ab100f71b34c068a7fd446bba0a35f9"
+    },
+    {
+      "bytes": 15673,
+      "commit": "7367d0da1442deba4cabb2ad878b0a75f4b36a88",
+      "git_blob": "15c914f86775bf607d470b81e499ab20fc514fa5",
+      "path": "src/ksvg/framesvg.h",
+      "reference": "https://github.com/KDE/ksvg/blob/7367d0da1442deba4cabb2ad878b0a75f4b36a88/src/ksvg/framesvg.h",
+      "repo": "ksvg",
+      "sha256": "3b549cf1bb4badb3ce7fc6617b33396f92224cf32559c29bfe7e4d7a8f32a2c9",
+      "tag": "v6.31.0",
+      "tree": "f037e2db0ab100f71b34c068a7fd446bba0a35f9"
+    },
+    {
+      "bytes": 30280,
+      "commit": "7367d0da1442deba4cabb2ad878b0a75f4b36a88",
+      "git_blob": "b16ce7dd8c1ee8f43a6292d6358daf491ba02869",
+      "path": "src/ksvg/private/imageset_p.cpp",
+      "reference": "https://github.com/KDE/ksvg/blob/7367d0da1442deba4cabb2ad878b0a75f4b36a88/src/ksvg/private/imageset_p.cpp",
+      "repo": "ksvg",
+      "sha256": "8951d6771b37230d3bc5b44fc182ee31b30f4290f284774a22663e918f73bb32",
+      "tag": "v6.31.0",
+      "tree": "f037e2db0ab100f71b34c068a7fd446bba0a35f9"
+    },
+    {
+      "bytes": 12130,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "9b5c649cbfa4adb971f726674fa4dc0847381d69",
+      "path": "components/containmentlayoutmanager/qml/BasicAppletContainer.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/components/containmentlayoutmanager/qml/BasicAppletContainer.qml",
+      "repo": "plasma-workspace",
+      "sha256": "89278abdd77b92b086ea087085d1f1281a81307e1820924d4f38397dcb0a15db",
+      "tag": "v6.8.1",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 59692,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "a4e3d0fa3efb131d73d0afe4c36f38dfe4d42d1c",
+      "path": "shell/panelview.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/panelview.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "98d16dc0bb1af648804312b499b182d7028ec8df8a62c2c2beb4a85b280dafe8",
+      "tag": "v6.8.1",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    }
+  ]
+}

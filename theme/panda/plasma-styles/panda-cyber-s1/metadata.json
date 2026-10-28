@@ -1,0 +1,10 @@
+{
+  "KPlugin": {
+    "Description": "Opaque Panda frame candidate; native verification pending",
+    "Id": "panda-cyber-s1",
+    "License": "GPL-3.0-or-later",
+    "Name": "Panda Cyber S1",
+    "Version": "0.1.0"
+  },
+  "X-Plasma-API": "5.0"
+}
