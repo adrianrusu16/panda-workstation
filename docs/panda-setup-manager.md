@@ -6,7 +6,7 @@ This adds **a second, selectable installer**. It does NOT change the existing
 `bootstrap/setup-workstation.fish`, its stage list, `setup-machine.fish`, Limine,
 NVIDIA drivers, kernel packages, GPU policy, suspend masks, disk layout, or existing VMs.
 
-Default mode is **dry-run**. Nothing is installed without `--apply`. Terminal
+Default mode is **dry-run**. An explicit `--check` performs strict, read-only readiness validation before installation (no downloads or writes). Nothing is installed without `--apply`. Terminal
 apply requires the literal `APPLY` confirmation; noninteractive apply requires
 both `--apply` and `--yes`. On `panda-helios`, gaming application is blocked
 unless booted into the verified Intel-safe LTS profile. Experimental GTX 1060
@@ -26,6 +26,9 @@ fish bootstrap/panda-setup.fish --modules workspace,desktop,gaming,android,virtu
 
 # Gaming-only preview; on panda-helios GPU defaults to Intel safe profile
 fish bootstrap/panda-gaming.fish --stores steam,gog,epic,other --dry-run
+
+# Strict read-only readiness check; no installation performed
+fish bootstrap/panda-gaming.fish --stores steam,gog,epic,other --check
 
 # Future approved action, explicitly prompted (DO NOT use until reviewed)
 fish bootstrap/panda-gaming.fish --gpu intel --stores steam,gog,epic,other --enable-flathub --apply
@@ -91,3 +94,36 @@ git diff --check
 
 No commands in this document should be considered authorization to apply the
 selected packages or modify the boot/GPU configuration.
+
+## G1.1 readiness contract
+
+`--check` runs the same eligibility checks as `--apply`, without an APPLY prompt
+or any mutations. It validates selected Workspace/Desktop stage files and Fish
+syntax, the installed pacman inventory, availability in the **existing** synced
+package databases for **every** selected manifest, multilib for gaming, Flathub
+user-scope readiness, and the Helios Intel-only runtime guard.
+
+Package metadata is not refreshed by this tool; if the pacman database is stale,
+resolve that manually with a supported full system upgrade, never `pacman -Sy`.
+The `--enable-flathub` flag explicitly authorizes creation of the **user**
+remote on apply; readiness checks still never create it.
+
+Failure handling is fail-fast, not atomic rollback. If a package installation or
+stage fails after the first write, prior successful packages or user changes
+remain installed; rerunning re-evaluates installed packages. Existing Workspace
+stages can make additional user-level changes. Real `--apply` must not be used
+until mocked failure tests and host readiness checks are reviewed.
+
+## G1.1 host-preflight corrective update
+
+Fish does not support `string match -qx`. Multilib and user Flathub checks
+now read their lists and compare exact entries with `contains --`. A failing
+`pacman -Si` query is reported as an **unverified repository query**, not
+necessarily a missing package. The original pacman diagnostic is preserved,
+including signature errors. The manager never disables repository signature
+verification or refreshes package databases to work around this failure.
+
+If `--check` reports a repository signature problem, inspect it separately
+using read-only `pacman -Si <package>` and review `pacman-conf --repo-list`.
+Do not run `--apply` until the package manager has been repaired through a
+separately reviewed action.

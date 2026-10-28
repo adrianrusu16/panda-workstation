@@ -12,12 +12,13 @@ function panda_setup_usage
     echo 'Usage:'
     echo '  fish bootstrap/panda-setup.fish [--interactive] [--modules workspace,desktop,gaming,android,virtualization]'
     echo '                                 [--stores steam,gog,epic,other] [--gpu auto|intel|amd]'
-    echo '                                 [--enable-flathub] [--dry-run | --apply [--yes]]'
+    echo '                                 [--enable-flathub] [--dry-run | --check | --apply [--yes]]'
     echo '  fish bootstrap/panda-gaming.fish [--stores steam,gog,epic,other] [--gpu auto|intel|amd] [--dry-run | --apply]'
     echo 'Without --apply, all selections are READ-ONLY preview operations.'
+    echo '--check validates readiness without installing or changing anything.'
 end
 
-argparse 'help' 'interactive' 'modules=' 'only=' 'stores=' 'gpu=' 'dry-run' 'apply' 'yes' 'enable-flathub' -- $argv
+argparse 'help' 'interactive' 'modules=' 'only=' 'stores=' 'gpu=' 'dry-run' 'check' 'apply' 'yes' 'enable-flathub' -- $argv
 or exit 2
 if test (count $argv) -gt 0
     ui_error 'Unexpected positional arguments'
@@ -32,8 +33,14 @@ if set -q _flag_help
     panda_setup_usage
     exit 0
 end
-if set -q _flag_dry_run; and set -q _flag_apply
-    ui_error 'Choose either --dry-run or --apply'
+set -l selected_modes 0
+for mode in _flag_dry_run _flag_check _flag_apply
+    if set -q $mode
+        set selected_modes (math $selected_modes + 1)
+    end
+end
+if test $selected_modes -gt 1
+    ui_error 'Choose only one of --dry-run, --check, or --apply'
     exit 2
 end
 if set -q _flag_only; and set -q _flag_modules
@@ -49,9 +56,13 @@ set -l modules
 set -l stores
 set -l gpu auto
 set -l apply 0
+set -l check 0
 set -l enable_flathub 0
 if set -q _flag_apply
     set apply 1
+end
+if set -q _flag_check
+    set check 1
 end
 if set -q _flag_enable_flathub
     set enable_flathub 1
@@ -226,7 +237,7 @@ ui_section '🔍' 'Safety checks'
 # Read-only checks in both plan and apply modes. A failed plan explains blockers,
 # but only --apply performs strict eligibility enforcement.
 set -l strict 0
-if test $apply -eq 1
+if test $apply -eq 1; or test $check -eq 1
     set strict 1
 end
 if contains gaming $modules
@@ -234,7 +245,7 @@ if contains gaming $modules
     or exit 1
 end
 
-if test $apply -eq 0
+if test $apply -eq 0; and test $check -eq 0
     ui_success 'DRY RUN COMPLETE: no packages, repos, files, services, VMs, or boot settings changed.'
     exit 0
 end
@@ -244,39 +255,27 @@ if contains android $modules
     ui_error 'Android / AOSP implementation is pending; no selected modules were applied.'
     exit 1
 end
+# These preflights are shared by --check and --apply. They do not write.
 if not command -sq pacman; or not command -sq sudo
-    ui_error 'pacman and sudo are required to apply packages'
+    ui_error 'pacman and sudo are required for an executable plan'
     exit 1
 end
-for cmd in $manifest_names
-    panda_setup_repo_available "$repo_root/setup/manifests/$cmd.txt"
-    or exit 1
-end
-if contains workspace $modules
-    for script in install-core.fish setup-chezmoi.fish setup-github.fish setup-development.fish
-        if not test -f "$script_dir/$script"
-            ui_error "Missing workspace stage: $script"
-            exit 1
-        end
-    end
-end
-if contains desktop $modules
-    if not test -f "$script_dir/install-desktop.fish"
-        ui_error 'Desktop package installer unavailable'
-        exit 1
-    end
-end
+ui_section '🔎' 'Read-only execution preflight'
+panda_setup_preflight_scripts "$script_dir" $modules
+or exit 1
+panda_setup_preflight_packages "$repo_root" $modules -- $manifest_names
+or exit 1
 if contains gaming $modules
-    panda_setup_multilib_check $manifest_names
+    panda_setup_multilib_check
     or exit 1
-    if test $heroic -eq 1; and test $enable_flathub -eq 0
-        if not flatpak info com.heroicgameslauncher.hgl >/dev/null 2>&1
-            if not panda_setup_has_flathub
-                ui_error 'User Flathub remote is missing. Re-run with --enable-flathub to authorize its creation.'
-                exit 1
-            end
-        end
+    if test $heroic -eq 1
+        panda_setup_preflight_heroic "$enable_flathub"
+        or exit 1
     end
+end
+if test $check -eq 1
+    ui_success 'READINESS CHECK PASSED: no packages, repos, files, services, VMs, or boot settings changed.'
+    exit 0
 end
 
 # An explicit apply invocation is required; for terminal use we additionally ask.
@@ -302,7 +301,7 @@ if test $heroic -eq 1
         ui_error 'flatpak was not installed as expected'
         exit 1
     end
-    if flatpak info com.heroicgameslauncher.hgl >/dev/null 2>&1
+    if flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
         ui_success 'Heroic already installed'
     else
         if not panda_setup_has_flathub
@@ -316,7 +315,7 @@ if test $heroic -eq 1
         flatpak install --user --noninteractive -y flathub com.heroicgameslauncher.hgl
         or exit $status
     end
-    flatpak info com.heroicgameslauncher.hgl >/dev/null 2>&1
+    flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
     or begin
         ui_error 'Heroic post-install validation failed'
         exit 1

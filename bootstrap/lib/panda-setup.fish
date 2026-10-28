@@ -135,8 +135,16 @@ function panda_setup_repo_available --argument-names manifest
             continue
         end
         if not pacman -Qq "$line" >/dev/null 2>&1
-            if not pacman -Si "$line" >/dev/null 2>&1
-                ui_error "Package not available in synchronized repositories: $line"
+            # A failure may mean an unavailable package OR broken repository
+            # metadata/signatures. Keep pacman's actual diagnostic visible.
+            set -l repo_query (pacman -Si "$line" 2>&1)
+            set -l repo_status $status
+            if test $repo_status -ne 0
+                ui_error "Cannot verify package: $line (pacman -Si exit $repo_status)"
+                for message in $repo_query
+                    printf '  pacman: %s\n' "$message" >&2
+                end
+                ui_error 'Fix the repository/query error before applying; package availability is unverified.'
                 return 1
             end
         end
@@ -148,7 +156,12 @@ function panda_setup_multilib_check
         ui_error 'pacman-conf is required to check multilib'
         return 1
     end
-    if not pacman-conf --repo-list 2>/dev/null | string match -qx multilib
+    set -l repos (pacman-conf --repo-list 2>/dev/null)
+    if test $status -ne 0
+        ui_error 'Cannot read enabled pacman repositories; refusing to guess multilib state.'
+        return 1
+    end
+    if not contains -- multilib $repos
         ui_error 'Arch multilib is not enabled; refusing to modify pacman.conf automatically.'
         return 1
     end
@@ -158,5 +171,100 @@ function panda_setup_has_flathub
     if not command -sq flatpak
         return 1
     end
-    flatpak remotes --user --columns=name 2>/dev/null | string match -qx flathub
+    set -l remotes (flatpak remotes --user --columns=name 2>/dev/null)
+    if test $status -ne 0
+        return 1
+    end
+    contains -- flathub $remotes
+end
+
+# Shared strict preflight for --check and --apply. Nothing is modified here.
+function panda_setup_preflight_scripts --argument-names script_dir
+    set -e argv[1]
+    set -l scripts
+    if contains workspace $argv
+        set -a scripts install-core.fish setup-chezmoi.fish setup-github.fish setup-development.fish
+    end
+    if contains desktop $argv
+        set -a scripts install-desktop.fish
+    end
+    for script in $scripts
+        set -l path "$script_dir/$script"
+        if not test -f "$path"
+            ui_error "Missing setup stage: $path"
+            return 1
+        end
+        if not fish -n "$path"
+            ui_error "Invalid Fish syntax in setup stage: $path"
+            return 1
+        end
+    end
+    return 0
+end
+
+function panda_setup_preflight_packages --argument-names root
+    set -e argv[1]
+    set -l modules
+    set -l manifests
+    set -l separator 0
+    for token in $argv
+        if test "$token" = --
+            set separator 1
+            continue
+        end
+        if test $separator -eq 0
+            set -a modules "$token"
+        else
+            set -a manifests "$token"
+        end
+    end
+    if test $separator -eq 0
+        ui_error 'Internal error: package preflight missing separator'
+        return 2
+    end
+
+    # A failed or empty inventory must never be mistaken for no installed packages.
+    panda_installed_inventory >/dev/null
+    or return 1
+
+    if contains workspace $modules
+        # Rust and rustup conflict; check before installing ANY selected packages.
+        if pacman -Qq rust >/dev/null 2>&1; and not pacman -Qq rustup >/dev/null 2>&1
+            ui_error 'Arch rust conflicts with workstation rustup; resolve before --apply.'
+            return 1
+        end
+        set -a manifests packages/core packages/development
+    end
+    if contains desktop $modules
+        set -a manifests packages/desktop
+    end
+    for name in $manifests
+        set -l manifest "$root/setup/manifests/$name.txt"
+        if string match -q 'packages/*' -- "$name"
+            set manifest "$root/$name.txt"
+        end
+        panda_setup_repo_available "$manifest"
+        or return 1
+    end
+    return 0
+end
+
+function panda_setup_preflight_heroic --argument-names enable_flathub
+    # The managed Heroic installation is always user-scoped, even if the
+    # machine also happens to have a system-wide Flatpak installation.
+    if command -sq flatpak
+        if flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
+            ui_success 'User-scoped Heroic is already installed.'
+            return 0
+        end
+        if panda_setup_has_flathub
+            return 0
+        end
+    end
+    if test "$enable_flathub" = 1
+        ui_info 'Flathub user remote creation explicitly authorized for --apply.'
+        return 0
+    end
+    ui_error 'User Flathub remote not ready; provide --enable-flathub to authorize adding it.'
+    return 1
 end
