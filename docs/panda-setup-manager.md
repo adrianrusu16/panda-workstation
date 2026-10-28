@@ -127,3 +127,29 @@ If `--check` reports a repository signature problem, inspect it separately
 using read-only `pacman -Si <package>` and review `pacman-conf --repo-list`.
 Do not run `--apply` until the package manager has been repaired through a
 separately reviewed action.
+
+## G1.2 offline transaction safety
+
+`--check` and `--apply` additionally fail closed when `pacman -Qu` reports
+cached pending upgrades, when pacman config has a non-empty `IgnorePkg` or
+`IgnoreGroup`, when inventory/config queries fail, when `pacman -Sp --needed`
+cannot resolve dependencies, or when its **combined selected-target** preview
+would modify any installed package. `--apply` rechecks this gate after the
+interactive confirmation and before any write. No `-Sy`/database refresh, sudo,
+package download, or user configuration change is made by this guard.
+
+**Limit:** These are checks against the *existing cached* sync databases.
+An empty `pacman -Qu` is not a freshness guarantee. `pacman -Sp` does not test
+all interactive installation choices, repository changes, file conflicts or
+future state, and the actual installer still performs separate package-layer
+transactions. A successful check is a necessary safety screen, **not a promise
+that installation is safe or conflict-free**. Keep Helios hardware boundaries
+and review any full system upgrades separately.
+
+### G1.2 host regression corrections
+
+`pacman -Qu` can return exit code **1 with no output** when no upgrades are
+available. The guard accepts only that particular empty-output case; nonzero
+exit codes accompanied by diagnostics still fail closed. `pacman -Sp` preview
+records now validate both package names and Arch-style version tokens, so
+malformed two-word output cannot accidentally pass the safety check.

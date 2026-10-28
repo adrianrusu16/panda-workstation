@@ -268,3 +268,119 @@ function panda_setup_preflight_heroic --argument-names enable_flathub
     ui_error 'User Flathub remote not ready; provide --enable-flathub to authorize adding it.'
     return 1
 end
+
+# Offline transaction guard. Does not synchronize databases or acquire sudo.
+# This checks current cached state only; it cannot guarantee repository freshness.
+function panda_setup_guard_transaction
+    if not command -sq pacman-conf
+        ui_error 'pacman-conf is needed for transaction safety checks.'
+        return 1
+    end
+
+    set -l pending (pacman -Qu 2>&1)
+    set -l pending_status $status
+    # pacman -Qu can return 1 with no output when no upgrades are available.
+    # Exit 1 with ANY diagnostic is still an error: do not bypass failures.
+    if test $pending_status -eq 1; and test (count $pending) -eq 0
+        ui_info 'No cached upgrades (pacman -Qu returned 1 without output).'
+    else if test $pending_status -ne 0
+        ui_error "Cannot query pending upgrades (pacman -Qu exit $pending_status)."
+        for line in $pending
+            printf '  pacman: %s\n' "$line" >&2
+        end
+        return 1
+    end
+    if test (count $pending) -gt 0
+        ui_error 'Cached repositories show pending upgrades; refusing a partial upgrade.'
+        for line in $pending
+            ui_warn "$line"
+        end
+        return 1
+    end
+
+    # Read the resolved config once so an absent IgnorePkg/IgnoreGroup is OK,
+    # while a broken configuration query still blocks the transaction.
+    set -l config (pacman-conf 2>&1)
+    if test $status -ne 0
+        ui_error 'Unable to inspect pacman configuration; refusing to guess package holds.'
+        return 1
+    end
+    if string match -qr '^\s*Ignore(Pkg|Group)\s*=\s*\S' -- $config
+        ui_error 'IgnorePkg or IgnoreGroup is configured; review it before installing packages.'
+        return 1
+    end
+
+    set -l installed (panda_installed_inventory)
+    or return 1
+    set -l targets
+    for manifest in $argv
+        if not test -f "$manifest"
+            ui_error "Transaction manifest missing: $manifest"
+            return 1
+        end
+        while read -l line
+            set line (string trim -- "$line")
+            if test -z "$line"; or string match -q '#*' -- "$line"
+                continue
+            end
+            if not string match -qr '^[a-z0-9][a-z0-9@+_.-]*$' -- "$line"
+                ui_error "Invalid transaction package: $line"
+                return 1
+            end
+            if not contains -- "$line" $installed; and not contains -- "$line" $targets
+                set -a targets "$line"
+            end
+        end < "$manifest"
+    end
+
+    if test (count $targets) -eq 0
+        ui_success 'No new pacman packages needed (cached-database check only).'
+        return 0
+    end
+
+    # This asks libalpm to resolve the *whole* selected target set, including
+    # dependencies. --print does not install, download, or refresh databases.
+    set -l preview (pacman -Sp --needed --print-format '%n %v' -- $targets 2>&1)
+    set -l preview_status $status
+    if test $preview_status -ne 0
+        ui_error "Cannot resolve package transaction (pacman -Sp exit $preview_status)."
+        for line in $preview
+            printf '  pacman: %s\n' "$line" >&2
+        end
+        return 1
+    end
+    if test (count $preview) -eq 0
+        ui_error 'No package transaction returned despite missing targets; refusing to guess.'
+        return 1
+    end
+    set -l planned
+    for line in $preview
+        set -l fields (string split -n ' ' -- (string trim -- "$line"))
+        if test (count $fields) -ne 2
+            ui_error "Unexpected package transaction output: $line"
+            return 1
+        end
+        if not string match -qr '^[a-z0-9][a-z0-9@+_.-]*$' -- "$fields[1]"
+            ui_error "Unexpected package name in transaction: $fields[1]"
+            return 1
+        end
+        # %v is an Arch package version (optionally with epoch and pkgrel).
+        # Reject diagnostics that happen to contain exactly two words.
+        if not string match -qr '^[[:alnum:]][[:alnum:]._:+~-]*$' -- "$fields[2]"
+            ui_error "Unexpected package transaction output: $line"
+            return 1
+        end
+        if contains -- "$fields[1]" $installed
+            ui_error "Planned transaction would modify installed package: $fields[1] ($fields[2]); refusing."
+            return 1
+        end
+        if contains -- "$fields[1]" $planned
+            ui_error "Duplicate package in transaction preview: $fields[1]"
+            return 1
+        end
+        set -a planned "$fields[1]"
+    end
+    ui_success (count $planned)' planned new pacman packages; no upgrades to installed packages in offline preview.'
+    ui_warn 'Offline preview cannot prove sync databases are fresh or guarantee a future install.'
+    return 0
+end

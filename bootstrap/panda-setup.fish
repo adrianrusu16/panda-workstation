@@ -265,6 +265,19 @@ panda_setup_preflight_scripts "$script_dir" $modules
 or exit 1
 panda_setup_preflight_packages "$repo_root" $modules -- $manifest_names
 or exit 1
+# Check all selected pacman packages in one offline dependency-resolution plan.
+set -l transaction_manifests
+for name in $manifest_names
+    set -a transaction_manifests "$repo_root/setup/manifests/$name.txt"
+end
+if contains workspace $modules
+    set -a transaction_manifests "$repo_root/packages/core.txt" "$repo_root/packages/development.txt"
+end
+if contains desktop $modules
+    set -a transaction_manifests "$repo_root/packages/desktop.txt"
+end
+panda_setup_guard_transaction $transaction_manifests
+or exit 1
 if contains gaming $modules
     panda_setup_multilib_check
     or exit 1
@@ -290,6 +303,11 @@ if not set -q _flag_yes
         exit 1
     end
 end
+
+# Re-check immediately before writes: the operator may have spent time at the
+# confirmation prompt, and another package manager could have changed state.
+panda_setup_guard_transaction $transaction_manifests
+or exit 1
 
 # Actual changes: existing idempotent manifest helper; never pacman -Sy.
 for name in $manifest_names

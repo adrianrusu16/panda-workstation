@@ -206,6 +206,23 @@ if args[:1]==['-Qq']:
     if args[1] in entries:
         print(args[1]);sys.exit(0)
     sys.exit(1)
+if args[:1]==['-Qu']:
+    if os.getenv('MOCK_UPGRADE_QUERY_FAIL')=='1':
+        print('error: sync database could not be read',file=sys.stderr);sys.exit(45)
+    if os.getenv('MOCK_UPGRADE_QUERY_ERROR_ONE')=='1':
+        print('error: sync database could not be read',file=sys.stderr);sys.exit(1)
+    if os.getenv('MOCK_UPGRADE_NO_UPDATES_EXIT_ONE')=='1':sys.exit(1)
+    if os.getenv('MOCK_PENDING_UPGRADES')=='1':print('glibc 2.0 -> 2.1')
+    sys.exit(0)
+if args[:1]==['-Sp']:
+    if os.getenv('MOCK_TRANSACTION_FAIL')=='1':
+        print('error: unresolved dependency',file=sys.stderr);sys.exit(46)
+    targets=args[args.index('--')+1:] if '--' in args else []
+    for target in targets:
+        print(target+' 1.0')
+    if os.getenv('MOCK_TRANSACTION_EXISTING')=='1':print('glibc 2.1')
+    if os.getenv('MOCK_TRANSACTION_GARBLED')=='1':print('unexpected output!')
+    sys.exit(0)
 if args[:1]==['-Si']:
     if args[1]==os.getenv('MOCK_REPO_QUERY_ERROR'):
         print('error: openai-chatgpt: missing required signature', file=sys.stderr)
@@ -222,11 +239,13 @@ sys.exit(88)
 exec "$@"
 ''')
         self.make_exe('pacman-conf', '''#!/bin/sh
-if [ "$MOCK_MULTILIB_DISABLED" = "1" ]; then
-    echo core
-else
-    echo multilib
+if [ "$1" = "--repo-list" ]; then
+    if [ "$MOCK_MULTILIB_DISABLED" = "1" ]; then echo core; else echo multilib; fi
+    exit 0
 fi
+if [ "$MOCK_CONFIG_FAIL" = "1" ]; then exit 48; fi
+if [ "$MOCK_IGNOREPKG" = "1" ]; then echo 'IgnorePkg = linux-cachyos-lts'; fi
+if [ "$MOCK_IGNOREGROUP" = "1" ]; then echo 'IgnoreGroup = graphics'; fi
 ''')
         self.make_exe('hostname', '''#!/bin/sh
 echo panda-test-host
@@ -421,6 +440,88 @@ sys.exit(89)
     def test_check_and_apply_conflict(self):
         r=self.run_manager('--modules','virtualization','--check','--apply')
         self.assertEqual(r.returncode, 2)
+        self.assert_no_apply()
+
+
+    def test_pending_upgrades_block_check_and_apply(self):
+        env=dict(self.env, MOCK_PENDING_UPGRADES='1')
+        for mode in ('--check', '--apply'):
+            args=['--modules','gaming','--stores','steam','--gpu','intel',mode]
+            if mode=='--apply':args.append('--yes')
+            result=self.run_manager(*args,env=env)
+            self.assertNotEqual(result.returncode,0)
+            self.assertIn('pending upgrades',result.stdout+result.stderr)
+        self.assert_no_apply()
+
+    def test_no_pending_upgrades_exit_one_allows_check_and_apply(self):
+        # pacman -Qu may return 1 with *empty* output on an up-to-date host.
+        env=dict(self.env, MOCK_UPGRADE_NO_UPDATES_EXIT_ONE='1')
+        args=['--modules','gaming','--stores','steam','--gpu','intel']
+        check=self.run_manager(*args,'--check',env=env)
+        self.assertEqual(check.returncode,0,check.stdout+check.stderr)
+        self.assertIn('READINESS CHECK PASSED',check.stdout)
+        self.assert_no_apply()
+        apply=self.run_manager(*args,'--apply','--yes',env=env)
+        self.assertEqual(apply.returncode,0,apply.stdout+apply.stderr)
+        self.assertIn('pacman-install',self.events.read_text())
+
+    def test_upgrade_query_exit_one_with_error_still_blocks(self):
+        env=dict(self.env, MOCK_UPGRADE_QUERY_ERROR_ONE='1')
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--check',env=env)
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('Cannot query pending upgrades',r.stdout+r.stderr)
+        self.assertIn('sync database could not be read',r.stdout+r.stderr)
+        self.assert_no_apply()
+
+    def test_failed_upgrade_query_blocks(self):
+        env=dict(self.env, MOCK_UPGRADE_QUERY_FAIL='1')
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--check',env=env)
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('Cannot query pending upgrades',r.stdout+r.stderr)
+        self.assert_no_apply()
+
+    def test_package_holds_block(self):
+        for hold in ('MOCK_IGNOREPKG','MOCK_IGNOREGROUP'):
+            env=dict(self.env,**{hold:'1'})
+            r=self.run_manager('--modules','gaming','--stores','steam',
+                               '--gpu','intel','--apply','--yes',env=env)
+            self.assertNotEqual(r.returncode,0)
+            self.assertIn('IgnorePkg or IgnoreGroup',r.stdout+r.stderr)
+        self.assert_no_apply()
+
+    def test_failed_config_query_blocks(self):
+        env=dict(self.env,MOCK_CONFIG_FAIL='1')
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--check',env=env)
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('Unable to inspect pacman configuration',r.stdout+r.stderr)
+        self.assert_no_apply()
+
+    def test_upgrade_dependency_in_preview_blocks(self):
+        self.installed.write_text('fish\nglibc\n')
+        env=dict(self.env, MOCK_TRANSACTION_EXISTING='1')
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--apply','--yes',env=env)
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('modify installed package: glibc',r.stdout+r.stderr)
+        self.assert_no_apply()
+
+    def test_transaction_preview_failure_blocks(self):
+        env=dict(self.env, MOCK_TRANSACTION_FAIL='1')
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--apply','--yes',env=env)
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('Cannot resolve package transaction',r.stdout+r.stderr)
+        self.assert_no_apply()
+
+    def test_unexpected_transaction_output_blocks(self):
+        env=dict(self.env,MOCK_TRANSACTION_GARBLED='1')
+        r=self.run_manager('--modules','gaming','--stores','steam',
+                           '--gpu','intel','--check',env=env)
+        self.assertNotEqual(r.returncode,0)
+        self.assertIn('Unexpected package transaction output',r.stdout+r.stderr)
         self.assert_no_apply()
 
 
