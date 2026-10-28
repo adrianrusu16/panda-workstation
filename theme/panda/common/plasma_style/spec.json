@@ -7,7 +7,8 @@
     "widgets/background.svg": 12,
     "widgets/translucentbackground.svg": 12,
     "widgets/panel-background.svg": 8,
-    "dialogs/background.svg": 16
+    "dialogs/background.svg": 16,
+    "solid/widgets/panel-background.svg": 8
   },
   "background": "surface",
   "border": "border",

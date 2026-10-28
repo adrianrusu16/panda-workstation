@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bundle_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "job_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "linked_files": {
+      "additionalProperties": {
+        "$ref": "#/$defs/digest"
+      },
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^(/app/panda-frame-worker|/qt-plugins/platforms/libqoffscreen[.]so|/(usr/lib|lib|lib64)/.+)$"
+      },
+      "type": "object"
+    },
+    "parent_namespaces": {
+      "additionalProperties": false,
+      "properties": {
+        "cgroup": {
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "type": "string"
+        },
+        "ipc": {
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "type": "string"
+        },
+        "mnt": {
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "type": "string"
+        },
+        "net": {
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "type": "string"
+        },
+        "pid": {
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "type": "string"
+        },
+        "user": {
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "type": "string"
+        },
+        "uts": {
+          "pattern": "^[1-9][0-9]{0,19}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "user",
+        "mnt",
+        "pid",
+        "ipc",
+        "net",
+        "uts",
+        "cgroup"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "seccomp_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "worker_sha256": {
+      "$ref": "#/$defs/digest"
+    }
+  },
+  "required": [
+    "schema_version",
+    "job_sha256",
+    "worker_sha256",
+    "bundle_sha256",
+    "seccomp_sha256",
+    "parent_namespaces",
+    "linked_files"
+  ],
+  "title": "S2 pre-exec assertion record (not an authorization or proof)",
+  "type": "object"
+}

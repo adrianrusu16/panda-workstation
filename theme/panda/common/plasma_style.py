@@ -20,7 +20,8 @@ PACKAGE_ROOT = "theme/panda/plasma-styles/"
 PREVIEW_ROOT = "docs/panda-theme/previews/d4c3-s1/"
 PARTS = ("topleft","top","topright","left","center","right","bottomleft","bottom","bottomright")
 ASSETS = {"widgets/background.svg":12, "widgets/translucentbackground.svg":12,
-          "widgets/panel-background.svg":8, "dialogs/background.svg":16}
+          "widgets/panel-background.svg":8, "solid/widgets/panel-background.svg":8,
+          "dialogs/background.svg":16}
 PACKAGE_FILES = ("metadata.json","plasmarc","colors","LICENSE",*ASSETS)
 NS = "http://www.w3.org/2000/svg"
 SPEC = Path(__file__).parent/"plasma_style/spec.json"

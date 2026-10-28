@@ -25,7 +25,7 @@ class PlasmaStyleTests(unittest.TestCase):
     def test_all_five_packages_are_deterministic_and_structurally_identical(self):
         first = self.style.build_packages()
         self.assertEqual(first, self.style.build_packages())
-        self.assertEqual(len(first), 40)
+        self.assertEqual(len(first), 45)
         shapes = []
         for slug, theme in self.family.items():
             prefix = "panda-" + slug + "-s1/"
@@ -40,6 +40,16 @@ class PlasmaStyleTests(unittest.TestCase):
                 self.style.validate_frame(own[kind], theme.palette, kind)
             shapes.append(self.style.structure_digest(own,theme.palette))
         self.assertEqual(len(set(shapes)),1)
+
+    def test_opaque_panel_request_uses_the_same_panda_geometry(self):
+        # Plasma 6.8.1 Panel.qml explicitly requests the solid/ path.
+        packages=self.style.build_packages()
+        for slug,theme in self.family.items():
+            prefix="panda-"+slug+"-s1/"
+            solid=prefix+"solid/widgets/panel-background.svg"
+            self.assertIn(solid,set(packages))
+            self.assertEqual(packages[solid],packages[prefix+"widgets/panel-background.svg"])
+            self.style.validate_frame(packages[solid],theme.palette,"solid/widgets/panel-background.svg")
 
     def test_frame_contains_exact_parts_and_margin_hints(self):
         theme=self.family["cyber"]
