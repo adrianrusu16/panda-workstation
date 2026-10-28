@@ -6,6 +6,9 @@ The [D4C proposal](desktop-d4c-proposal.md), [D4B visual system](desktop-d4b.md)
 and canonical `theme/panda/*/theme.toml` palettes remain authoritative.
 No layout, applet, task pin, desktop count, theme-manager or installer changes.
 
+S2 extends the current package inventory with the solid panel path; see the
+[current S2 report](desktop-d4c3-s2.md). Counts below record the accepted S1 baseline.
+
 ## Package contract and source evidence
 
 [Immutable source receipts](../../theme/panda/common/plasma_style/source-references.json)
