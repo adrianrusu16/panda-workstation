@@ -1,0 +1,340 @@
+{
+  "architecture": "linux-x86_64",
+  "blockers": [
+    "Gate 2 has no execution authorization; both public and internal dispatch entries are sealed",
+    "pre-main executable/helper confinement is infeasible under the current dynamic-loader/execve/writable-mount contract; a separately reviewed execution-identity boundary is required",
+    "distribution source/build/patch provenance and the immutable host tracer/bwrap/compiler dependency closure are unverified; measured candidate hashes are not attestation",
+    "candidate pins are historical measurements; runtime snapshots must be immutable and repinned with exact metadata, ELF loader/dependencies and authenticated receipts",
+    "dedicated single-threaded supervisor, cgroup-v2 delegation, cgroup.kill, aggregate accounting and subreaper behavior have no authorized runtime validation",
+    "mandatory namespaces, outer seccomp installation, exact synthetic device/proc mount graph and descriptor handoff remain unexercised",
+    "raw mount-source mapping, parent namespace comparison, filesystem write audit and launcher status semantics require independent evidence review",
+    "exec resets dumpability; pre-main crash behavior and host tool initialization require a reviewed boundary",
+    "raw evidence requires independent confirmation; Gate 1 never approves Gate 2 or Qt/KSvg execution",
+    "RLIMIT_NPROC=1 is preserved exactly but prevents host strace/bwrap forks under the desktop UID; a separately approved launch/payload resource-boundary design is required",
+    "O_NOATIME cannot inspect root-owned tool/runtime pins as an ordinary user without CAP_FOWNER; no plain-read fallback or privilege escalation is authorized",
+    "kernel close_range through UINT_MAX, pidfd ownership, signal masking, stopped-child cgroup admission and parent-death behavior are source/fixture reviewed only; no runtime validation is authorized"
+  ],
+  "build": {
+    "dependencies": [
+      "libc.so.6"
+    ],
+    "flags": [
+      "-std=c17",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Wpedantic",
+      "-Werror",
+      "-fPIE",
+      "-pie",
+      "-Wl,--build-id=sha1",
+      "-Wl,--dynamic-linker=/runtime/ld-linux-x86-64.so.2",
+      "-Wl,--disable-new-dtags,-rpath,/runtime",
+      "-Wl,-z,relro,-z,now,-z,noexecstack"
+    ]
+  },
+  "candidate_pins": {
+    "bubblewrap": {
+      "build_id": "cb831c121aaf9395dea41956415b3a6d08a752b3",
+      "distribution": {
+        "package": "bubblewrap",
+        "source_receipt": null,
+        "version": "0.13.1-1.1"
+      },
+      "elf": {
+        "build_id": "cb831c121aaf9395dea41956415b3a6d08a752b3",
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "needed": [
+          "libcap.so.2",
+          "libgcc_s.so.1",
+          "libc.so.6"
+        ]
+      },
+      "identity": {
+        "ctime_ns": 1792357275506495152,
+        "dev": 35,
+        "gid": 0,
+        "ino": 704642,
+        "mode": 33261,
+        "mtime_ns": 1792018729000000000,
+        "nlink": 1,
+        "sha256": "a7adb079800910ff28fc05c7e1dd2441ff87fb09b369dbb7e82bcededdab079b",
+        "size": 88560,
+        "uid": 0,
+        "xattrs": {}
+      },
+      "review_status": "measured only; provenance not authenticated"
+    },
+    "compiler": {
+      "build_id": "b4001d23e0df048d8e7991ddb98ca55ab1e62465",
+      "distribution": {
+        "package": "gcc",
+        "source_receipt": null,
+        "version": "16.2.1+r23+gd564253eb6c8-3"
+      },
+      "elf": {
+        "build_id": "b4001d23e0df048d8e7991ddb98ca55ab1e62465",
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "needed": [
+          "libc.so.6",
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "identity": {
+        "ctime_ns": 1793038762045188785,
+        "dev": 35,
+        "gid": 0,
+        "ino": 916371,
+        "mode": 33261,
+        "mtime_ns": 1792939528000000000,
+        "nlink": 3,
+        "sha256": "b0b49531b313e70aee0254fb5e69b050a781506184e16ebee6ebe68eee94a145",
+        "size": 2451048,
+        "uid": 0,
+        "xattrs": {}
+      },
+      "review_status": "measured only; provenance not authenticated"
+    },
+    "libc": {
+      "build_id": "e363db7c8fcc7c06c6f0d2839b2a8ad875b75406",
+      "distribution": {
+        "package": "glibc",
+        "source_receipt": null,
+        "version": "2.44+r50+g1848099f063e-3"
+      },
+      "elf": {
+        "build_id": "e363db7c8fcc7c06c6f0d2839b2a8ad875b75406",
+        "interpreter": "/usr/lib/ld-linux-x86-64.so.2",
+        "needed": [
+          "ld-linux-x86-64.so.2"
+        ]
+      },
+      "identity": {
+        "ctime_ns": 1791033806984310338,
+        "dev": 35,
+        "gid": 0,
+        "ino": 4163,
+        "mode": 33261,
+        "mtime_ns": 1790699229000000000,
+        "nlink": 1,
+        "sha256": "071e34179e645b25f8a8c2e7108894dc665caa9f5f8c939cd579a75b6638bc3f",
+        "size": 2440544,
+        "uid": 0,
+        "xattrs": {}
+      },
+      "review_status": "measured only; provenance not authenticated"
+    },
+    "loader": {
+      "build_id": "3cad94f849ea29f8e91c1006184fe034fbc58c29",
+      "distribution": {
+        "package": "glibc",
+        "source_receipt": null,
+        "version": "2.44+r50+g1848099f063e-3"
+      },
+      "elf": {
+        "build_id": "3cad94f849ea29f8e91c1006184fe034fbc58c29",
+        "interpreter": null,
+        "needed": []
+      },
+      "identity": {
+        "ctime_ns": 1791033806966820614,
+        "dev": 35,
+        "gid": 0,
+        "ino": 4154,
+        "mode": 33261,
+        "mtime_ns": 1790699229000000000,
+        "nlink": 1,
+        "sha256": "2a950d46575efa0210d22440988f5a6b4507ebddc6c86d9a42e6e7ef6f01463e",
+        "size": 283632,
+        "uid": 0,
+        "xattrs": {}
+      },
+      "review_status": "measured only; provenance not authenticated"
+    },
+    "probe": {
+      "build_id": "c490d2058f157ea2e2f23a8a53526a9d371216ce",
+      "distribution": {
+        "package": "panda-workstation",
+        "source_receipt": null,
+        "version": "319bfe7 + Gate 1 source"
+      },
+      "elf": {
+        "build_id": "c490d2058f157ea2e2f23a8a53526a9d371216ce",
+        "interpreter": "/runtime/ld-linux-x86-64.so.2",
+        "needed": [
+          "libc.so.6"
+        ]
+      },
+      "identity": {
+        "ctime_ns": 1793215737548614797,
+        "dev": 113,
+        "gid": 1000,
+        "ino": 228891,
+        "mode": 33261,
+        "mtime_ns": 1793215737548601624,
+        "nlink": 1,
+        "sha256": "4bc0cea56441618e7c250a288ac3d81b3c77316e56c01ae54af2351dbad0d97e",
+        "size": 21464,
+        "uid": 1000,
+        "xattrs": {}
+      },
+      "review_status": "stale after Gate 1B source change; build-only candidate must be repinned before execution"
+    },
+    "tracer": {
+      "build_id": "35750acbd7c6d7a621fd5dc49a09f55295aa3355",
+      "distribution": {
+        "package": "strace",
+        "source_receipt": null,
+        "version": "7.2-1"
+      },
+      "elf": {
+        "build_id": "35750acbd7c6d7a621fd5dc49a09f55295aa3355",
+        "interpreter": "/lib64/ld-linux-x86-64.so.2",
+        "needed": [
+          "libncursesw.so.6",
+          "libunwind-ptrace.so.0",
+          "libunwind-x86_64.so.8",
+          "libc.so.6"
+        ]
+      },
+      "identity": {
+        "ctime_ns": 1791054462073500844,
+        "dev": 35,
+        "gid": 0,
+        "ino": 356334,
+        "mode": 33261,
+        "mtime_ns": 1788762768000000000,
+        "nlink": 1,
+        "sha256": "28ed5493ecf611b83ac0d0398cc1c4f09a228afaa7fce4737d14c8599cc796e2",
+        "size": 1706640,
+        "uid": 0,
+        "xattrs": {}
+      },
+      "review_status": "measured only; provenance not authenticated"
+    }
+  },
+  "confinement_analysis": {
+    "reasoning": [
+      "The stateless outer cBPF filter permits execve for the initial bwrap payload handoff. It cannot inspect pathnames or distinguish a later execve.",
+      "Writable bind mounts have no demonstrated noexec enforcement. openat can create an executable file there and the same allowed execve can launch it before the main-time filter.",
+      "The exposed dynamic ELF interpreter is itself executable. A readonly runtime allowlist alone does not restrict it to the initial probe or authenticate code loaded from writable paths.",
+      "Even prospective noexec mounts would require a full executable-mapping review: mmap and mprotect currently admit executable anonymous memory; pathname-only checks do not prove a code-identity boundary.",
+      "The probe no-exec filter is installed in main after ELF interpreter/libc initialization. It cannot establish the requested pre-main guarantee.",
+      "No filter weakening, namespace fallback, launcher bypass, provenance assertion or execution permit is used to hide this conflict."
+    ],
+    "required_before_enablement": "Separately specify and independently review a kernel-enforced initial-exec/code-identity boundary covering loader initialization, writable mappings, secondary exec and host launcher initialization. Repin the resulting profile/runtime/filter and request fresh scoped authorization.",
+    "verdict": "infeasible under the current fixed contract"
+  },
+  "delegated_cgroup": null,
+  "environment": {
+    "HOME": "/home/probe",
+    "LANG": "C",
+    "LC_ALL": "C",
+    "TZ": "UTC",
+    "XDG_CACHE_HOME": "/cache",
+    "XDG_CONFIG_HOME": "/config",
+    "XDG_DATA_HOME": "/data",
+    "XDG_RUNTIME_DIR": "/run/private",
+    "XDG_STATE_HOME": "/state"
+  },
+  "executable": "/runtime/inert-probe",
+  "execution_enabled": false,
+  "id": "panda-inert-v1",
+  "limits": {
+    "address_space_bytes": 134217728,
+    "core_bytes": 0,
+    "cpu_seconds": 2,
+    "file_bytes": 1048576,
+    "open_files": 32,
+    "output_bytes": 2097152,
+    "processes": 1,
+    "teardown_seconds": 2,
+    "wall_seconds": 5
+  },
+  "namespaces": [
+    "user",
+    "mnt",
+    "pid",
+    "ipc",
+    "net",
+    "uts",
+    "cgroup"
+  ],
+  "probe_source_sha256": "262b4371f8434f02abb2c3c8f05b43fa6d2b13f7aed2604a59d4e84b1b4a6384",
+  "provenance_status": "unreviewed; measured hashes and package ownership are not supply-chain authentication",
+  "runtime_files": [
+    "inert-probe",
+    "ld-linux-x86-64.so.2",
+    "libc.so.6"
+  ],
+  "schema_version": 1,
+  "syscalls": {
+    "allow": {
+      "access": 21,
+      "arch_prctl": 158,
+      "brk": 12,
+      "capget": 125,
+      "clock_gettime": 228,
+      "close": 3,
+      "execve": 59,
+      "exit": 60,
+      "exit_group": 231,
+      "fcntl": 72,
+      "fstat": 5,
+      "fsync": 74,
+      "futex": 202,
+      "getcwd": 79,
+      "getdents64": 217,
+      "getegid": 108,
+      "geteuid": 107,
+      "getgid": 104,
+      "getpid": 39,
+      "getppid": 110,
+      "getrandom": 318,
+      "getrlimit": 97,
+      "gettid": 186,
+      "getuid": 102,
+      "madvise": 28,
+      "mmap": 9,
+      "mprotect": 10,
+      "mremap": 25,
+      "munmap": 11,
+      "newfstatat": 262,
+      "openat": 257,
+      "pread64": 17,
+      "prlimit64": 302,
+      "read": 0,
+      "readlink": 89,
+      "readlinkat": 267,
+      "rseq": 334,
+      "rt_sigaction": 13,
+      "rt_sigprocmask": 14,
+      "rt_sigreturn": 15,
+      "sched_getaffinity": 204,
+      "set_robust_list": 273,
+      "set_tid_address": 218,
+      "sigaltstack": 131,
+      "statfs": 137,
+      "statx": 332,
+      "uname": 63,
+      "write": 1
+    },
+    "arch": 3221225534,
+    "default_errno": 1,
+    "exec_policy": "candidate only: initial execve is needed by bwrap; cBPF cannot authenticate pathnames; probe stacks no-exec at main, but pre-main helper refusal is UNPROVEN",
+    "prctl_options": [
+      3,
+      4,
+      21,
+      22,
+      38,
+      39
+    ],
+    "reference": "https://docs.kernel.org/userspace-api/seccomp_filter.html",
+    "x32_mask": 1073741824
+  },
+  "tools": {
+    "bubblewrap": "/usr/bin/bwrap",
+    "tracer": "/usr/bin/strace"
+  }
+}
