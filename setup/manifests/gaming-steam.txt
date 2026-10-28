@@ -1,0 +1,2 @@
+# Steam uses distribution multilib + GPU-specific Vulkan packages
+steam

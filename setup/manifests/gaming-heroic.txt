@@ -1,0 +1,2 @@
+# Heroic itself comes from Flathub, never AUR or an unverified tarball
+flatpak

@@ -1,0 +1,6 @@
+# Optional performance tools; no system-wide tuning performed
+vulkan-tools
+gamemode
+lib32-gamemode
+mangohud
+lib32-mangohud

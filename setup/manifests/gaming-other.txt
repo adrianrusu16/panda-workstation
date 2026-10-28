@@ -1,0 +1,2 @@
+# Lutris supports additional launchers; runners installed separately as needed
+lutris
