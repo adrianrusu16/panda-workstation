@@ -17,6 +17,35 @@ python3 -B -m unittest discover -s tests -p test_external_vm_s4.py -v
 snapshot is needed. Tests use synthetic metadata and ordinary temporary files.
 They do not invoke package tools, rootfs assembly or native code.
 
+## Sealed bootstrap-provenance review
+
+`bootstrap_provenance.review(manifest_bytes, artifact_bytes, now_epoch=...)`
+checks bounded in-memory data only. `artifact_bytes` maps manifest identifiers to
+already held byte buffers; URLs and file paths are labels, never fetch or read
+instructions. The API reuses S4's strict JSON parsing and frozen lock identity.
+The CLI refuses unconditionally with a bounded JSON result and exit code 78,
+including for help or activation requests.
+
+`bootstrap-provenance.pins.json` records the observed Ubuntu snapshot metadata,
+tool-package hashes and Arch source/key identities from the trust investigation.
+These are source-controlled consistency references, not independently verified
+trust anchors, executable hashes or an activated policy. InRelease hash tables
+and package records are parsed; package payloads are only hashed, never decoded.
+Package records support LF-delimited, single-line Deb822 fields only. Field names
+are case-insensitive; duplicate fields, continuations and unsupported control or
+line-separator characters are rejected.
+The runtime graph and certificate/lifecycle fields are declarations whose
+consistency can be checked, not proof of ELF dependencies or valid signatures.
+
+Every result has `accepted=false`, `execution_authorized=false` and
+`trust_policy_activation_allowed=false`. Even a fully consistent bundle is
+blocked on an independently trusted cryptographic verifier, authenticated
+package-to-file membership, actual ELF dependency closure and Arch lifecycle
+review. `now_epoch` is an explicit assessment context, not a trusted-clock proof.
+Unknown proof flags such as `verified=true` are rejected. The synthetic tests
+substitute fictional references at the loader boundary; no synthetic success
+validates the real certificate set. No result can update `trust-policy.json`.
+
 The proposed Python interfaces are:
 
 - `authenticate.authenticate_set(lock_path, policy_path, keyring_path, cache,
