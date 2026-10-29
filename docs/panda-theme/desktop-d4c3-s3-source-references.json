@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-10-29",
+  "base_commit": "217e62a9dc141e3f600974a982b1484c61eaf375",
+  "sources": [
+    {
+      "url": "https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/configure-image-data.sh",
+      "claim": "ImageVersion has a patch component; image release and included-software URLs use only major.minor. Inspected as source, not executed."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/reference/runners/github-hosted-runners",
+      "claim": "Standard ubuntu-24.04 x64 runs in a fresh hosted VM; public 4 CPU/16 GB/14 GB, private 2 CPU/8 GB/14 GB."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow",
+      "claim": "workflow_dispatch requires the workflow to exist on the default branch."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/concepts/runners/github-hosted-runners",
+      "claim": "Runner images update weekly; exact included software link appears in Set up job logs."
+    },
+    {
+      "url": "https://packages.ubuntu.com/search?keywords=qt6&suite=noble",
+      "claim": "Noble qt6-base-dev is 6.4.2+dfsg-21.1build5, not 6.12.0."
+    },
+    {
+      "url": "https://wiki.archlinux.org/title/Arch_Linux_Archive",
+      "claim": "Archive retains dated repository snapshots and package versions/signatures."
+    },
+    {
+      "url": "https://archive.archlinux.org/repos/2026/10/15/core/os/x86_64/core.db",
+      "sha256": "6934bca80575ac127e105be771203e79c2eb52728520e23ecaf3f319d7ba9c87",
+      "claim": "Downloaded metadata only, no package payloads."
+    },
+    {
+      "url": "https://archive.archlinux.org/repos/2026/10/15/extra/os/x86_64/extra.db",
+      "sha256": "06d0136d06b713b2be141efb0c121b2e10e1a2c5bdc1a5bf44e7f32d4b9756f8",
+      "claim": "Downloaded metadata only, no package payloads."
+    },
+    {
+      "url": "https://archlinux.org/packages/extra/x86_64/qt6-base/",
+      "claim": "Corroborates Qt 6.12.0-3; current package page is not the snapshot lock."
+    },
+    {
+      "url": "https://archlinux.org/packages/extra/x86_64/ksvg/",
+      "claim": "Corroborates KSvg 6.31.0-1 and separates optional QML bindings from native library dependencies."
+    },
+    {
+      "url": "https://download.qt.io/official_releases/qt/6.12/",
+      "claim": "Official Qt 6.12.0 release exists; release directory also lists later security patches. No payload/signature checked."
+    },
+    {
+      "url": "https://kde.org/info/kde-frameworks-6.31.0/",
+      "claim": "Official release lists KSvg SHA256 1cacfe9660cdb564edc4c0bf69578776a54001b114ae6fb2a4fa77da25fca2d1 and release signer fingerprint 90A968ACA84537CC27B99EAF2C8DF587A6D4AAC1. No tarball signature verified."
+    },
+    {
+      "url": "https://api.github.com/repos/actions/checkout/git/ref/tags/v5.0.0",
+      "commit": "08c6903cd8c0fde910a37f88322edcfb5dd907a8"
+    },
+    {
+      "url": "https://api.github.com/repos/actions/upload-artifact/git/ref/tags/v6.0.0",
+      "commit": "b7c566a772e6b6bfb58ed0dc250532a479d7789f"
+    },
+    {
+      "project": "ksvg",
+      "url": "https://github.com/KDE/ksvg/blob/v6.31.0/CMakeLists.txt",
+      "inspected": "2026-10-29",
+      "scope": "build-declarations-only; not authenticated release verification"
+    },
+    {
+      "project": "ksvg",
+      "url": "https://github.com/KDE/ksvg/blob/v6.31.0/src/ksvg/CMakeLists.txt",
+      "inspected": "2026-10-29",
+      "scope": "build-declarations-only; not authenticated release verification"
+    },
+    {
+      "project": "karchive",
+      "url": "https://github.com/KDE/karchive/blob/v6.31.0/CMakeLists.txt",
+      "inspected": "2026-10-29",
+      "scope": "build-declarations-only; not authenticated release verification"
+    },
+    {
+      "project": "kconfig",
+      "url": "https://github.com/KDE/kconfig/blob/v6.31.0/CMakeLists.txt",
+      "inspected": "2026-10-29",
+      "scope": "build-declarations-only; not authenticated release verification"
+    },
+    {
+      "project": "kcolorscheme",
+      "url": "https://github.com/KDE/kcolorscheme/blob/v6.31.0/CMakeLists.txt",
+      "inspected": "2026-10-29",
+      "scope": "build-declarations-only; not authenticated release verification"
+    },
+    {
+      "project": "kcoreaddons",
+      "url": "https://github.com/KDE/kcoreaddons/blob/v6.31.0/CMakeLists.txt",
+      "inspected": "2026-10-29",
+      "scope": "build-declarations-only; not authenticated release verification"
+    },
+    {
+      "project": "kguiaddons",
+      "url": "https://github.com/KDE/kguiaddons/blob/v6.31.0/CMakeLists.txt",
+      "inspected": "2026-10-29",
+      "scope": "build-declarations-only; not authenticated release verification"
+    },
+    {
+      "project": "kirigami",
+      "url": "https://github.com/KDE/kirigami/blob/v6.31.0/CMakeLists.txt",
+      "inspected": "2026-10-29",
+      "scope": "build-declarations-only; not authenticated release verification"
+    },
+    {
+      "project": "ki18n",
+      "url": "https://github.com/KDE/ki18n/blob/v6.31.0/CMakeLists.txt",
+      "inspected": "2026-10-29",
+      "scope": "build-declarations-only; not authenticated release verification"
+    }
+  ],
+  "warnings": [
+    "Package index hashes and embedded PGP packets are metadata receipts, not verified signatures.",
+    "No rootfs/image, compiler build, native output or guest attestation exists."
+  ]
+}

@@ -1,0 +1,48 @@
+name: Panda native VM source preparation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: panda-native-vm-preparation
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: python3 {0}
+    steps:
+      - name: Check out the selected immutable source revision
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Validate sources and record preparation provenance
+        timeout-minutes: 2
+        run: |
+          import runpy
+          import sys
+          sys.argv = ["prepare.py", "--prepare"]
+          runpy.run_path("tests/native/external_vm/prepare.py", run_name="__main__")
+
+      - name: Export only the bounded preparation packet
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        timeout-minutes: 2
+        with:
+          name: panda-native-vm-preparation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/panda-native-vm-preparation/*
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 7
+          compression-level: 0

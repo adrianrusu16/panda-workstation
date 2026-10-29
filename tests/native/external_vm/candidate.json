@@ -1,0 +1,123 @@
+{
+  "asset": "widgets/background.svg",
+  "candidate_id": "cyber-widget-288x88-dpr1",
+  "dependency_lock_sha256": "f4034660aa04de28123ccaf80fd6d12d2d7eb9c8f2d29e5043f1f4511fe16618",
+  "device_pixel_ratio": 1,
+  "execution_enabled": false,
+  "expected_margin_trbl": [
+    12,
+    12,
+    12,
+    12
+  ],
+  "flavor": "cyber",
+  "inputs": [
+    {
+      "bytes": 4792,
+      "destination": "/inputs/data/plasma/desktoptheme/panda-cyber-s1/widgets/background.svg",
+      "sha256": "acdc56b7cae58f5943d7f18371e69161fdc8d4ed1ebd6a9b2929e797073609fe",
+      "source": "theme/panda/plasma-styles/panda-cyber-s1/widgets/background.svg"
+    },
+    {
+      "bytes": 2360,
+      "destination": "/inputs/data/plasma/desktoptheme/panda-cyber-s1/colors",
+      "sha256": "4ba3e0c89892b5a9da394a6f29250177969a9174a8e36802557fc7a313dd182a",
+      "source": "theme/panda/plasma-styles/panda-cyber-s1/colors"
+    },
+    {
+      "bytes": 244,
+      "destination": "/inputs/data/plasma/desktoptheme/panda-cyber-s1/metadata.json",
+      "sha256": "e1f375f9861ed13f76a44a1e48777f2574e940103023e1613b13580ed0e48ded",
+      "source": "theme/panda/plasma-styles/panda-cyber-s1/metadata.json"
+    },
+    {
+      "bytes": 141,
+      "destination": "/inputs/data/plasma/desktoptheme/panda-cyber-s1/plasmarc",
+      "sha256": "202eb5bd775688c4e48af32f6185bf7d1e29ef4d5a18968bbc783bd6d73f1051",
+      "source": "theme/panda/plasma-styles/panda-cyber-s1/plasmarc"
+    },
+    {
+      "bytes": 35149,
+      "destination": "/inputs/data/plasma/desktoptheme/panda-cyber-s1/LICENSE",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "source": "theme/panda/plasma-styles/panda-cyber-s1/LICENSE"
+    },
+    {
+      "bytes": 313,
+      "destination": "/inputs/fonts.conf",
+      "sha256": "e7312d831617872b58d1d07630bedeebcb1a1925c4bf10a9626be53fa5599abc",
+      "source": "tests/native/external_vm/fonts.conf"
+    }
+  ],
+  "ksvg_version": "6.31.0",
+  "logical_size": [
+    288,
+    88
+  ],
+  "native_worker_executed": false,
+  "preserved_sources": [
+    {
+      "bytes": 857,
+      "destination": ".github/workflows/validate.yml",
+      "sha256": "7b53b1c4270387ea99fd000673d222c9c55b9884fab9f5aef11d55951535bb85",
+      "source": ".github/workflows/validate.yml"
+    },
+    {
+      "bytes": 1861,
+      "destination": "tests/fixtures/desktop/native-frame-contract.json",
+      "sha256": "dc4275c2ea412f9c56e02766c7ca961140daff53c3ceb5666cfb8e0af30b823a",
+      "source": "tests/fixtures/desktop/native-frame-contract.json"
+    },
+    {
+      "bytes": 24058,
+      "destination": "tests/native/plasma_frame_worker.cpp",
+      "sha256": "27ec3b198293af15508e8c14b29c287d6aaa98169fb6f7e0938233eaa84857b5",
+      "source": "tests/native/plasma_frame_worker.cpp"
+    },
+    {
+      "bytes": 67836,
+      "destination": "tests/native/sandbox_supervisor.py",
+      "sha256": "c55e999ee8ee41860c5349d046e249aaec4ca67b565d7414802d3e8d2c62b9e1",
+      "source": "tests/native/sandbox_supervisor.py"
+    },
+    {
+      "bytes": 11746,
+      "destination": "tests/native/inert-profile.json",
+      "sha256": "143038e00e529bf3b329a3004cdc2f620086c6c076215baa99c07d5dca521cc0",
+      "source": "tests/native/inert-profile.json"
+    },
+    {
+      "bytes": 9927,
+      "destination": "tests/native/inert_probe.c",
+      "sha256": "262b4371f8434f02abb2c3c8f05b43fa6d2b13f7aed2604a59d4e84b1b4a6384",
+      "source": "tests/native/inert_probe.c"
+    },
+    {
+      "bytes": 2022,
+      "destination": "tests/native/isolation-attestation.schema.json",
+      "sha256": "c3577f3f7f4d96c41ea504b6d013fb1f439df058cfcbc37e319be89b2f241e2e",
+      "source": "tests/native/isolation-attestation.schema.json"
+    },
+    {
+      "bytes": 36448,
+      "destination": "tests/test_sandbox_supervisor.py",
+      "sha256": "f1496236d09350ea4d9ebc5e1ddd24da716f5f8215d4d613de5d8a4294deae96",
+      "source": "tests/test_sandbox_supervisor.py"
+    },
+    {
+      "bytes": 6856,
+      "destination": "theme/panda/common/native_frame_plan.py",
+      "sha256": "c4a0f73360e2ebaf3e3325e5077c23bb12a45420ee0c63dc289f5553743a4dfe",
+      "source": "theme/panda/common/native_frame_plan.py"
+    }
+  ],
+  "qt_version": "6.12.0",
+  "renderer": "KSvg::FrameSvg",
+  "runtime_inputs_pending": [
+    "font-file-sha256",
+    "offscreen-plugin-sha256",
+    "elf-loader-and-shared-library-file-manifest",
+    "authenticated-package-build-origins"
+  ],
+  "schema_version": 1
+}
