@@ -182,6 +182,22 @@ class G14Contracts(unittest.TestCase):
         other=(MANIFESTS/'gaming-other.txt').read_text().splitlines()
         self.assertIn('python-protobuf',other)
 
+class G141SafetyContracts(unittest.TestCase):
+    def test_pacman_failure_cannot_skip_post_transaction_safety(self):
+        main=MAIN.read_text()
+        begin=main.index('panda_setup_install_selected $transaction_manifests')
+        end=main.index('if test $heroic -eq 1',begin)
+        stage=main[begin:end]
+        self.assertIn('set -l package_status $status',stage)
+        self.assertIn('panda_setup_helios_validate "$repo_root"',stage)
+        self.assertIn('panda_setup_helios_limine_lts',stage)
+        self.assertIn('panda_setup_limine_hash',stage)
+        self.assertNotIn('or exit $status',stage)
+        self.assertLess(stage.index('panda_setup_limine_hash'),
+                        stage.index('if test $package_status -ne 0'))
+        self.assertIn('exit $package_status',stage)
+
+
 @unittest.skipUnless(shutil.which('fish'), 'Requires Fish on the host or CI')
 class G11MockedApplyTests(unittest.TestCase):
     '''Run real Fish setup manager against disposable fake pacman/flatpak programs.
@@ -359,6 +375,96 @@ sys.exit(89)
         self.assertNotIn('flatpak-add', self.events.read_text())
         self.assertNotIn('flatpak-install', self.events.read_text())
         self.assertEqual(self.stage_log.read_text(), '')
+
+    def configure_mock_helios(self):
+        # Only disposable fake commands and a fake validator are executed here.
+        # No actual /boot files, kernels or host services are touched.
+        self.make_exe('hostname', '#!/bin/sh\necho panda-helios\n')
+        validator=self.repo/'machines/panda-helios/validate.fish'
+        validator.parent.mkdir(parents=True,exist_ok=True)
+        validator.write_text('''#!/usr/bin/env fish
+printf 'helios-validate\\n' >> "$MOCK_EVENTS"
+if test "$MOCK_HELIOS_VALIDATE_FAIL_AFTER" = 1
+    if string match -q '*pacman-install*' -- (string collect < "$MOCK_EVENTS")
+        exit 65
+    end
+end
+exit 0
+''')
+        self.make_exe('sudo', r'''#!/bin/sh
+if [ "$1" = "grep" ] && [ "$2" = "-F" ]; then
+    printf 'limine-lts-check\n' >> "$MOCK_EVENTS"
+    echo ' comment: kernel-id=linux-cachyos-lts'
+    echo ' module_path: boot():/mock/initramfs'
+    echo ' path: boot():/mock/vmlinuz'
+    if [ "$MOCK_LIMINE_INVALID_AFTER" = "1" ] &&
+       grep -q '^pacman-install ' "$MOCK_EVENTS"; then
+        echo ' cmdline: quiet splash'
+    else
+        echo ' cmdline: quiet module_blacklist=nvidia,nvidia_drm,nvidia_modeset,nvidia_uvm,nouveau'
+    fi
+    exit 0
+fi
+if [ "$1" = "sha256sum" ]; then
+    printf 'limine-hash-check\n' >> "$MOCK_EVENTS"
+    if [ "$MOCK_LIMINE_HASH_CHANGED" = "1" ] &&
+       grep -q '^pacman-install ' "$MOCK_EVENTS"; then
+        printf '%064d  /boot/limine.conf\n' 1
+    else
+        printf '%064d  /boot/limine.conf\n' 0
+    fi
+    exit 0
+fi
+exec "$@"
+''')
+
+    def test_failed_pacman_still_validates_helios_and_keeps_exit_code(self):
+        self.configure_mock_helios()
+        env=dict(self.env,MOCK_PACMAN_FAIL='1',MOCK_LIMINE_HASH_CHANGED='1')
+        r=self.run_manager('--modules','virtualization','--apply','--yes',env=env)
+        self.assertEqual(r.returncode,51,r.stdout+r.stderr)
+        log=self.events.read_text().splitlines()
+        self.assertEqual(log.count('helios-validate'),2,log)
+        self.assertEqual(log.count('limine-lts-check'),2,log)
+        self.assertEqual(log.count('limine-hash-check'),2,log)
+        self.assertIn('Pacman hooks changed /boot/limine.conf',r.stdout+r.stderr)
+        self.assertIn('Package transaction failed (exit 51)',r.stdout+r.stderr)
+        self.assertEqual(self.stage_log.read_text(),'')
+
+    def test_failed_pacman_still_detects_corrupted_helios_lts(self):
+        self.configure_mock_helios()
+        env=dict(self.env,MOCK_PACMAN_FAIL='1',MOCK_LIMINE_INVALID_AFTER='1')
+        r=self.run_manager('--modules','virtualization','--apply','--yes',env=env)
+        self.assertEqual(r.returncode,51,r.stdout+r.stderr)
+        self.assertIn('lost its NVIDIA hard blacklist',r.stdout+r.stderr)
+        self.assertIn('Post-transaction safety validation failed',r.stdout+r.stderr)
+        log=self.events.read_text().splitlines()
+        self.assertEqual(log.count('helios-validate'),2,log)
+        self.assertEqual(log.count('limine-lts-check'),2,log)
+        self.assertEqual(log.count('limine-hash-check'),2,log)
+        self.assertEqual(self.stage_log.read_text(),'')
+
+    def test_successful_helios_transaction_warns_about_limine_change(self):
+        self.configure_mock_helios()
+        env=dict(self.env,MOCK_LIMINE_HASH_CHANGED='1')
+        r=self.run_manager('--modules','virtualization','--apply','--yes',env=env)
+        self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertIn('Pacman hooks changed /boot/limine.conf',r.stdout+r.stderr)
+        log=self.events.read_text().splitlines()
+        self.assertGreaterEqual(log.count('helios-validate'),3,log)
+        self.assertEqual(log.count('limine-lts-check'),2,log)
+
+    def test_successful_pacman_stops_when_post_helios_check_fails(self):
+        self.configure_mock_helios()
+        env=dict(self.env,MOCK_HELIOS_VALIDATE_FAIL_AFTER='1')
+        r=self.run_manager('--modules','virtualization','--apply','--yes',env=env)
+        self.assertEqual(r.returncode,1,r.stdout+r.stderr)
+        self.assertIn('Post-transaction safety validation failed',r.stdout+r.stderr)
+        log=self.events.read_text().splitlines()
+        self.assertEqual(log.count('helios-validate'),2,log)
+        self.assertEqual(log.count('limine-lts-check'),2,log)
+        self.assertEqual(log.count('limine-hash-check'),2,log)
+        self.assertEqual(self.stage_log.read_text(),'')
 
     def test_combined_pacman_transaction_covers_all_selected_stores(self):
         args=['--modules','gaming','--stores','steam,gog,epic,other',

@@ -352,23 +352,46 @@ end
 # One pacman transaction across ALL selected package manifests. Existing
 # workspace/desktop setup scripts still run afterward for non-package tasks;
 # their install_manifest calls become no-ops for already-installed packages.
+# Capture its exit status BEFORE running any other command. Even on failure,
+# pacman may already have run hooks or changed system/boot state.
 panda_setup_install_selected $transaction_manifests
-or exit $status
+set -l package_status $status
 
-# Read-only revalidation after pacman and its automatic hooks, before user
-# Flatpak/chezmoi/development/desktop stages run.
+# ALWAYS perform read-only post-transaction checks on Helios, even if pacman
+# failed. Collect failures instead of short-circuiting: a failed machine check
+# must not prevent examining the generated Limine entry and its fingerprint.
+set -l post_safety_failed 0
 panda_setup_helios_validate "$repo_root"
-or exit 1
+or set post_safety_failed 1
 if test (hostname) = panda-helios
     panda_setup_helios_limine_lts
-    or exit 1
+    or set post_safety_failed 1
     set -l limine_after (panda_setup_limine_hash)
-    or exit 1
-    if test "$limine_before" != "$limine_after"
-        ui_warn 'Pacman hooks changed /boot/limine.conf; verified LTS NVIDIA blacklist remains intact.'
+    if test $status -ne 0
+        set post_safety_failed 1
+    else if test "$limine_before" != "$limine_after"
+        if test $post_safety_failed -eq 0
+            ui_warn 'Pacman hooks changed /boot/limine.conf; verified LTS NVIDIA blacklist remains intact.'
+        else
+            ui_warn 'Pacman hooks changed /boot/limine.conf; LTS safety validation did not pass.'
+        end
     else
         ui_success 'Generated Limine configuration unchanged by package transaction.'
     end
+end
+
+# Preserve pacman's original nonzero status despite subsequent safety checks.
+# No Flatpak, development, or desktop stages may follow either failure.
+if test $package_status -ne 0
+    if test $post_safety_failed -ne 0
+        ui_error 'Post-transaction safety validation failed; do not reboot until investigated.'
+    end
+    ui_error "Package transaction failed (exit $package_status); post-transaction safety checks completed."
+    exit $package_status
+end
+if test $post_safety_failed -ne 0
+    ui_error 'Post-transaction safety validation failed; refusing remaining setup stages. Do not reboot until investigated.'
+    exit 1
 end
 
 if test $heroic -eq 1

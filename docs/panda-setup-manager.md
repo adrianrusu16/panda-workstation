@@ -212,3 +212,18 @@ These diagnostics do **not** start game launchers, authenticate stores,
 install optional runners, or prove that any game can launch successfully.
 `python-protobuf` is required in `setup/manifests/gaming-other.txt` for this
 Lutris integration (already added locally before this patch).
+
+## G1.4.1 — Failed transaction safety hotfix
+
+On Helios, pacman can run hooks and change boot artifacts even when a package
+transaction reports an error. The manager now records the original pacman exit
+code and **always** runs the read-only machine validator, generated first-LTS
+Limine blacklist check, and `/boot/limine.conf` fingerprint comparison after
+the attempted transaction. It attempts all three even when one fails, then
+blocks later stages. A failed pacman transaction retains its original exit code.
+A successful transaction with a failed safety check exits nonzero.
+
+**Scope:** these checks validate policy and compare the generated Limine
+configuration file; they do **not** verify initramfs contents or guarantee a
+subsequent boot. Pacman hooks are neither disabled nor rolled back. On a
+failed Helios safety validation, investigate before rebooting.
