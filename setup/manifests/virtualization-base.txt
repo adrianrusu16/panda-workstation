@@ -1,0 +1,6 @@
+# No libvirt services or VM guests are started
+qemu-base
+libvirt
+virt-manager
+virt-install
+edk2-ovmf
