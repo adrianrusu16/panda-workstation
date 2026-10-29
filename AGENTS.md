@@ -22,6 +22,21 @@ Keep this file small and treat it as the repository-wide safety and engineering 
 - Never print, store, or commit passwords, tokens, private keys, API keys, signing keys, or credential files.
 - Prefer user-local configuration over system-wide changes unless system scope is materially required.
 
+## Repository content
+
+- Keep source code, tests, fixtures, schemas, assets, required configuration,
+  dependency locks, operational guides and necessary security documentation.
+- Keep disposable plans, milestone reports, raw validation logs, generated stage-plan
+  snapshots and intermediate review artifacts under ignored private paths such as
+  `.local-ai/`, or in temporary review attachments. Retain a generated record only
+  when a concrete runtime, test or required provenance contract uses it.
+- Consolidate duplicate historical explanations into maintained operational guides
+  covering usage, restrictions and prerequisites. Preserve unique requirements,
+  deterministic generators, security fixtures and reproducibility contracts.
+- Assess newly integrated milestone documents during cleanup. Preserve approved
+  specifications and private evidence boundaries; do not rewrite merged history
+  solely to remove development records.
+
 ## Shell and package rules
 
 - User-facing shell commands must be Fish-compatible.

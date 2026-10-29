@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "status": "pending-review",
+  "lock_sha256": "f4034660aa04de28123ccaf80fd6d12d2d7eb9c8f2d29e5043f1f4511fe16618",
+  "review_reference": null,
+  "reviewed_at_epoch": null,
+  "keyring_sha256": null,
+  "signers": [],
+  "tools": {}
+}

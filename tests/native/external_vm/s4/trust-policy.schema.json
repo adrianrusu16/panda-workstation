@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Explicit reviewed signing trust root; pending is never executable",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "lock_sha256", "review_reference", "reviewed_at_epoch", "keyring_sha256", "signers", "tools"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "status": {"enum": ["pending-review", "reviewed"]},
+    "lock_sha256": {"const": "f4034660aa04de28123ccaf80fd6d12d2d7eb9c8f2d29e5043f1f4511fe16618"},
+    "review_reference": {"type": ["string", "null"], "minLength": 1, "maxLength": 1024},
+    "reviewed_at_epoch": {"type": ["integer", "null"], "minimum": 1},
+    "keyring_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "signers": {
+      "type": "array", "maxItems": 128, "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["primary_fingerprint", "signing_fingerprint", "valid_from", "valid_until", "lifecycle_review"],
+        "properties": {
+          "primary_fingerprint": {"type": "string", "pattern": "^([0-9A-F]{40}|[0-9A-F]{64})$"},
+          "signing_fingerprint": {"type": "string", "pattern": "^([0-9A-F]{40}|[0-9A-F]{64})$"},
+          "valid_from": {"type": "integer", "minimum": 1},
+          "valid_until": {"type": "integer", "minimum": 2},
+          "lifecycle_review": {"const": "accepted-no-known-revocation"}
+        }
+      }
+    },
+    "tools": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "gpgv": {"$ref": "#/$defs/tool"},
+        "zstd": {"$ref": "#/$defs/tool"},
+        "vercmp": {"$ref": "#/$defs/tool"}
+      }
+    }
+  },
+  "$defs": {
+    "tool": {"type": "object", "additionalProperties": false, "required": ["sha256"],
+             "properties": {"sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "reviewed"}}},
+     "then": {"properties": {
+       "review_reference": {"type": "string"}, "reviewed_at_epoch": {"type": "integer"},
+       "keyring_sha256": {"type": "string"}, "signers": {"minItems": 1},
+       "tools": {"required": ["gpgv", "zstd", "vercmp"]}
+     }},
+     "else": {"properties": {
+       "review_reference": {"type": "null"}, "reviewed_at_epoch": {"type": "null"},
+       "keyring_sha256": {"type": "null"}, "signers": {"maxItems": 0}, "tools": {"maxProperties": 0}
+     }}}
+  ]
+}
