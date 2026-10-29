@@ -186,3 +186,29 @@ configuration. The manager never collects credentials, downloads games,
 changes the boot/GPU policy, or claims that first-run GUI operation was tested.
 `--verify` checks installed package state, not that a game can launch.
 Android/AOSP remains a planning-only option and blocks any combined apply.
+
+## G1.4 — One transaction and Helios hook-awareness
+
+The manager now deduplicates missing packages across all selected manifests
+and invokes **one** `sudo pacman -S --needed -- ...` transaction after the
+existing cached-repository and disk-space safeguards. The existing workspace
+and desktop scripts still run for non-package setup, but their package stages
+should be no-ops when the combined transaction has already installed the
+manifest packages. This reduces package-manager prompts; it does not make
+interactive user configuration or external downloads noninteractive.
+
+On `panda-helios`, strict modes call `machines/panda-helios/validate.fish`.
+Apply also checks the **generated** first Limine LTS entry before and after
+package hooks, fingerprints `/boot/limine.conf`, and flags any change. The
+installer **does not** disable package hooks, modify boot configuration,
+change kernels, touch NVIDIA isolation, or reboot. Pacman hooks can still
+regenerate boot artifacts as an indirect effect; this is explicitly reported
+and a post-change validation failure stops later setup stages. Users should
+not reboot following a failed safety validation until investigated.
+
+`--verify` and post-apply verification provide read-only launcher presence
+and Vulkan device checks, plus a Python protobuf import for Lutris Battle.net.
+These diagnostics do **not** start game launchers, authenticate stores,
+install optional runners, or prove that any game can launch successfully.
+`python-protobuf` is required in `setup/manifests/gaming-other.txt` for this
+Lutris integration (already added locally before this patch).

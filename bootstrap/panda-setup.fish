@@ -227,6 +227,8 @@ if test $heroic -eq 1
     ui_step 'GOG + Epic: install Heroic Flatpak once (user scope)'
     if test $enable_flathub -eq 1
         ui_info 'With --enable-flathub: would add the official user-scoped Flathub remote if missing.'
+    else if command -sq flatpak; and flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
+        ui_info 'Heroic is already installed for this user; Flathub setup not needed.'
     else
         ui_warn 'If Flathub is missing, --apply requires --enable-flathub.'
     end
@@ -260,6 +262,10 @@ if contains gaming $modules
     panda_setup_check_gpu_safety "$gpu" "$strict"
     or exit 1
 end
+if test $strict -eq 1
+    panda_setup_helios_validate "$repo_root"
+    or exit 1
+end
 
 if test $apply -eq 0; and test $check -eq 0; and test $verify -eq 0
     ui_success 'DRY RUN COMPLETE: no packages, repos, files, services, VMs, or boot settings changed.'
@@ -275,6 +281,9 @@ if test $verify -eq 1
     ui_section '🔍' 'Installed component verification'
     panda_setup_verify_installation "$heroic" $transaction_manifests
     or exit 1
+    if contains gaming $modules
+        panda_setup_smoke_gaming "$gpu" $stores
+    end
     ui_success 'VERIFICATION COMPLETE: no installations or configuration changes made.'
     exit 0
 end
@@ -330,11 +339,38 @@ if contains gaming $modules
     or exit 1
 end
 
-# Actual changes: existing idempotent manifest helper; never pacman -Sy.
-for name in $manifest_names
-    install_manifest "$repo_root/setup/manifests/$name.txt" "$name"
-    or exit $status
+# Record boot configuration before package hooks; this is read-only. A
+# pacman transaction may indirectly regenerate Limine or initramfs files.
+set -l limine_before
+if test (hostname) = panda-helios
+    panda_setup_helios_limine_lts
+    or exit 1
+    set limine_before (panda_setup_limine_hash)
+    or exit 1
 end
+
+# One pacman transaction across ALL selected package manifests. Existing
+# workspace/desktop setup scripts still run afterward for non-package tasks;
+# their install_manifest calls become no-ops for already-installed packages.
+panda_setup_install_selected $transaction_manifests
+or exit $status
+
+# Read-only revalidation after pacman and its automatic hooks, before user
+# Flatpak/chezmoi/development/desktop stages run.
+panda_setup_helios_validate "$repo_root"
+or exit 1
+if test (hostname) = panda-helios
+    panda_setup_helios_limine_lts
+    or exit 1
+    set -l limine_after (panda_setup_limine_hash)
+    or exit 1
+    if test "$limine_before" != "$limine_after"
+        ui_warn 'Pacman hooks changed /boot/limine.conf; verified LTS NVIDIA blacklist remains intact.'
+    else
+        ui_success 'Generated Limine configuration unchanged by package transaction.'
+    end
+end
+
 if test $heroic -eq 1
     if not command -sq flatpak
         ui_error 'flatpak was not installed as expected'
@@ -373,8 +409,12 @@ end
 ui_section '🔍' 'Automatic installation verification'
 panda_setup_verify_installation "$heroic" $transaction_manifests
 or exit 1
+panda_setup_helios_validate "$repo_root"
+or exit 1
 if contains gaming $modules
+    panda_setup_smoke_gaming "$gpu" $stores
+
     ui_info 'Launch Steam/Heroic/Lutris normally to sign in and complete their first-run setup.'
     ui_info 'Proton/game downloads and store authentication require user actions; nothing is enabled in the GPU/boot configuration.'
 end
-ui_success 'Selected implemented modules completed. No machine/boot changes were requested.'
+ui_success 'Selected implemented modules completed; package-hook boot effects were checked on Helios.'

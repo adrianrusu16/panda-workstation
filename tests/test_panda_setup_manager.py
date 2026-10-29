@@ -123,7 +123,7 @@ class G11PreflightContracts(unittest.TestCase):
         self.assertIn('panda_setup_preflight_packages', src)
         self.assertIn("if test $check -eq 1", src)
         self.assertLess(src.index('panda_setup_preflight_packages'),
-                        src.index('install_manifest "$repo_root/setup/manifests/'))
+                        src.index('panda_setup_install_selected $transaction_manifests'))
         self.assertLess(src.index('panda_setup_preflight_packages'),
                         src.index('flatpak remote-add --user'))
 
@@ -147,9 +147,9 @@ class G13Contracts(unittest.TestCase):
         self.assertIn('panda_setup_verify_installation "$heroic" $transaction_manifests',source)
         self.assertIn('--verify',source)
         self.assertLess(source.index('panda_setup_guard_transaction $transaction_manifests'),
-                        source.index('install_manifest "$repo_root/setup/manifests/'))
+                        source.index('panda_setup_install_selected $transaction_manifests'))
         self.assertLess(source.index('panda_setup_check_disk_space'),
-                        source.index('install_manifest "$repo_root/setup/manifests/'))
+                        source.index('panda_setup_install_selected $transaction_manifests'))
 
     def test_disk_and_verification_helpers_are_read_only(self):
         source=HELPERS.read_text()
@@ -159,9 +159,28 @@ class G13Contracts(unittest.TestCase):
         self.assertIn('flatpak info --user com.heroicgameslauncher.hgl',source)
         # These helpers must not start apps or modify the host.
         for forbidden in ('sudo ', 'systemctl ', 'modprobe ', 'pacman -Sy', 'flatpak install'):
-            guarded=source[source.index('function panda_setup_check_disk_space'):]
+            guarded=source[source.index('function panda_setup_check_disk_space'):source.index('# Collect missing packages')]
             self.assertNotIn(forbidden,guarded)
 
+
+
+class G14Contracts(unittest.TestCase):
+    def test_one_combined_pacman_transaction_and_preflight(self):
+        main=MAIN.read_text()
+        self.assertIn('panda_setup_install_selected $transaction_manifests',main)
+        self.assertNotIn('install_manifest "$repo_root/setup/manifests/',main)
+        self.assertLess(main.index('panda_setup_guard_transaction $transaction_manifests'),
+                        main.index('panda_setup_install_selected $transaction_manifests'))
+        helpers=HELPERS.read_text()
+        self.assertIn('sudo pacman -S --needed -- $missing',helpers)
+        self.assertIn('function panda_setup_missing_targets',helpers)
+        self.assertIn('function panda_setup_limine_hash',helpers)
+        self.assertIn('function panda_setup_helios_limine_lts',helpers)
+        self.assertIn('panda_setup_helios_validate "$repo_root"',main)
+
+    def test_lutris_battlenet_dependency_is_in_manifest(self):
+        other=(MANIFESTS/'gaming-other.txt').read_text().splitlines()
+        self.assertIn('python-protobuf',other)
 
 @unittest.skipUnless(shutil.which('fish'), 'Requires Fish on the host or CI')
 class G11MockedApplyTests(unittest.TestCase):
@@ -251,9 +270,11 @@ if args[:1]==['-Si']:
         sys.exit(44)
     sys.exit(1 if args[1]==os.getenv('MOCK_MISSING_PACKAGE') else 0)
 if args[:2]==['-S','--needed']:
-    with events.open('a') as f:f.write('pacman-install '+','.join(args[2:])+'\n')
+    targets=args[2:]
+    if targets and targets[0]=='--': targets=targets[1:]
+    with events.open('a') as f:f.write('pacman-install '+','.join(targets)+'\n')
     if os.getenv('MOCK_PACMAN_FAIL')=='1':sys.exit(51)
-    entries.update(args[2:]);state.write_text('\n'.join(sorted(entries))+'\n')
+    entries.update(targets);state.write_text('\n'.join(sorted(entries))+'\n')
     sys.exit(0)
 sys.exit(88)
 ''')
@@ -338,6 +359,21 @@ sys.exit(89)
         self.assertNotIn('flatpak-add', self.events.read_text())
         self.assertNotIn('flatpak-install', self.events.read_text())
         self.assertEqual(self.stage_log.read_text(), '')
+
+    def test_combined_pacman_transaction_covers_all_selected_stores(self):
+        args=['--modules','gaming','--stores','steam,gog,epic,other',
+              '--gpu','intel','--enable-flathub']
+        r=self.run_manager(*args,'--apply','--yes')
+        self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        installs=[line for line in self.events.read_text().splitlines()
+                  if line.startswith('pacman-install ')]
+        self.assertEqual(len(installs),1,installs)
+        self.assertIn('steam',installs[0])
+        self.assertIn('lutris',installs[0])
+        self.assertIn('flatpak',installs[0])
+        self.assertIn('python-protobuf',installs[0])
+        self.assertIn('gamemode',installs[0])
+        self.assertEqual(len(installs[0].split(',') ),len(set(installs[0].split(','))))
 
     def test_check_is_non_mutating_and_apply_is_idempotent(self):
         args=['--modules', 'gaming', '--stores', 'steam,gog,epic,other',

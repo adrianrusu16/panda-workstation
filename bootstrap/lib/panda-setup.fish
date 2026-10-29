@@ -455,3 +455,154 @@ function panda_setup_verify_installation --argument-names heroic
     ui_info 'Verification does not launch Steam, modify drivers, or sign into game stores.'
     return 0
 end
+
+# Collect missing packages across manifests in one deduplicated list. Never
+# silently treat an unreadable package inventory as an empty installation.
+function panda_setup_missing_targets
+    set -l installed (panda_installed_inventory)
+    or return 1
+    set -l missing
+    for manifest in $argv
+        if not test -f "$manifest"
+            ui_error "Missing selected package manifest: $manifest"
+            return 1
+        end
+        while read -l package
+            set package (string trim -- "$package")
+            if test -z "$package"; or string match -q '#*' -- "$package"
+                continue
+            end
+            if not string match -qr '^[a-z0-9][a-z0-9@+_.-]*$' -- "$package"
+                ui_error "Invalid selected package: $package"
+                return 1
+            end
+            if not contains -- "$package" $installed; and not contains -- "$package" $missing
+                set -a missing "$package"
+            end
+        end < "$manifest"
+    end
+    if test (count $missing) -gt 0
+        printf '%s\n' $missing
+    end
+end
+
+# Execute exactly one combined pacman transaction for all selected manifests.
+# The shared G1.2 transaction guard must run immediately before this helper.
+function panda_setup_install_selected
+    set -l missing (panda_setup_missing_targets $argv)
+    or return 1
+    if test (count $missing) -eq 0
+        ui_success 'All selected pacman packages are already installed.'
+        return 0
+    end
+    ui_section '📦' 'Combined pacman installation'
+    ui_info (count $missing)' missing manifest packages; dependencies resolved by pacman.'
+    ui_info 'One pacman transaction and one native confirmation; no repository refresh.'
+    sudo pacman -S --needed -- $missing
+    set -l result $status
+    if test $result -ne 0
+        ui_error "Combined pacman installation failed (exit $result)."
+        return $result
+    end
+    ui_success 'Combined pacman installation completed.'
+    return 0
+end
+
+# Verify existing safety policy; never run the machine/boot setup stage.
+function panda_setup_helios_validate --argument-names repo_root
+    if test (hostname) != panda-helios
+        return 0
+    end
+    set -l validator "$repo_root/machines/panda-helios/validate.fish"
+    if not test -f "$validator"
+        ui_error 'Helios safety validator is missing; refusing package changes.'
+        return 1
+    end
+    ui_section '🔒' 'Helios machine safety validation'
+    fish "$validator"
+    or begin
+        ui_error 'Helios safety validator failed.'
+        return 1
+    end
+    return 0
+end
+
+# Read-only generated-Limine check. Must match the FIRST LTS entry rather
+# than an older snapshot. sudo is used only after --apply confirmation.
+function panda_setup_helios_limine_lts
+    if test (hostname) != panda-helios
+        return 0
+    end
+    set -l section (sudo grep -F -A 6 -m 1 'comment: kernel-id=linux-cachyos-lts' /boot/limine.conf 2>&1)
+    if test $status -ne 0
+        ui_error 'Cannot read generated Limine LTS entry; refusing to proceed.'
+        return 1
+    end
+    set -l cmdlines (string match -r '^ *cmdline:.*' -- $section)
+    if test (count $cmdlines) -ne 1
+        ui_error 'Generated Limine LTS entry is missing an unambiguous cmdline.'
+        return 1
+    end
+    set -l expected 'module_blacklist=nvidia,nvidia_drm,nvidia_modeset,nvidia_uvm,nouveau'
+    if not string match -q "*$expected*" -- "$cmdlines[1]"
+        ui_error 'Generated Limine LTS entry lost its NVIDIA hard blacklist.'
+        return 1
+    end
+    ui_success 'Generated Limine LTS entry preserves NVIDIA isolation.'
+end
+
+# Return a hash only; do not modify the bootloader or filesystem.
+function panda_setup_limine_hash
+    set -l result (sudo sha256sum /boot/limine.conf 2>&1)
+    if test $status -ne 0
+        ui_error 'Cannot fingerprint generated Limine configuration.' >&2
+        return 1
+    end
+    set -l fields (string split -n ' ' -- "$result")
+    if test (count $fields) -lt 2; or not string match -qr '^[0-9a-f]{64}$' -- "$fields[1]"
+        ui_error 'Unexpected generated Limine checksum output.' >&2
+        return 1
+    end
+    echo "$fields[1]"
+end
+
+# Read-only launcher/runtime diagnostics. Noncritical GUI/runners are reported,
+# not automatically started or downloaded; no attempt is made to sign in.
+function panda_setup_smoke_gaming --argument-names gpu
+    set -e argv[1]
+    ui_section '🎮' 'Launcher and Vulkan diagnostics'
+    if contains steam $argv
+        if command -sq steam
+            ui_success 'Steam executable is available.'
+        else
+            ui_warn 'Steam executable not on PATH; test from desktop launcher.'
+        end
+    end
+    if contains other $argv
+        if command -sq lutris
+            ui_success 'Lutris executable is available.'
+        else
+            ui_warn 'Lutris executable not on PATH; test from desktop launcher.'
+        end
+        if python -c 'import google.protobuf' >/dev/null 2>&1
+            ui_success 'Lutris Battle.net protobuf binding imports successfully.'
+        else
+            ui_warn 'Lutris Battle.net Python protobuf import failed.'
+        end
+    end
+    if command -sq vulkaninfo
+        set -l vk (vulkaninfo --summary 2>&1)
+        if test $status -ne 0
+            ui_warn 'vulkaninfo failed; investigate graphics runtime separately.'
+        else if test "$gpu" = intel; and string match -qi '*Intel*' -- $vk
+            ui_success 'Intel Vulkan physical device discovered.'
+        else if test "$gpu" = amd; and string match -qi '*AMD*' -- $vk
+            ui_success 'AMD Vulkan physical device discovered.'
+        else
+            ui_warn 'Vulkan ran but did not identify the selected GPU vendor.'
+        end
+    else
+        ui_warn 'vulkaninfo unavailable; graphics runtime not exercised.'
+    end
+    return 0
+end
