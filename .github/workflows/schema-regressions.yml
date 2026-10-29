@@ -1,0 +1,45 @@
+name: JSON Schema regressions
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  schema:
+    name: Validate evidence schemas
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install pinned schema validator
+        run: |
+          python3 -m venv "$RUNNER_TEMP/panda-schema-venv"
+          "$RUNNER_TEMP/panda-schema-venv/bin/python" -m pip install --disable-pip-version-check --only-binary=:all: jsonschema==4.25.1
+          echo "$RUNNER_TEMP/panda-schema-venv/bin" >> "$GITHUB_PATH"
+
+      - name: Validate schemas and run regressions without skips
+        shell: python3 {0}
+        run: |
+          import json
+          from importlib.metadata import version
+          from pathlib import Path
+          import unittest
+          from jsonschema import Draft202012Validator
+
+          assert version("jsonschema") == "4.25.1"
+          for path in sorted(Path("tests/native").rglob("*.schema.json")):
+              Draft202012Validator.check_schema(json.loads(path.read_text()))
+              print("Schema valid:", path, flush=True)
+          suite = unittest.defaultTestLoader.discover("tests", pattern="test_external_vm_preparation.py")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if result.testsRun == 0 or result.skipped or not result.wasSuccessful():
+              raise SystemExit("Schema regressions must run successfully without skips")
