@@ -127,15 +127,22 @@ def package_records(raw):
             continue
         require(not re.search(r"[\x00-\x08\x0b-\x1f\x7f-\x9f\u2028\u2029]", paragraph),
                 "unsupported package index control or line separator")
-        values = {}
+        values, current = {}, None
         for line in paragraph.rstrip("\n").split("\n"):
-            # Only single-line Deb822 fields are supported, including optional fields.
-            require(not line.startswith((" ", "\t")), "unsupported package index continuation")
+            if line.startswith((" ", "\t")):
+                require(current is not None and current not in canonical.values() and line.strip(" \t"),
+                        "unsupported package index continuation")
+                values[current].append(line)
+                continue
             key, separator, value = line.partition(":")
             require(separator and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9-]*", key), "malformed package index field")
             key = canonical.get(key.lower(), key.lower())
             require(key not in values, "duplicate package index field")
-            values[key] = value.lstrip(" \t")
+            values[key] = [value.lstrip(" \t")]
+            current = key
+        # Join once per field: optional contents retain line breaks and indentation
+        # within the existing aggregate index expansion and record budgets.
+        values = {key: "\n".join(parts) for key, parts in values.items()}
         needed = {"Package", "Version", "Architecture", "Filename", "SHA256", "Size"}
         require(needed <= set(values) and all(values[key] for key in needed), "package index identity missing")
         identity = (values["Package"], values["Version"], values["Architecture"])
@@ -144,7 +151,7 @@ def package_records(raw):
                 len(values["Size"]) <= 12 and relative(values["Filename"]) and values["Filename"].startswith("pool/"),
                 "package index hash/size/source identity")
         require(len(result) < MAX_PACKAGE_RECORDS, "package index record budget")
-        result[identity] = {key: value for key, value in values.items() if key in needed or key == "Depends"}
+        result[identity] = values
     require(result, "empty package index")
     return result
 

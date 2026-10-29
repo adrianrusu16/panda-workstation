@@ -31,8 +31,12 @@ tool-package hashes and Arch source/key identities from the trust investigation.
 These are source-controlled consistency references, not independently verified
 trust anchors, executable hashes or an activated policy. InRelease hash tables
 and package records are parsed; package payloads are only hashed, never decoded.
-Package records support LF-delimited, single-line Deb822 fields only. Field names
-are case-insensitive; duplicate fields, continuations and unsupported control or
+Package records support LF-delimited Deb822 fields with nonempty space/tab-prefixed
+continuations on optional fields. Optional contents retain line breaks and
+continuation indentation under lowercase field names within the existing index
+budgets. Package, Version, Architecture, Filename, SHA256, Size and Depends remain
+single-line fields. Field names are case-insensitive; duplicate fields, orphan or
+whitespace-only continuations, malformed declarations and unsupported control or
 line-separator characters are rejected.
 The runtime graph and certificate/lifecycle fields are declarations whose
 consistency can be checked, not proof of ELF dependencies or valid signatures.
