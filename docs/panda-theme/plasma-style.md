@@ -1,15 +1,23 @@
-# Panda Desktop D4C3-S1 — native Plasma Style sources
+# Panda Plasma Style assets
 
-Status: offline source milestone; native rendering and deployment unverified.
-Base: integrated main `1a8b655334e2b906022a9c97ef169ed3aa930343` (PR #10).
-The [D4C proposal](desktop-d4c-proposal.md), [D4B visual system](desktop-d4b.md)
-and canonical `theme/panda/*/theme.toml` palettes remain authoritative.
-No layout, applet, task pin, desktop count, theme-manager or installer changes.
+Five generated `panda-<flavor>-s1` Plasma/Theme packages share canonical palettes
+and one structural specification. They are uninstalled source assets. The `s1`
+suffix is a stable package identity, not an instruction to rename or remove it.
+Native rendering, installation, activation and actual Breeze Dark fallback are
+unverified and separately authorized.
 
-S2 extends the current package inventory with the solid panel path; see the
-[current S2 report](desktop-d4c3-s2.md). Counts below record the accepted S1 baseline.
+See [desktop usage](desktop.md), [compatibility](desktop-compatibility.md), and
+[worker/supervisor execution restrictions](../../tests/native/README.md).
 
 ## Package contract and source evidence
+
+The [pinned Plasma 6.8.1 opaque-panel consumer](https://github.com/KDE/plasma-desktop/blob/bb989636959f9edc7263f2f75dc2630835305b95/desktoppackage/contents/views/Panel.qml#L167)
+requests `solid/widgets/panel-background`; the matching asset is required even
+though its bytes equal the regular panel path. Both paths must remain installed
+in each independent package. The complete generated set has 54 files including
+the seven unchanged model PNGs, verification data and manifests. The retained
+[native initialization receipts](desktop-d4c3-s2-source-references.json) cover
+18 additional sources for Qt 6.12.0, KSvg 6.31.0, Plasma 6.8.1 and bubblewrap 0.13.1.
 
 [Immutable source receipts](../../theme/panda/common/plasma_style/source-references.json)
 pin 19 files by repository, tag, commit, tree, Git blob, SHA256 and byte length.
@@ -43,6 +51,7 @@ Original Panda geometry is generated; no Breeze artwork is copied.
 | `widgets/background.svg` | standard desktop widget frame | 12 |
 | `widgets/translucentbackground.svg` | deliberately opaque alias for translucent hint consumers | 12 |
 | `widgets/panel-background.svg` | toolbar and dock frame | 8 |
+| `solid/widgets/panel-background.svg` | opaque panel asset, byte-identical to the regular panel path | 8 |
 | `dialogs/background.svg` | common popup/dialog frame | 16 |
 
 Each asset has a nominal 12-unit corner radius, one-unit canonical `border`,
@@ -51,8 +60,8 @@ The curved outside corners are intentionally transparent. Interior coverage is
 opaque; this is not a full rectangular alpha mask. Caps are 12 units and edges
 stretch. Margin hints express content insets independently of the cap size.
 
-The four other package files are `metadata.json`, `plasmarc`, `colors` and
-the complete GPL-3.0-or-later license. There are 40 package files, including 20
+The four non-SVG package files are `metadata.json`, `plasmarc`, `colors` and
+the complete GPL-3.0-or-later license. There are 45 package files, including 25
 SVGs. All flavors share one generator and structural digest. Canonical palettes
 remain the sole color source; generated RGB values are derived outputs.
 
@@ -143,7 +152,7 @@ cleans unrelated objects or performs a live rollback.
 The tests cover the five identical package structures, metadata, token-only
 colors, malicious XML/SVG/resource refusal, margin and mask identities,
 conflict/idempotence behavior and parent replacement. The raster matrix covers
-480 frames: five flavors × four assets × six sizes × four scales
+600 frames: five flavors × five assets × six sizes × four scales
 (100%, 125%, 150%, 200%). Sizes include 24×24, 288×88, 352×168, 1024×48,
 352×56 and 303×119. Interior/seam alpha and selected mask scanlines are sampled;
 this does not exhaust every pixel or native border-disable path.
@@ -154,7 +163,7 @@ this does not exhaust every pixel or native border-disable path.
 | --- | --- |
 | Frame silhouette, nominal radius, opaque fill, border and alpha mask | exact native corner pixels, fractional-scale seams and compositing |
 | Explicit FrameSvg margin hints and stretched edges | applet minimum size, additional internal padding or border suppression |
-| Standard, translucent-hint alias, panel and dialog asset paths | a frame for NoBackground widgets, all compact/full presentations |
+| Standard, translucent-hint alias, regular/solid panel and dialog paths | a frame for NoBackground widgets, all compact/full presentations |
 | Native semantic color groups and effect preferences | every stock widget honoring every role or ignored color overrides |
 | Explicit fallback theme | complete control/icon coverage or exact fallback opacity |
 | Shared flavor geometry and semantic roles | per-card bespoke layout, typography, controls or icon placement |
@@ -195,43 +204,3 @@ or layout applicator is part of S1.
    restore entire Plasma configuration files, reset timestamps, clear caches,
    restart the session or claim recovery is proven. Remove only S1 objects whose
    creation identity remains verified, after confirming they are not active.
-
-## Observed verification
-
-- Complete suite: **328 tests passed** with isolated HOME/XDG.
-  Baseline before S1: 314 passed. New focused coverage: 14 passed.
-- Fish/package validator: **13 scripts**, **54 package entries**, bootstrap
-  executable checks passed. No Fish or package manifest changes.
-- 20 SVGs parse and match the restricted geometry/semantic/safety profile;
-  five packages share an identical normalized structural digest.
-- All 19 source payloads match the recorded SHA256, byte length, Git blob and
-  immutable commit-tree membership. Report links resolve locally; upstream
-  links point to immutable KDE commits.
-- Independent-process generation reproduced all **49 generated artifacts**
-  byte for byte; inode, mode, owner, size and mtime remained unchanged.
-- Fresh final source review found no important confirmed defects.
-- All 57 new review files passed whitespace checks, including the untracked
-  patch content. The tracked diff and index remain empty.
-- Six previous checkout HEADs, branches and status listings matched baseline.
-  Sixteen prior untracked-file receipts plus the ignored approved specification
-  matched bytes, metadata, xattrs and parent bindings. The already-modified
-  tracked canary bootstrap had no initial byte receipt: only its modified status
-  was recorded. This task did not edit it; exact before/after bytes are unverified.
-- No live session query or configuration access, installation, activation,
-  service start, D3B1A access, commit, push, merge or deployment was performed.
-
-These results qualify the offline sources. Wallpaper contrast advisories,
-native KSvg measurements and recovery/runtime authorization remain open.
-
-## Change inventory and review boundary
-
-New source/specification: `plasma_style.py`, `plasma_style/spec.json`,
-`plasma_style/source-references.json`, `plasma_style_preview.py`.
-New tests: `test_plasma_style.py`, `test_plasma_style_preview.py`.
-Documentation: this report and `desktop-d4c3-s1-plan.md`.
-Generated packages: five `theme/panda/plasma-styles/panda-*-s1/` directories,
-each with the eight files listed above.
-Previews: five individual PNGs, gallery PNG, Cyber comparison PNG,
-`verification.json` and `manifest.json` under `previews/d4c3-s1/`.
-Private raw source, preservation receipts, test logs and complete review patch
-remain ignored local evidence. No previous milestone file is modified.
