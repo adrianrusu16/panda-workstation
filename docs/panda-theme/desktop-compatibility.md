@@ -1,64 +1,126 @@
-# D4C2 proposal — revalidate the installed native stack
+# Desktop compatibility and preservation
 
-Status: **approved static compatibility proposal; no native observation or implementation authorized**.
-Prepared 2026-10-27. D4C1 commit: 6133292d753ba8369106a951e193f09098b6a53f.
-D4C1 PR: [#9](https://github.com/adrianrusu16/panda-workstation/pull/9).
-This proposal and its source-reference JSON were reviewed outside that PR and
-are published separately as the D4C2 documentation milestone. Runtime observation
-still requires its own exact procedure and authorization.
+These are pinned static contracts, not fresh host observations or native-test
+approval. The baseline is Plasma 6.7.5; the source comparison covers Plasma 6.8.1,
+Qt 6.12.0 and Kirigami/KSvg 6.31.0. Installed package versions do not prove loaded
+session versions or distribution-patch parity.
 
-## Goal and boundary
+Immutable source provenance is retained in [the 6.7.5 receipts](d4c1/kde-source-references.json)
+and [the 6.8.1 comparison receipts](d4c2/source-references.json). They record
+commits, trees, Git blobs, SHA256 and lengths. The latter covers 60 blobs and
+20 baseline pairs (13 byte-identical, seven changed). Missing guessed source
+paths do not establish removal of an API. Rolling documentation cannot override
+the pinned implementation.
 
-Compare the accepted Plasma 6.7.5 static findings against the declared installed
-Plasma 6.8.1 / Qt 6.12.0 stack, with Kirigami 6.31.0 as recorded by D4C1.
-An installed package version is not a loaded-process version. Distribution
-patches and loaded QML/library combinations have not been verified.
+## Saved-file assessment limitations
 
-No packages, applets, providers, services, theme changes, configuration writers,
-layout applicators, debugging attachments, custom plasmoids or native tests are
-introduced. No new host configuration, process, hardware or session-bus observation
-was performed. D3B1A was not accessed; its unresolved recovery status remains
-independent of this proposal.
+The qualified 2026-10-26/27 saved-file inventory found one folder-view desktop,
+desktop count 1 and one bottom panel, with seven ordered panel slots and 16
+nested tray applets. No desktop clock/media/CPU/RAM instance was found; the
+existing panel clock and nested tray weather are ineligible for repurposing.
+Task launcher data was not serialized: runtime ordered pins are **unknown, not
+zero**. Synthetic two-pin/seven-slot samples are not a host inventory.
+Saved FHD/scale-1 output facts are provisional, not active topology.
 
-Recommended approach: compare immutable upstream source first, then authorize
-only a bounded observation of already-running objects whose getter path has
-been audited. A stock-default reconstruction cannot establish runtime pins or
-font resolution. An automatic layout application is outside this phase and
-cannot solve the disabled geometry setter.
+All seven selected configuration files retained their bytes; only six retained
+complete whole-assessment metadata receipts. `kwinoutputconfig.json` mtime/ctime
+drifted between stable individual reads, with no established actor. Collection
+stopped; identical bytes do not close the preservation/freshness failure.
+The private earlier candidate and [public synthetic candidate](d4c1/clock-media-candidate.json)
+are not executable host plans or recovery backups. Require a newly authorized
+stable baseline; do not reopen historical D3B1A evidence.
 
-## Evidence and classification rules
+`desktop_assessment.read_preserved()` requires bounded regular singly linked
+files, safely owned non-symlink ancestors and O_NOATIME; there is no ordinary-read,
+timestamp-reset or permission-workaround fallback. It checks parent bindings,
+device/inode, owner/mode/link count, size, nanosecond times, SHA256 and supported
+xattrs (including ACL xattrs when exposed). Filesystem flags, other ACL schemes
+and unsaved in-memory state are not covered. The KConfig subset does not expand
+expressions/flags/includes. Flagged/escaped identities refuse classification.
 
-[Source references](d4c2/source-references.json) contain immutable commits/trees,
-lengths, Git blob IDs and SHA256 hashes for **60 official source blobs**.
-All 20 D4C1 source files were paired with 6.8.1 versions: 13 are byte-identical;
-seven changed. A changed file does not mean every property in it changed.
+The prior selected file allowlist was plasma-org.kde.plasma.desktop-appletsrc,
+plasmashellrc, kwinrc, kdeglobals, plasmarc, kactivitymanagerdrc and
+kwinoutputconfig.json. That list does not authorize new reads. Raw configs were
+not saved. Private IDs/order/output identifiers and receipts remain private;
+inventory receipts cannot restore the configuration. Root-owned native-font
+reading was refused by O_NOATIME; native font resolution remains unknown.
 
-| Repository | Tag | Immutable commit |
+## Evidence and property map
+
+Every upstream source below is pinned to an immutable commit and Git blob in
+[d4c1/kde-source-references.json](d4c1/kde-source-references.json). Paths are
+relative to the named KDE repository at v6.7.5. Raw source stays in private local
+evidence. A source-supported property is not proof of native sizing or fidelity.
+
+| Role / official package | Plugin | Exact baseline configuration surface | Representation and native questions |
+| --- | --- | --- | --- |
+| Clock / plasma-workspace | org.kde.plasma.digitalclock | Appearance: showDate, dateFormat, customDateFormat, autoFontAndSize, fontFamily, fontSize, boldText, italicText, fontWeight, fontStyleName, showSeconds, use24hFormat, dateDisplayFormat; preserve all timezone/calendar fields | main.qml prefers compact clock; full view is the calendar. “Expanded” Panda geometry must not force the calendar. Defaults request ShadowBackground with ConfigurableBackground. |
+| Media / plasma-workspace | org.kde.plasma.mediacontroller | No per-instance main.xml in the inspected package. Native MPRIS model supplies track, artist, artwork, status and control capabilities. GlobalConfig reads General/VolumeStep in plasmaparc; **do not change this global audio setting** | Full minimum 14×10 Kirigami grid units; preferred 20×20. Compact view adapts to panel/desktop/tray and absent players. D4B 288×120 does not prove full controls fit. |
+| Weather / kdeplasma-addons | org.kde.plasma.weather | WeatherStation: updateInterval, placeDisplayName, provider, placeInfo, source. Appearance: showTemperatureInCompactMode, showTemperatureInBadge, showTemperatureInTooltip, showWindInTooltip, showPressureInTooltip, showHumidityInTooltip. Units: temperatureUnit, pressureUnit, speedUnit, visibilityUnit | Default configurable background; panel icons can be symbolic. Forecast/provider state drives configuration/connection status. Provider updates may write station information; loading the widget is outside offline scope. |
+| CPU / plasma-workspace, face from libksysguard | org.kde.plasma.systemmonitor.cpu | Generic monitor Appearance/title, chartFace; Sensors/totalSensor, sensorIds, sensorColors, textOnlySensorIds. CPU preset names cpu/all/usage, cpu/all/cpuCount, cpu/all/coreCount | Stock preset is piechart. Panda default remains org.kde.ksysguard.linechart. Sensor presence, units/history, supported minima and provider activation remain unobserved. |
+| RAM / plasma-workspace, face from libksysguard | org.kde.plasma.systemmonitor.memory | Same monitor schema. Preset names memory/physical/used, memory/physical/usedPercent and memory/physical/total | Stock preset is piechart. Panda default remains org.kde.ksysguard.horizontalbars. Verify byte/percent semantics and unknown totals before trusting fills. |
+
+Clock evidence: plasma-workspace/applets/digital-clock/{main.xml,main.qml,
+configAppearance.qml}. Media evidence: applets/mediacontroller/{main.qml,
+CompactRepresentation.qml,ExpandedRepresentation.qml,globalconfig.cpp,
+globalconfig.h}. Weather evidence: kdeplasma-addons/applets/weather/{main.xml,
+qml/main.qml}. Monitor evidence: plasma-workspace/applets/systemmonitor/
+systemmonitor/package/contents/{config/main.xml,ui/main.qml,
+ui/FullRepresentation.qml} and cpu/memory preset faceproperties.
+
+The clock UI binds the 24-hour choice to index 2 and below-time date placement
+to index 2. showSeconds index 0 is never. Font size is a point-valued UI setting;
+do not copy D4B logical-pixel sizes directly. These are 6.7.5 facts, not a promise
+about the currently installed or loaded version.
+
+Both approved monitor faces remain independently selectable. The allowlist is
+unchanged: org.kde.ksysguard.linechart and org.kde.ksysguard.horizontalbars.
+No face is instantiated; no sensor object/backend is queried.
+
+## Shared visuals and exact useful native properties
+
+| Visual target | Supported mechanism / proposed property | Limit |
 | --- | --- | --- |
-| plasma-workspace | v6.8.1 | fb9b679a99078e68164b05b9cb3f5aaa6020222f |
-| plasma-desktop | v6.8.1 | bb989636959f9edc7263f2f75dc2630835305b95 |
-| kdeplasma-addons | v6.8.1 | 087c60377b1a1b05ab2564fc72fc49ed6b662a86 |
-| libplasma | v6.8.1 | f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e |
-| libksysguard | v6.8.1 | 40faaf3284b370dd7b15574f379914cbe0af8245 |
-| libksysguard, additional comparison | v6.7.5 | 1eb66dee405a7436d31b731a78634501497199db |
-| kirigami | v6.31.0 | eecf183a956fdbfbf331c0ef61fd6e35220d4275 |
-| qtbase | v6.12.0 | 025bdad181de241e81bf853c8a2d7bf3d19261a9 |
-| qtdeclarative | v6.12.0 | 4332fbbb4c340463dc8cee36dda0c85d932122d8 |
+| Opaque desktop clock frame | WorkspaceScripting Widget.userBackgroundHints = StandardBackground; libplasma stores Configuration/UserBackgroundHints and honors it only for configurable applets | Frame opacity, radius, margins and inheritance depend on the actual Plasma Style. No arbitrary CSS/card stylesheet. |
+| Card colors | Inherited Plasma/Kirigami semantic theme colors; supported color-scheme/Plasma Style interfaces | No verified per-card independent color or exact 12-pixel radius setting for all five applets. No theme switching in D4C1 or first candidate. |
+| Typography | Clock Appearance font controls; other widgets use native labels/fonts | Global changes would affect unrelated UI. Current active Qt font and line metrics remain unknown. |
+| Icons | Native themed icon lookup and stock state models; media capability/status controls | Static D4B icon samples do not establish live network/audio states. No network/audio/backend calls were made. |
+| Compact/expanded | Each applet's own representations and minima | Panda preferences are not universal Plasma modes. The media minimum may exceed either Panda target. |
+| Desktop rectangles | Widget.geometry getter reads the scene item if present | **Widget.setGeometry is a no-op in inspected 6.7.5 source.** Do not implement an applicator around this setter or assume editing a geometry key works. Future assessment must use separately authorized operator edit mode and measurements. |
 
-**Unchanged** means the inspected behavior is retained, not native-tested.
-**Changed**, **removed** and **newly supported** describe the inspected source
-delta. **Unverified** means the baseline comparison, runtime effect or safe
-observation route is not established. Unverified properties are not granted a
-default value.
+The geometry and background facts come from plasma-workspace/shell/scripting/
+widget.cpp, especially geometry/setGeometry and userBackgroundHints setters,
+and libplasma/src/plasma/applet.cpp. The latter stores background enum keys and
+exposes Configuration as the ordinary applet config group. The clock's
+configurable-background hint permits a standard-frame request; an actual
+opaque result still needs visual evidence.
 
-The KDE scripting documentation is rolling guidance; pinned implementation
-controls version-specific claims. Qt 6.12 documentation is supplemented by
-v6.12.0 source. Initial guessed paths were resolved through immutable trees:
-task manager files are under plasma-desktop/applets/taskmanager, PlasmaShell XML
-under shell/dbus, and QFontInfo implementation in qfont.cpp. A missing guessed
-path was never classified as a removed API.
+Media controls should retain official MPRIS capability checks and truthful
+no-player/paused/missing-artwork states. Its private MPRIS import is not a stable
+API commitment for a new Panda widget. No custom MPRIS implementation is proposed.
 
-## Property comparison
+## Panel and dock properties
+
+plasma-workspace/shell/scripting/panel.cpp implements these baseline properties:
+
+| Target | Requested stock property values | What still needs measurement |
+| --- | --- | --- |
+| Toolbar | location=top; height=48; alignment=center; lengthMode=fill; opacity=opaque | Actual content/frame thickness, tray fit, text and output/scale behavior |
+| Dock | location=bottom; height=56; alignment=center; lengthMode=fit; floating=true; opacity=opaque | Native floating clearance, frame versus reserved bounds, task growth and icon sizing |
+| Applets | Preserve existing index/order and all instance IDs | Never recreate panels or replace existing contents to obtain the target |
+| Output | Explicit preserved screen/activity mapping | Do not select desktopById or a screen solely by enumeration position |
+
+Floating is a boolean independent of edge location. The location value
+“floating” is not the bottom-dock instruction. No supported arbitrary
+bottom_clearance=8 property was established. D4B icon_size=40, spacing=8,
+padding=8 and the resulting content width remain design preferences until
+native task-manager/style behavior is measured.
+
+The first clock/media candidate makes **no panel, dock, task-manager, tray,
+desktop-count or theme changes**. There is currently one saved bottom-panel
+containment, not an established 48/56 two-panel layout.
+
+## Plasma 6.8.1 source comparison
 
 | Property | Classification | Evidence and consequence |
 | --- | --- | --- |
@@ -132,6 +194,80 @@ window DPR; do not apply the scale twice or infer active topology from this tabl
 Do not change output scaling for this phase. Existing geometry acceptance/refusal
 rules, flavors and palettes remain unchanged.
 
+## First clock and media candidate
+
+## Exact future property proposal, not executed
+
+Only after explicit authorization for the needed additions and version/schema
+revalidation, propose the official plugins below:
+
+| Role | Property / baseline config group | Proposed value |
+| --- | --- | --- |
+| Clock | Appearance/showDate | true |
+| Clock | Appearance/dateFormat | custom |
+| Clock | Appearance/customDateFormat | dddd, d MMMM |
+| Clock | Appearance/use24hFormat | 2 (24-hour in inspected 6.7.5 UI) |
+| Clock | Appearance/dateDisplayFormat | 2 (below time) |
+| Clock | Appearance/showSeconds | 0 (never) |
+| Clock | Appearance/autoFontAndSize | true |
+| Clock | Widget.userBackgroundHints | StandardBackground |
+| Media | Per-instance settings | none proposed; retain stock MPRIS behavior |
+| Both | Scene rectangle | operator edit-mode measurement only, under a later native scope |
+
+Clock plugin: org.kde.plasma.digitalclock. Media plugin:
+org.kde.plasma.mediacontroller. The background property is stored by the
+baseline implementation as Configuration/UserBackgroundHints; no filesystem
+writer is supplied. Timezones, calendar plugins, locale and global typography
+remain untouched. Media's global plasmaparc VolumeStep is not changed.
+
+Automatic clock typography is intentional for the first compatibility
+measurement: it does not promise D4B's 38-pixel clock text or alter the system
+font. An exact per-card font override, frame style or palette is a separate
+gap decision. The current Plasma Style/colors/icons are observed later, not
+changed to force the offline image to match.
+
+## Geometry and measurements
+
+D4A compact FHD100 preferences:
+
+| Card | Requested logical rectangle x,y,w,h |
+| --- | --- |
+| Clock | 1608,72,288,88 |
+| Media | 1608,172,288,120 |
+
+These are model preferences at 1920×1080/scale 1, not current scene geometry.
+The saved output configuration is consistent with that mode; active output
+binding remains unverified. No geometry key is invented. In the pinned baseline,
+WorkspaceScripting Widget.setGeometry does nothing, so this candidate deliberately
+contains no scripting-based geometry operation.
+
+The media full view minimum is 14×10 Kirigami grid units and its preferred size
+is 20×20. For illustration only, an 18-pixel grid would imply a minimum
+252×180; **the actual grid unit was not measured**. Neither a 288×120 compact
+card nor a 352×168 expanded preference can be assumed to provide the D4B
+full-control layout. Record stock compact/full behavior; do not force a
+representation, hide clipping or introduce QML to pass a screenshot comparison.
+
+A later native assessment must capture:
+
+- Loaded Plasma/Qt/KF builds, intended output/activity, actual logical available
+  area, scale, selected font file and Kirigami grid unit.
+- Allocated new IDs or explicitly chosen existing IDs and unchanged parent/order
+  records. Record actual current pins without changing or normalizing them.
+- Clock native minima, actual frame/content rectangles, time/date alignment,
+  font point/pixel metrics, ellipsis and background result.
+- Media native minima/default size, compact/full transition, control/artwork/seek
+  bounds, no-player/paused states and keyboard/accessibility behavior.
+- Frame opacity over contrasting wallpaper, radius/border/padding differences,
+  semantic contrast and performance within the opaque-first Helios policy.
+
+The candidate always has ready_for_native_test=false and native_verified=false.
+Keep both proposed IDs null until exact additive authorization, or explicitly
+reuse one eligible existing desktop instance. Multiple matches are ambiguous;
+panel/tray children never substitute. Preserve timezone/calendar/locale/global
+typography and media's global VolumeStep. Source parity does not establish fresh
+pins, activity, output, font, geometry or recovery readiness.
+
 ## Proposed separately authorized observation — not executed
 
 Recommend one short, operator-attended observation of already-running Plasma,
@@ -198,22 +334,8 @@ its own exact instance IDs, managed-key boundary, measurements, preservation
 receipts, fresh pins/output/activity evidence, reviewed recovery prerequisites
 and explicit additive/native authorization.
 
-## Acceptance and handoff
-
-This proposal can be accepted as a static comparison without approving R0/R1
-session access. A future session pass is complete only when every required field
-has a safe reviewed accessor and all preservation checks pass; otherwise report
-the missing fields and remain blocked from native writes.
-
-Current proposal verification: official source lengths/SHA256/Git blobs/tree
-membership checked; 20 baseline pairs compared; no native measurements performed.
-The D4C1 PR independently passed 314 local tests, Fish/package validation and CI.
-The two proposal artifacts are documentation/evidence only and are published
-separately from the D4C1 PR.
-
-A fresh read-only reviewer checked the original 50 source receipts and the full
-comparison/observation proposal, with no important findings. The final ten
-metadata/install-name/header sources were then checked separately by the author.
-All 60 final blobs are length/hash/tree verified. Exact plugin IDs come from
-pinned install declarations where metadata omits Id. No additional code or
-session access was needed for these checks.
+A future session pass is complete only when each required field has a safe
+reviewed accessor and preservation checks pass. Missing accessors remain blockers,
+not permission to install tools, load QML, attach debuggers or weaken a boundary.
+See the [layout guide](desktop.md#native-preservation-and-deployment-gates) for
+later mutation and recovery requirements.

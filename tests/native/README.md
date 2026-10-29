@@ -1,7 +1,7 @@
-# S2 native FrameSvg worker — source/build review only
+# Native FrameSvg worker and inert supervisor
 
 **Do not run the worker, including --help, until the separate isolation and initialization review authorizes execution.**
-No launcher, native test target or installation target is supplied.
+The supervisor entry point is sealed; no native test or installation target launches this worker.
 The Python repository suite never launches this binary.
 
 The worker is Linux x86-64 specific. It links Qt6::Gui and KF6::Svg, not
@@ -72,7 +72,8 @@ remains a separate unverified requirement.
 
 ## Source audit and attestation boundary
 
-Read the full [S2 report](../../docs/panda-theme/desktop-d4c3-s2.md).
+See the [style contract](../../docs/panda-theme/plasma-style.md) and
+[18 pinned initialization-source receipts](../../docs/panda-theme/desktop-d4c3-s2-source-references.json).
 The [attestation schema](isolation-attestation.schema.json) describes data, not
 an authenticated proof. No instance was produced, and no isolation test ran.
 
@@ -149,7 +150,63 @@ These commands validate data/generation and existing offline fixtures. They
 neither build a sandbox nor launch the worker. Native capture data, actual
 Plasma fallback and running-desktop visual compatibility remain unverified.
 
-The next-stage [supervisor plan](../../docs/panda-theme/desktop-d4c3-s2-supervisor-plan.md)
-requires an inert non-Qt trial and independent confirmation before any separate
-one-frame approval. The current35-case worker cannot be used as a one-frame
-trial unchanged.
+## Inert supervisor and execution gates
+
+`sandbox_supervisor.py`, `inert_probe.c` and `inert-profile.json` are source-only
+infrastructure for an inert, non-Qt isolation trial. The CLI emits an
+execution-refused summary; `launch_inert()` refuses unconditionally. There is no
+worker-binary argument, generic command runner or authorization flag. Repository
+tests use real disposable files and process-dispatch doubles, never a native
+probe, namespace trial or Qt worker. A complete synthetic receipt is only a
+review candidate, not authenticated evidence or execution approval.
+
+Before an inert trial, review the exact supervisor/probe/profile, loader/libc,
+bubblewrap/tracer/syscall policy, hashes/build IDs, ownership and distribution
+provenance. Implement and review the missing pre-main boundary and measurement
+collection. No adapter or receipt may bypass that boundary. Authorize the exact
+inert trial separately; no trial is authorized by compiling these sources.
+
+The later trial must create a fresh private owned root with verified ancestors,
+directories 0700 and files 0600, recording creation identities and bindings. Do
+not reuse or clean historical roots. Require mandatory user/mount/PID/IPC/net/
+UTS/cgroup namespaces, minimal read-only runtime/input mounts, fresh procfs,
+synthetic devices/NSS and private HOME/XDG/tmp/run/cache/output. Expose no host
+HOME, session/display/bus sockets, GPU devices, credentials or whole plugin tree.
+Use no-new-privileges, zero capabilities, an exact environment/descriptor set,
+pre-exec outer filtering and whole-process CPU/memory/pid/fd/output/wall limits.
+
+Measured evidence must include every namespace difference and matching PID
+procfs, the complete approved mount graph, exact descriptors/capabilities,
+expected generic syscall-denial errnos, readonly/unexposed controlled-sentinel
+results, unchanged input hashes and all created writes. Do not read real Plasma
+files to demonstrate inaccessibility. Trace only the new process tree from
+initialization through process-tree kill/reap and complete teardown, including
+children surviving the leader or escaping its session. Reconcile raw observations,
+trace, exit status, bounded private streams and post-exit object inventory.
+Timeouts, truncated streams, contradictory records or incomplete accounting fail.
+
+If any mandatory namespace/filter/mount/provenance/teardown check fails, stop and
+retain evidence. Do not use weaker flags, sudo/root, host policy changes, new
+packages/services or a live-session substitute. Cleanup requires explicit review
+and verified creation identity, parent binding and inventory; never glob-delete
+private evidence or foreign/replaced objects. Independent review of the raw
+private inert evidence must precede any separate Qt/native-frame request.
+
+The present worker validates 35 frames per job. A one-frame trial needs its own
+reviewed profile and entry point for only Cyber `widgets/background.svg`,
+288×88 logical pixels, DPR 1, with exact source/input hashes. Do not truncate
+jobs, discard captures or relax the existing 700-case contract. A Qt/KSvg bundle
+adds loaders/plugins/fonts/caches/constructors and teardown paths: the inert
+libc bundle alone cannot certify it. Revalidate the changed boundary and obtain
+explicit approval for that one capture, then retain frame/mask/trace evidence
+and stop for review. It does not authorize the matrix, deployment, theme
+activation, or a Plasma Theme/Breeze Dark fallback test.
+
+## External VM sources
+
+The separate [external VM guide](external_vm/README.md) covers the frozen Arch
+package lock, sealed single-frame candidate and source-only preparation workflow.
+The [offline authentication and assembly proposal](external_vm/s4/README.md)
+documents its pending trust policy and unconditional capture/export seals.
+These sources do not authorize workflow dispatch, package decoding or installation,
+rootfs assembly, native build/capture, deployment or access to D3B1A evidence.

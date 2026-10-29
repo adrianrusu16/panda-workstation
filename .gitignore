@@ -19,3 +19,10 @@ docs/superpowers/
 .serena/
 graphify-out/
 tmp/
+
+# Disposable local builds, coverage, and review exports (required tracked assets stay)
+/build/
+/cmake-build-*/
+/.pytest_cache/
+/.coverage
+/htmlcov/
