@@ -1,0 +1,607 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Future external VM evidence index (not the source preparation packet)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "candidate_id": {
+      "const": "cyber-widget-288x88-dpr1"
+    },
+    "status": {
+      "enum": [
+        "captured",
+        "failed"
+      ]
+    },
+    "native_runtime_verified": {
+      "const": false
+    },
+    "fallback_status": {
+      "const": "unverified"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "workflow_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "candidate_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "package_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "runner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "architecture",
+        "image_os",
+        "image_version",
+        "image_release_url",
+        "run_url",
+        "kernel",
+        "hardware_vm_attestation"
+      ],
+      "properties": {
+        "label": {
+          "const": "ubuntu-24.04"
+        },
+        "architecture": {
+          "const": "X64"
+        },
+        "image_os": {
+          "const": "ubuntu24"
+        },
+        "image_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "image_release_url": {
+          "type": "string",
+          "pattern": "^https://github.com/actions/runner-images/releases/tag/"
+        },
+        "run_url": {
+          "type": "string",
+          "pattern": "^https://github.com/adrianrusu16/panda-workstation/actions/runs/[0-9]+$"
+        },
+        "kernel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "hardware_vm_attestation": {
+          "const": false
+        }
+      }
+    },
+    "dependency_provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signatures_verified",
+        "trusted_keyring_sha256",
+        "signer_fingerprints",
+        "runtime_manifest_sha256",
+        "build_receipt_sha256",
+        "loaded_mappings_sha256"
+      ],
+      "properties": {
+        "signatures_verified": {
+          "type": "boolean"
+        },
+        "trusted_keyring_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "signer_fingerprints": {
+          "type": "array",
+          "minItems": 0,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^([A-F0-9]{40}|[A-F0-9]{64})$"
+          }
+        },
+        "runtime_manifest_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "build_receipt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "loaded_mappings_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "boundary_receipt_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "exit_receipt_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "reproducibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_sha256",
+        "comparison_status",
+        "compared_run_url"
+      ],
+      "properties": {
+        "receipt_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "comparison_status": {
+          "enum": [
+            "unavailable",
+            "not-yet-compared",
+            "equal",
+            "different"
+          ]
+        },
+        "compared_run_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "capture.json": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "frame.png": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "frame.rgba": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "mask.png": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "mask.rgba": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "runtime-manifest.json": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "build-receipt.json": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "boundary-receipt.json": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "exit-receipt.json": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "reproducibility-receipt.json": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "stdout.txt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "stderr.txt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        },
+        "loaded-mappings.json": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sha256",
+            "bytes"
+          ],
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 4194304
+            }
+          }
+        }
+      },
+      "required": [
+        "stdout.txt",
+        "stderr.txt"
+      ]
+    },
+    "limits": {
+      "const": {
+        "cpus": 1,
+        "memory_bytes": 1073741824,
+        "pids": 64,
+        "wall_seconds": 60,
+        "cpu_seconds": 30,
+        "output_bytes": 16777216,
+        "log_bytes_per_stream": 1048576
+      }
+    },
+    "failure_reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 4096
+    },
+    "stage": {
+      "enum": [
+        "download",
+        "signature",
+        "provenance",
+        "assembly",
+        "build",
+        "boundary",
+        "capture",
+        "teardown",
+        "export",
+        "complete"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "candidate_id",
+    "status",
+    "native_runtime_verified",
+    "fallback_status",
+    "source_commit",
+    "workflow_commit",
+    "candidate_sha256",
+    "package_lock_sha256",
+    "runner",
+    "dependency_provenance",
+    "boundary_receipt_sha256",
+    "exit_receipt_sha256",
+    "reproducibility",
+    "files",
+    "limits",
+    "failure_reason",
+    "stage"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "captured"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "failure_reason": {
+            "type": "null"
+          },
+          "files": {
+            "required": [
+              "capture.json",
+              "frame.png",
+              "frame.rgba",
+              "mask.png",
+              "mask.rgba",
+              "runtime-manifest.json",
+              "build-receipt.json",
+              "boundary-receipt.json",
+              "exit-receipt.json",
+              "reproducibility-receipt.json",
+              "loaded-mappings.json",
+              "stdout.txt",
+              "stderr.txt"
+            ]
+          },
+          "stage": {
+            "const": "complete"
+          },
+          "dependency_provenance": {
+            "properties": {
+              "signatures_verified": {
+                "const": true
+              },
+              "signer_fingerprints": {
+                "minItems": 1
+              },
+              "trusted_keyring_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "runtime_manifest_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "build_receipt_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "loaded_mappings_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          },
+          "boundary_receipt_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "exit_receipt_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "reproducibility": {
+            "properties": {
+              "receipt_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "comparison_status": {
+                "enum": [
+                  "not-yet-compared",
+                  "equal",
+                  "different"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stage": {
+            "not": {
+              "const": "complete"
+            }
+          },
+          "failure_reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ]
+}
