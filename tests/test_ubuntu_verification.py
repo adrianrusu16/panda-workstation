@@ -112,7 +112,7 @@ def protocol_fixture():
         interpreter=None, needed={})
     toolchain = dict(tools={"gpgv": "/usr/bin/gpgv", "zstd": "/usr/bin/zstd", "python": "/usr/bin/python3.12"},
         extensions=[], files=files, source_hashes={name: "b"*64 for name in
-            ("ubuntu_bootstrap_runner.py", "ubuntu_verification.py", "ubuntu_artifacts.py", "ubuntu-verification.pins.json",
+            ("ubuntu_bootstrap_runner.py", "ubuntu_verification.py", "ubuntu_artifacts.py", "ubuntu_packets.py", "ubuntu-verification.pins.json",
              "bootstrap_provenance.py", "bootstrap-provenance.pins.json", "common.py")},
         keyring=dict(path="/usr/share/keyrings/ubuntu-archive-keyring.gpg", mode=0o644, uid=0,
                      bytes=len(keyring), sha256=pins["keyring_sha256"], package="ubuntu-keyring"),

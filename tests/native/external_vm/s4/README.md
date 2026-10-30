@@ -101,9 +101,9 @@ acceptance remain unresolved; absent Valid-Until values are recorded explicitly.
 Successful signature equations never imply those properties.
 
 Nine bounded canonical JSON receipts distinguish cryptographic results, hash
-membership, local observations and policy assumptions. A sorted SHA256 manifest
-is written last. Job/time/path context and its binding to that content manifest
-are separate, so changing job identity does not change content receipts. These
+membership, local observations and policy assumptions. Sorted content checksums,
+job context and a context binding are separate from the receipts. Changing job
+identity does not change content receipts. These
 unsigned receipts identify content; they do not authenticate their producer.
 `validate_receipts(raw)` binds declared identities to reviewed references and
 recomputes the declared static graph. It performs data-only consistency checking
@@ -112,6 +112,39 @@ and always returns
 `trust_policy_activation_allowed=false`. The integrated checker is invoked with
 real Ubuntu data and an empty Arch section; its rejection at `arch fields` records
 the Ubuntu-only boundary without fabricating Arch evidence or altering its flags.
+
+`ubuntu_packets.py` writes either the exact nine success receipts or an exact
+two-document failure set into a fresh private sibling staging directory. Files
+are mode 0600, the directory is mode 0700, and every file and the staging directory
+are synchronized before publication. A versioned `completion.json` binds the
+packet type, hashes, sizes and local filesystem identities. Linux
+`renameat2(RENAME_NOREPLACE)` publishes the verified directory atomically without
+replacing an existing destination. There is no replacing fallback. This filesystem
+primitive uses preinstalled libc through ctypes; the loaded `_ctypes` extension
+and its library dependencies enter the verifier inventory. No candidate is loaded.
+
+Incomplete staging is discarded. A publication failure attempts a complete failure
+packet from separate fresh staging; if that also fails, no publication token is
+handed off. A complete failure packet records `evidence_complete=false` for the
+authentication evidence and keeps every authority flag false. Its failure packet
+can still be exported as complete diagnostic evidence.
+
+The producer hands off a token binding the completion file and its local identity.
+The read-only pre-upload validator checks exact names, packet type, canonical JSON,
+ownership, modes, file types, single-link membership, byte limits, hashes, context
+binding and final member identities. Only its exact validated path list reaches
+upload, and upload additionally requires that validation step to succeed. `always()`
+cannot bypass either check. Success packets contain 13 files; failure packets
+contain six. The completion manifest and handoff token are contextual filesystem
+observations, not deterministic content receipts or machine attestation. Atomic
+visibility does not promise recovery after VM or filesystem loss. Mutation after
+the final validation remains part of the delegated runner-integrity assumption.
+
+The GnuPG status parsers accept bounded `PLAINTEXT` and optional `PLAINTEXT_LENGTH`
+records following GnuPG 2.4.4 DETAILS. Filenames remain opaque escaped metadata and
+are never paths. Binary lengths are checked against extracted bytes; text lengths
+may differ after line-ending conversion. These informational records cannot replace
+the existing positive or negative cryptographic requirements.
 
 Before separately authorized execution, review the exact source revision and the
 three explicit source changes needed to enable this template: its suffix, false

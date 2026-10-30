@@ -15,7 +15,7 @@ REFERENCES_SHA256 = "582c784e1fac0c6cbe013b64885b718a2443ef6d456ff020f5c0607a796
 IMAGE_VERSION = "20261026.354.1"
 MAX_RECEIPT = 128 * 1024
 MAX_RECEIPTS = MIB
-SOURCE_NAMES = ("ubuntu_bootstrap_runner.py", "ubuntu_verification.py", "ubuntu_artifacts.py",
+SOURCE_NAMES = ("ubuntu_bootstrap_runner.py", "ubuntu_verification.py", "ubuntu_artifacts.py", "ubuntu_packets.py",
                 "ubuntu-verification.pins.json", "bootstrap_provenance.py", "bootstrap-provenance.pins.json", "common.py")
 RECEIPTS = ("runner-environment", "verification-toolchain", "archive-anchor", "inrelease-signatures",
             "index-hash-chain", "package-membership", "elf-closure", "consistency-review", "authorization-state")
@@ -110,9 +110,36 @@ def status_rows(raw, allowed):
     return result
 
 
-def signature_status(returncode, raw, fingerprint, now):
+def plaintext_information(rows, raw, plaintext):
+    """DETAILS (GnuPG 2.4.4): bounded metadata only, never signature evidence."""
+    require(plaintext is None or type(plaintext) is bytes and len(plaintext) <= 2*MIB, "GPG plaintext byte budget")
+    records, lengths = rows.get("PLAINTEXT", []), rows.get("PLAINTEXT_LENGTH", [])
+    require(len(records) <= 1 and len(lengths) <= 1 and (not lengths or records), "GPG ambiguous plaintext records")
+    if not records: return
+    match = re.fullmatch(r"(62|74|75) (0|[1-9][0-9]{0,9}) (.*)", records[0])
+    require(match is not None and int(match[2]) <= 0xffffffff, "GPG plaintext format/timestamp/framing")
+    filename = match[3]
+    require(len(filename.encode()) <= 765 and re.fullmatch(r"(?:[^%\x00-\x20\x7f]|%[0-9A-Fa-f]{2})*", filename), "GPG escaped filename framing/budget")
+    # Decode once solely to count opaque filename octets; never use it as a path.
+    octets, pos = 0, 0
+    while pos < len(filename):
+        if filename[pos] == "%": octets += 1; pos += 3
+        else: octets += len(filename[pos].encode()); pos += 1
+    require(octets <= 255, "GPG filename octet budget")
+    if lengths:
+        require(re.fullmatch(r"0|[1-9][0-9]{0,6}", lengths[0]) and int(lengths[0]) <= 2*MIB, "GPG plaintext length framing/budget")
+        lines = raw.splitlines()
+        require(next(i for i,line in enumerate(lines) if line.startswith(b"[GNUPG:] PLAINTEXT ")) <
+                next(i for i,line in enumerate(lines) if line.startswith(b"[GNUPG:] PLAINTEXT_LENGTH ")), "GPG contradictory plaintext ordering")
+        if plaintext is not None and match[1] == "62":
+            require(int(lengths[0]) == len(plaintext), "GPG binary plaintext length conflict")
+        # Text and UTF-8 byte counts may change through line-ending conversion.
+
+
+def signature_status(returncode, raw, fingerprint, now, *, plaintext=None):
     require(type(returncode) is int and returncode == 0 and type(now) is int and 0 < now < 2**63, "GPG verifier failure/assessment")
-    rows = status_rows(raw, {"NEWSIG", "KEY_CONSIDERED", "SIG_ID", "GOODSIG", "VALIDSIG", "SIGINFO"})
+    rows = status_rows(raw, {"NEWSIG", "KEY_CONSIDERED", "SIG_ID", "GOODSIG", "VALIDSIG", "SIGINFO", "PLAINTEXT", "PLAINTEXT_LENGTH"})
+    plaintext_information(rows, raw, plaintext)
     require(all(len(rows.get(name, [])) == 1 for name in ("NEWSIG", "SIG_ID", "GOODSIG", "VALIDSIG")) and
             len(rows.get("SIGINFO", [])) <= 1 and 0 < len(rows.get("KEY_CONSIDERED", [])) <= 8, "GPG incomplete/ambiguous status")
     require(all(value.split() == [fingerprint, "0"] for value in rows["KEY_CONSIDERED"]), "GPG considered identity")
@@ -134,9 +161,10 @@ def signature_status(returncode, raw, fingerprint, now):
                 status_sha256=sha256(raw), status_text=raw.decode("utf-8"), status_records=rows, key_lifecycle_verified=False)
 
 
-def negative_status(returncode, raw, case, fingerprint):
+def negative_status(returncode, raw, case, fingerprint, *, plaintext=None):
     require(type(returncode) is int and returncode in (1, 2), "negative probe did not fail cryptographically")
-    rows = status_rows(raw, {"NEWSIG", "KEY_CONSIDERED", "BADSIG", "ERRSIG", "NO_PUBKEY", "FAILURE"})
+    rows = status_rows(raw, {"NEWSIG", "KEY_CONSIDERED", "BADSIG", "ERRSIG", "NO_PUBKEY", "FAILURE", "PLAINTEXT", "PLAINTEXT_LENGTH"})
+    plaintext_information(rows, raw, plaintext)
     require(len(rows.get("NEWSIG", [])) == 1, "negative signature context missing")
     if case == "altered-content":
         require(len(rows.get("BADSIG", [])) == 1 and rows["BADSIG"][0].split()[0] == fingerprint[-16:] and
@@ -363,7 +391,7 @@ def verify_ubuntu(env, os_release, now, keyring, toolchain, acquire, verifier, i
         reference = next(row for row in bootstrap["indexes"].values() if row["suite"] == suite)
         raw = artifact("release-"+suite, reference["release_url"], reference["release_sha256"], reference["release_bytes"])
         code, status, plain = verifier(raw, keyring)
-        result = signature_status(code, status, pins["anchor"], now)
+        result = signature_status(code, status, pins["anchor"], now, plaintext=plain)
         require(result["signature_epoch"] >= anchor["key_created_epoch"], "signature predates anchor")
         hashes, metadata = release_content(plain, suite, now)
         negative = []
@@ -371,8 +399,8 @@ def verify_ubuntu(env, os_release, now, keyring, toolchain, acquire, verifier, i
         require(start >= 2 and start < len(raw), "InRelease cleartext boundary")
         mutated = raw[:start]+bytes([raw[start] ^ 1])+raw[start+1:]
         for case, value, ring in (("altered-content", mutated, keyring), ("empty-keyring", raw, b"")):
-            code, status, _ = verifier(value, ring)
-            negative.append(negative_status(code, status, case, pins["anchor"]))
+            code, status, negative_plain = verifier(value, ring)
+            negative.append(negative_status(code, status, case, pins["anchor"], plaintext=negative_plain))
         signatures[suite] = dict(inrelease_sha256=sha256(raw), authenticated_content=metadata, signature=result, negative_cases=negative)
         hash_tables[suite] = hashes
     indexes, index_receipts, index_rows = {}, [], []
