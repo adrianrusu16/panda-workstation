@@ -222,6 +222,8 @@ end
 if contains virtualization $modules
     ui_step 'Virtualization: QEMU/libvirt/virt-manager/OVMF package layer only'
     ui_info 'No libvirt service configuration, VM disk, firmware changes, or guest startup.'
+    ui_info 'Audit Lab preview: python virtualization/audit_lab.py plan'
+    ui_info 'Lab preflight, signed media and VM lifecycle are separate explicit commands; see virtualization/README.md.'
 end
 if test $heroic -eq 1
     ui_step 'GOG + Epic: install Heroic Flatpak once (user scope)'
