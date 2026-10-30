@@ -4,3 +4,11 @@ libvirt
 virt-manager
 virt-install
 edk2-ovmf
+# Signed Audit Lab media and local installer support; no media fetched by setup
+gnupg
+openssl
+python
+xorriso
+cpio
+gzip
+findutils
