@@ -52,6 +52,11 @@ validates the real certificate set. No result can update `trust-policy.json`.
 
 ## Sealed hosted Ubuntu authentication
 
+The [external single-use architecture](ubuntu-single-use-authorization.md) compares
+independent authority mechanisms and specifies identity, source observation,
+transactions and recovery. Its disconnected SQLite reference tests durable
+single-use state locally; it supplies no production gate or execution authority.
+
 The [authorization-readiness review](ubuntu-auth-authorization-readiness.md) records
 the reviewed baseline, proposed future activation changes, one-shot scope, admission
 criteria, abort conditions and unresolved decisions. It authorizes no execution.

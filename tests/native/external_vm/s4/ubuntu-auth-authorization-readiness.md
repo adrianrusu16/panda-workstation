@@ -4,6 +4,10 @@ Source-only review prepared on 2026-10-30. **This document and its PR do not
 authorize authentication.** No workflow activation or dispatch is part of this
 change. The existing [S4 restrictions](README.md#execution-restrictions) apply.
 
+The subsequent [external single-use architecture](ubuntu-single-use-authorization.md)
+extends this review with a transactional offline reference and explicit production
+blockers. The pure model and sealed runner remain unchanged and disconnected.
+
 ## Reviewed baseline
 
 Remote `main` was fetched before this hardening work and exactly matched
