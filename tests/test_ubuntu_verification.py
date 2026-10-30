@@ -344,3 +344,22 @@ class UbuntuVerification(unittest.TestCase):
                 bundle = self.synthetic_run(); change(bundle["receipts"])
                 bundle["manifest"] = {name: hashlib.sha256(self.api.canonical(row)).hexdigest() for name,row in bundle["receipts"].items()}
                 with self.assertRaises(ValueError): self.validate_bundle(bundle)
+
+    def test_reruns_tags_pull_requests_and_activation_source_drift_are_rejected(self):
+        for key, value in (("GITHUB_RUN_ATTEMPT", "2"), ("GITHUB_RUN_ATTEMPT", "10"),
+                           ("GITHUB_REF", "refs/tags/main"), ("GITHUB_REF", "refs/pull/1/merge"),
+                           ("GITHUB_EVENT_NAME", "pull_request"), ("GITHUB_SHA", "b"*40),
+                           ("REVIEWED_SOURCE_SHA", "")):
+            with self.subTest(key=key, value=value):
+                env = runner_context(); env[key] = value
+                with self.assertRaises(ValueError):
+                    self.api.runner_identity(env, b"ID=ubuntu\nVERSION_ID=24.04\n")
+
+    def test_receipt_rejects_python_prefix_lookalike(self):
+        pins, _, _, _, _, toolchain = protocol_fixture()
+        row = toolchain["files"].pop("/usr/bin/python3.12")
+        path = "/usr/bin/python3.12-unreviewed"
+        toolchain["files"][path] = row
+        toolchain["tools"]["python"] = path
+        with self.assertRaisesRegex(ValueError, "Python identity"):
+            self.api.verify_toolchain(toolchain, pins)

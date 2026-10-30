@@ -61,6 +61,7 @@ def runner_identity(env, os_release):
     for key in ("GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT"):
         value = env.get(key, "")
         require(type(value) is str and re.fullmatch(r"[1-9][0-9]{0,19}", value), "runner run identity missing")
+    require(env["GITHUB_RUN_ATTEMPT"] == "1", "rerun is not authorized")
     for key in ("RUNNER_NAME", "GITHUB_JOB"):
         value = env.get(key, "")
         require(type(value) is str and 0 < len(value) <= 128 and not re.search(r"[\x00-\x1f\x7f]", value), "runner job identity missing")
@@ -77,6 +78,15 @@ def runner_identity(env, os_release):
                 job=dict(repository=env["GITHUB_REPOSITORY"], ref=env["GITHUB_REF"], head_sha=env["GITHUB_SHA"],
                          run_id=env["GITHUB_RUN_ID"], attempt=env["GITHUB_RUN_ATTEMPT"],
                          name=env["GITHUB_JOB"], runner_name=env["RUNNER_NAME"], runner_application_version=None))
+
+
+def python_runtime(version_info, executable):
+    """Observed interpreter admission, not independent runtime provenance."""
+    require(isinstance(version_info, tuple) and len(version_info) == 5 and
+            all(type(value) is int and 0 <= value <= 65535 for value in version_info[:3]) and
+            version_info[:2] == (3, 12) and version_info[3] == "final" and
+            type(version_info[4]) is int and version_info[4] == 0, "Python 3.12 runtime required")
+    require(type(executable) is str and executable == "/usr/bin/python3.12", "system Python identity")
 
 
 def loader_configuration(files, hwcaps):
@@ -292,7 +302,7 @@ def verify_toolchain(value, pins):
         consistency.fields(row, "version architecture", "installed package")
         require(re.fullmatch(r"[a-z0-9][a-z0-9+.-]{0,127}", name) and row["architecture"] in ("amd64", "all") and
                 type(row["version"]) is str and re.fullmatch(r"[A-Za-z0-9.+:~_-]{1,128}", row["version"]), "installed package identity")
-    require(value["tools"]["python"].startswith("/usr/bin/python3") and value["tools"]["python"] in value["files"], "preinstalled Python identity")
+    require(value["tools"]["python"] == "/usr/bin/python3.12" and value["tools"]["python"] in value["files"], "preinstalled Python identity")
     pending, seen = list(value["tools"].values())+value["extensions"], set()
     total = 0
     while pending:

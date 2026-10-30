@@ -94,7 +94,7 @@ class UbuntuBootstrapRunner(unittest.TestCase):
             return ("fictional source: "+path.name).encode()
 
         with patch.object(self.api, "Path", VirtualPath), \
-             patch.object(self.api, "sys", SimpleNamespace(executable="/usr/bin/python3.12", modules={"fixture": SimpleNamespace(__file__=extension)})), \
+             patch.object(self.api, "sys", SimpleNamespace(version_info=(3, 12, 3, "final", 0), executable="/usr/bin/python3.12", modules={"fixture": SimpleNamespace(__file__=extension)})), \
              patch.object(self.api, "system_file", side_effect=read), \
              patch.object(self.api, "read_bounded", side_effect=source), \
              patch.object(self.api.protocol, "load_references", return_value=(pins, None)), \
@@ -204,3 +204,52 @@ class UbuntuBootstrapRunner(unittest.TestCase):
             rows = self.api.package_metadata()
         self.assertEqual(rows["libc6"]["architecture"], "amd64")
         self.assertEqual(rows["libc6:i386"]["architecture"], "i386")
+
+    def test_runtime_admits_only_observed_python_312_at_exact_system_path(self):
+        self.api.protocol.python_runtime((3, 12, 3, "final", 0), "/usr/bin/python3.12")
+        for version in ((3, 11, 9, "final", 0), (3, 13, 0, "final", 0),
+                        (3, 14, 0, "final", 0), None, (), (3, 12), "3.12.3",
+                        (3, "12", 3, "final", 0), (3, 12, True, "final", 0),
+                        (3, 12, 3, "unknown", 0)):
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                self.api.protocol.python_runtime(version, "/usr/bin/python3.12")
+        for path in (None, "", "/usr/bin/python3", "/usr/bin/python3.13",
+                     "/usr/bin/python3.12-evil", "/tmp/python3.12"):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                self.api.protocol.python_runtime((3, 12, 3, "final", 0), path)
+
+    def test_runtime_rejection_precedes_host_inventory_and_candidate_acquisition(self):
+        for runtime in (SimpleNamespace(executable="/usr/bin/python3.12"),
+                        SimpleNamespace(version_info=None, executable="/usr/bin/python3.12"),
+                        SimpleNamespace(version_info=(3, 11, 9, "final", 0), executable="/usr/bin/python3.12"),
+                        SimpleNamespace(version_info=(3, 12, 3, "final", 0), executable="/tmp/python3.12")):
+            with self.subTest(runtime=runtime), patch.object(self.api, "sys", runtime), \
+                 patch.object(self.api.Path, "resolve", return_value=Path("/usr/bin/python3.12")), \
+                 patch.object(self.api, "system_file", side_effect=AssertionError("host read reached")), \
+                 patch.object(self.api, "inventory_toolchain", side_effect=AssertionError("inventory reached")), \
+                 patch.object(self.api, "download", side_effect=AssertionError("candidate acquisition reached")), \
+                 self.assertRaises(ValueError):
+                self.api.capture_host()
+
+    def test_runtime_admission_allows_synthetic_capture_to_reach_inventory(self):
+        from test_ubuntu_verification import runner_context
+        runtime = SimpleNamespace(version_info=(3, 12, 3, "final", 0),
+                                  executable="/usr/bin/python3.12", version="3.12.3 synthetic")
+        with patch.object(self.api, "sys", runtime), \
+             patch.object(self.api.Path, "resolve", return_value=Path("/usr/bin/python3.12")), \
+             patch.dict(self.api.os.environ, runner_context(), clear=True), \
+             patch.object(self.api, "system_file", return_value={"raw": b"ID=ubuntu\nVERSION_ID=24.04\n"}), \
+             patch.object(self.api.platform, "machine", return_value="x86_64"), \
+             patch.object(self.api, "observe_runner_application", return_value={"version": "2.338.0"}), \
+             patch.object(self.api, "inventory_toolchain", return_value={"synthetic": True}):
+            result = self.api.capture_host()
+        self.assertEqual(result[3], {"synthetic": True})
+
+    def test_system_python_alias_must_resolve_to_exact_python_312(self):
+        runtime = SimpleNamespace(version_info=(3, 12, 3, "final", 0), executable="/usr/bin/python3")
+        with patch.object(self.api, "sys", runtime):
+            with patch.object(self.api.Path, "resolve", return_value=Path("/usr/bin/python3.12")):
+                self.assertEqual(self.api.admit_python(), "/usr/bin/python3.12")
+            with patch.object(self.api.Path, "resolve", return_value=Path("/tmp/python3.12")):
+                with self.assertRaisesRegex(ValueError, "Python identity"):
+                    self.api.admit_python()

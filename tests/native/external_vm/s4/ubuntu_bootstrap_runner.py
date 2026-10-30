@@ -142,9 +142,17 @@ def inventory_owners(paths, packages):
     return package_owners(aliases, packages, manifests)
 
 
+def admit_python():
+    executable = getattr(sys, "executable", None)
+    require(type(executable) is str and executable in ("/usr/bin/python3", "/usr/bin/python3.12"),
+            "system Python identity")
+    resolved = str(Path(executable).resolve(strict=True))
+    protocol.python_runtime(getattr(sys, "version_info", None), resolved)
+    return resolved
+
+
 def inventory_toolchain():
-    roots = {**TOOLS, "python": str(Path(sys.executable).resolve())}
-    require(roots["python"].startswith("/usr/bin/python3"), "system Python required")
+    roots = {**TOOLS, "python": admit_python()}
     # Include the native stdlib modules loaded by the verifier, transport and readers.
     extensions = sorted({str(Path(module.__file__).resolve()) for module in list(sys.modules.values())
                          if isinstance(getattr(module, "__file__", None), str) and module.__file__.endswith(".so")})
@@ -229,6 +237,7 @@ def observe_runner_application():
 
 
 def capture_host():
+    admit_python()  # Before host inventory, TLS setup, tools or candidate acquisition.
     env = {name: os.environ[name] for name in ENV_KEYS if name in os.environ}
     env.update({key: value for key, value in os.environ.items() if key.startswith("LD_") or
                 key in ("GCONV_PATH", "PYTHONPATH", "PYTHONHOME", "GNUPGHOME")})
