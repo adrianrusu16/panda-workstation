@@ -55,6 +55,13 @@ validates the real certificate set. No result can update `trust-policy.json`.
 The [authorization-readiness review](ubuntu-auth-authorization-readiness.md) records
 the reviewed baseline, proposed future activation changes, one-shot scope, admission
 criteria, abort conditions and unresolved decisions. It authorizes no execution.
+The pure `ubuntu_authorization.consume_approval` model validates proposals for
+an external owner's transaction, including scoped reviewed bytes; it is not
+connected to the runner and cannot enforce durable single use by itself.
+The guide defines the required CAS/identity/time/source-observer interface and
+marks production integration blocked. The sealed adapter now explicitly requires
+observed final Python 3.12 at resolved `/usr/bin/python3.12` and attempt `1`,
+before inventory/acquisition. These local checks do not supply missing approval.
 
 `ubuntu_bootstrap_runner.py` implements the hosted adapter but refuses all CLI
 calls with exit 78 while `AUTHENTICATION_ENABLED=False`. The workflow source is

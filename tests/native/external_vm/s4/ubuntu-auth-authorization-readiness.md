@@ -6,23 +6,20 @@ change. The existing [S4 restrictions](README.md#execution-restrictions) apply.
 
 ## Reviewed baseline
 
-GitHub's `main` branch was queried through the authenticated GitHub API before
-work began and still resolved to
-`626e38ed945bf898fbb4d0b7145f477a13676538`, the integration of
-[PR #21](https://github.com/adrianrusu16/panda-workstation/pull/21).
-The review branch starts at that commit; the previously cached local
-`origin/main` was stale and was fetched before inspection. Unrelated work in
-the original checkout was preserved in place; this review uses a separate
-worktree. The implementation plan is documentation only: this file and an S4
-README link. No production behavior or test expectations change.
+Remote `main` was fetched before this hardening work and exactly matched
+`0f604ed3cbdf52c7be6ed6805270f9f8cd4eafcc`, the integration of
+[PR #22](https://github.com/adrianrusu16/panda-workstation/pull/22).
+There were no intervening changes. This supersedes that PR's source-admission
+findings where explicitly stated below. Unrelated canary work remains in the
+original checkout; this change uses an isolated feature-branch worktree.
 
-Reviewed sources are the [disabled workflow](../../../../.github/workflows/panda-ubuntu-bootstrap-verification.yml.disabled),
+Reviewed sources include the [disabled workflow](../../../../.github/workflows/panda-ubuntu-bootstrap-verification.yml.disabled),
 [runner](ubuntu_bootstrap_runner.py), [verification protocol](ubuntu_verification.py),
-[packet publisher and upload gate](ubuntu_packets.py),
-[archive/ELF readers](ubuntu_artifacts.py), both adjacent provenance pin files,
-the [pending policy](trust-policy.json), and the corresponding Ubuntu tests,
-S4 stage tests and bootstrap-provenance contracts. All references below describe
-this baseline, not demonstrated behavior on a real Ubuntu runner.
+[packet publisher and upload gate](ubuntu_packets.py), [archive/ELF readers](ubuntu_artifacts.py),
+both provenance pin files, [pending policy](trust-policy.json), S4/provenance tests
+and Ubuntu protocol/status/adapter/packet tests. The new
+[authorization model](ubuntu_authorization.py) is pure and disconnected from the
+runner and workflow. All new validation uses synthetic data.
 
 Protected baseline digests:
 
@@ -93,14 +90,150 @@ validity window, scope, durable review reference and how the authorization is
 consumed. These fields are requirements for future approval, not filled-in
 approvals in this document.
 
-The present concurrency group has `cancel-in-progress: false`: it serializes
-runs and can queue another run. It does **not** enforce one shot. The runner
-accepts any positive `GITHUB_RUN_ATTEMPT` and has no consumed-authorization
-ledger. A future review must establish an enforceable run/admission control
-or explicitly approve a documented operator/control-plane boundary with a
-single-use approval record, restricted dispatch/rerun access and queue checks.
-No such boundary has been established here. An `attempt == 1` check alone
-would still permit multiple independent dispatches.
+The concurrency group serializes runs and can queue another run. It does not
+enforce one shot. The protocol now rejects `GITHUB_RUN_ATTEMPT != "1"`, which
+blocks reruns but still permits independent first-attempt dispatches.
+`REVIEWED_SOURCE_SHA`, an environment variable, an input, a repository file,
+a local token and a concurrency group cannot establish an external approval or
+durably consume one.
+
+### Mechanisms considered
+
+| Mechanism | Useful control | Single-use limit / trust requirement |
+| --- | --- | --- |
+| [Protected environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments) | Required independent reviewer, prevent self-review, main-only deployment rules; disallow administrative bypass where supported. | Gate each deployment, but do not constitute a global consumed-approval ledger across dispatches. Availability depends on repository/plan settings, which this task does not configure. |
+| Branch protection and restricted dispatch/rerun access | Protect the reviewed workflow/tree and limit operators. | Permissions and procedures are defense in depth, not an atomic consumption primitive. Privileged repository administrators remain trusted. |
+| GitHub API-backed approval/reservation | Run/job/environment APIs can independently corroborate run, actor, workflow revision and approval. A separately controlled Git ref with conditional non-forced updates could represent a reservation. | Ordinary issue/comment/status writes are not CAS. A ref scheme needs a unique immutable approval namespace, create-once/no-delete rules, race/crash handling, revoked-state rules and an independent state owner; same-runner write credentials undermine separation. No such scheme is implemented or approved. |
+| External durable record with atomic CAS | One transaction can check state, revision, revocation, expiry and exact run/source/operator binding, then irreversibly consume. | Requires a trusted owner, persistent store, authenticated caller, trusted clock and no rollback/reset of consumed tombstones. |
+| Independently operated authorization service / GitHub App | A small service with one transactional store can combine the prior control with independently verified GitHub identity. | Adds a narrow service and operational ownership; compromise of that owner/control plane defeats the gate. No machine attestation follows. |
+
+**Selected design proposal:** one independently administered owner with a small
+durable transactional store, optionally exposed through a GitHub App/protected
+environment gate. This is the minimal technical single-use boundary considered
+defensible here. It is **blocked pending owner, store, identity and operator-policy
+decisions**. No service, secret, permission or live connection is provisioned.
+
+### Exact proposed authority contract
+
+`consume_approval(record, claim, now, source_files)` validates an in-memory
+transition proposal and returns a *new* consumed record. It performs no I/O,
+authenticates nobody and persists nothing. Calling it twice on the old approved
+record returns two proposals; tests demonstrate this limitation explicitly.
+Its output is not a grant and has no execution-authority flag. It is not imported
+by the runner. Synthetic CAS tests exercise a test-only state owner, not a
+deployed authority.
+
+The future trusted owner must implement the following contract:
+
+1. Reviewers create one external record after the complete final activation
+   commit `A` is integrated. Do not embed `A` inside itself. Bind a single
+   pending run ID before releasing a protected job; never let the first claimant
+   choose a run. The issuer controls uniqueness of the approval scope and must
+   not silently mint replacement approvals after failure.
+2. Proposed endpoint: `POST /v1/approvals/{approval_id}/consume`, authenticated
+   with a separately approved GitHub workload-identity mechanism. Request body:
+   `{"expected_revision": <positive integer>}`. The client supplies neither
+   the record nor trusted claims/time/file hashes. Invalid authentication is
+   denied before lookup; an ID is a label, never a bearer credential.
+3. The owner verifies issuer, audience, expiry and job/run identity of the
+   workload assertion, then independently queries GitHub for canonical numeric
+   repository ID, run ID, original and triggering numeric actor IDs, event,
+   ref, workflow path/revision, attempt and current main SHA. Do not assume a
+   token exposes every field: retrieve and cross-check missing fields through
+   authenticated provider APIs. Conflicts, missing data, unknown identity,
+   revocation or control-plane failure deny admission. Workload-identity setup
+   and required API permissions remain undecided.
+4. Exact record fields are `schema_version=1`, `approval_id` (16–64 ASCII
+   alphanumeric/underscore/hyphen characters), positive `revision`,
+   `state="approved"`, lowercase 40-hex `source_sha`, decimal-string
+   `repository_id`, `operator_id`, `run_id`, positive integer epoch seconds
+   `not_before` / `expires_at`, bounded nonempty `review_reference`,
+   `source_hashes` and `consumed_at=null`. Unknown fields fail. Revisions
+   and times are below 2^53; identities are at most 20 digits without leading
+   zeros. The owner obtains `now` from its separately approved trusted clock;
+   the model only checks its type/range and `not_before <= now < expires_at`.
+5. Exact verified-claim fields are `repository`, `repository_id`,
+   `source_sha`, `reviewed_source_sha`, `checkout_sha`, `workflow_sha`,
+   `main_sha`, `ref`, `event_name`, `workflow_path`, `run_id`,
+   `run_attempt`, `actor_id`, `triggering_actor_id`. All are nonempty
+   strings of at most 256 characters. Repository is exactly
+   `adrianrusu16/panda-workstation`, ref `refs/heads/main`, event
+   `workflow_dispatch`, future workflow path
+   `.github/workflows/panda-ubuntu-bootstrap-verification.yml`, attempt
+   `"1"`. All five source SHA fields equal approved `A`; both actors equal
+   the approved operator; run/repository IDs equal the external record.
+6. `source_hashes` has exactly the paths in the model's `SOURCE_FILES` and
+   lowercase SHA-256 values. It covers the future enabled workflow, runner,
+   protocol, packet/archive readers, authorization model, common/provenance
+   modules, both pins, pending policy and package lock. The separately reviewed
+   observer supplies held bytes for exactly those files (1–131072 bytes each,
+   at most 2 MiB total); every digest must match. The final activation review
+   must re-audit this list for additional imports/configuration. This scoped
+   byte contract does not cover the complete Git tree, stdlib or actions.
+7. Inside one serializable transaction, load the authoritative record, verify
+   expected revision, approval/revocation state, deadline and verified claims,
+   validate the model, then CAS original state/revision to `consumed` with
+   revision incremented and `consumed_at=now`. Revocation must use the same
+   serialization boundary. Re-evaluate validity at the commit/linearization
+   point, not after an arbitrarily long queued observation. Exactly one CAS
+   succeeds; no upsert, overwrite, lease expiry, refund, resume or delete/recreate.
+   Durable consumption must commit before releasing any candidate acquisition
+   or verifier operation. Approval issuance, revocation, source observations,
+   consumption and denied attempts require an owner-controlled audit record.
+8. A single authenticated `201` response contains exactly `approval_id`,
+   `revision`, `state="consumed"`, `consumed_at`, `run_id`, `source_sha`.
+   It is delivered only to the bound current job after the durable commit;
+   it is not a reusable bearer grant. Conflict/reuse returns `409`; missing,
+   revoked or expired approval returns `403`; malformed request `400`;
+   unavailable/ambiguous state `503` or transport failure. No non-201 response
+   admits execution. Timeouts/lost responses have no retry or recovery grant.
+9. Cancellation, timeout, missing evidence and any local admission failure after
+   consumption leave the record consumed. Denial before a successful transaction
+   grants nothing; the owner must revoke any still-pending approval when its
+   prebound run terminates, including when the response/state is uncertain.
+   There is no automatic retry under that run/approval. An unauthorized request
+   alone must not create a new authorization. Any replacement requires a fresh
+   explicit decision with the failed outcome visible.
+10. The runner cannot write/reset this store. Administrative backup restore,
+    record deletion, ledger rollback, a second issuer or recreation of the same
+    scope must not resurrect consumption. The trusted executor must obey the
+    live gate and not cache/replay its response. This provides at-most-one
+    admitted invocation under those assumptions, never exactly-once completion,
+    malicious-host containment or proof that any evidence will survive.
+
+The pure model does not implement the endpoint, API/OIDC verification, trusted
+clock, source observer, durable CAS, revocation transaction or pending-run
+reconciliation. All are mandatory before claiming production enforcement.
+Supplied input alone cannot bypass the three existing execution seals. Removing
+only those seals in a future change would still lack this external gate and is
+**not a sufficient activation change**.
+
+### Source identity and byte-integrity boundary
+
+The model checks approved/executed/reviewed/checkout/workflow/current-main SHA
+agreement and externally approved file-byte hashes. Its synthetic tests reject
+each mismatched SHA, changed observed file, missing/extra file, wrong branch/tag,
+PR event, absent approval, rerun, unauthorized actor and malformed metadata.
+These are implemented checks of *supplied observations*, not deployment of a
+trustworthy observer. The sealed adapter still checks detached `.git/HEAD`
+only; its local source hashes are observations, not approved comparisons.
+
+An honest observer can detect modifications in the scoped held bytes; an
+attacker who controls both files and claimed observations can lie. Imports have
+already executed before an in-process checker runs. Neither Git HEAD text nor
+matching supplied hashes authenticates the actual executed bytes, process,
+Python stdlib, pinned actions or provider. A separately trusted observer must
+bind the measured checkout to execution and constrain mutation afterward, or
+reviewers must explicitly accept the runner-integrity boundary. Source/action
+review at `A` and a pinned checkout are still required.
+
+The owner checks current-main identity at consumption. This does not atomically
+lock GitHub's branch together with an external database. A later branch move
+cannot change a checkout pinned to `A`, but policy requiring main to stay at
+`A` until execution additionally needs an approved branch-freeze/control-plane
+boundary. Queue time does not extend expiry. The future workflow must be
+registered on default main before dispatch; this task does not probe that by
+dispatching. Pinned checkout/upload action commits remain byte-identical.
 
 Permitted work in that future job is inventory of preinstalled inputs, three
 InRelease checks plus six negative probes, four index checks, and bounded
@@ -134,12 +267,17 @@ tool invocation:
 - `ImageOS=ubuntu24`, `ImageVersion=20261026.354.1`, Ubuntu `ID=ubuntu` and
   `VERSION_ID=24.04` from the bounded root-owned OS release file.
 - Exact repository, `workflow_dispatch`, main ref, source identities above,
-  bounded nonempty job/runner names and positive run ID/attempt.
+  bounded nonempty job/runner names and positive run ID and attempt exactly `1`.
 - Observable, nonconflicting runner-application version from a bounded process
   ancestry matching `/home/runner/runners/<version>/bin/Runner.Worker` or
   `Runner.Listener`; later corroborate it against the provider's Set up job log.
   A different path layout or inaccessible ancestry is an abort, not permission
   to guess a version.
+- Observed `sys.version_info` must be a well-formed final Python 3.12 tuple;
+  the executable must be `/usr/bin/python3` or `/usr/bin/python3.12` and resolve
+  exactly to `/usr/bin/python3.12`. This is checked before host inventory, TLS
+  setup, tool invocation or candidate acquisition, and again at inventory entry.
+  Missing/malformed runtime data or another path/version fails; no auto-repair.
 - No nonempty `LD_*`, `GCONV_PATH`, `PYTHONPATH`, `PYTHONHOME` or `GNUPGHOME`
   influencing variables. The workflow uses `/usr/bin/python3 -I -S -B`.
 
@@ -170,7 +308,7 @@ provider-log corroboration remain unresolved until a separately approved run.
 | --- | --- | --- |
 | `/usr/bin/gpgv` | Pinned 310416 bytes, SHA-256 `f14d026b9eae172c432e015bce227483293b4966f2f3fdcfa582f71d3dbb2ae8`, installed `gpgv=2.4.4-2ubuntu17.6`, amd64. | Root-owned preinstalled verifier only. Hash is rechecked before invocation. |
 | `/usr/bin/zstd` | Pinned 1022760 bytes, SHA-256 `7c5468b370f7c47eda07281e3437fafc568f95d10420051e3aa522709f9342c5`, installed `zstd=1.5.5+dfsg2-2build1.1`, amd64. | No PATH-selected or downloaded replacement. Resolve image-source ambiguity without weakening admission. |
-| System Python | Resolved executable starts `/usr/bin/python3`; native extensions already in `sys.modules` must resolve under `/usr/lib/python3.12/`, at most 32. Inventory requires installed `python3.12-minimal` and `libpython3.12-stdlib`. | Intended interpreter is Python 3.12. The code does not explicitly assert `sys.version_info[:2] == (3,12)` or pin Python/package hashes/versions. The prefix and extension checks are not equivalent to that assertion. |
+| System Python | Explicit observed final Python 3.12 admission and exact resolved `/usr/bin/python3.12`; receipt validator also rejects prefix lookalikes. Loaded native extensions must resolve under `/usr/lib/python3.12/`, at most 32. Installed Python packages remain required. | Version/path gap is closed in the sealed adapter. Interpreter/package hashes and versions remain observations, not independently authenticated provenance. Development-host Python is not Ubuntu runtime evidence. |
 | ELF closure | At most 128 files / 64 MiB; ELF64 little-endian x86-64, PT_INTERP, unique library resolution in fixed directories, SONAME and required/provided symbol versions. Unsafe search overrides or populated glibc-hwcaps trees fail. | Static resolution is not the actual loader's mapping. Host libraries need not match all candidate-library pins: same-content metadata is cross-checked, while other bytes are observed. |
 | dpkg | Bounded installed status and file-list records; exactly one installed owner per inventoried ELF/keyring; architecture/version metadata retained. | A root-controlled database is local evidence, not independent authenticated package-to-file provenance. Python, extensions and most host libraries are not independently authenticated by these records. |
 | Archive keyring | `/usr/share/keyrings/ubuntu-archive-keyring.gpg`, root owned, safe mode, bounded 128 KiB, owner `ubuntu-keyring`, installed `2023.11.28.1` / `all`; SHA-256 `80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31`. | Preinstalled bytes only; never replace from a candidate package. Full anchor fingerprint is checked separately below. |
@@ -324,6 +462,14 @@ durability promise. Same-user/root mutation after final validation and before
 the uploader reads paths remains possible. Parent/working-file replacement,
 tool remeasurement versus actual execution, and later dynamic loads are not
 eliminated by local inode checks. The separate uploader/control plane is trusted.
+Source-only review found no
+small change that binds the uploader's later path reads to the validated open
+descriptors: another copy/archive/chmod would itself remain same-user/root
+mutable. The packet publisher, manifest version and workflow handoff are
+therefore unchanged. Closing this gap requires a separately reviewed trusted
+uploader that hashes the exact uploaded bytes or an accepted runner-integrity
+boundary; an after-upload hash alone cannot prevent an earlier disclosure or
+prove the producer.
 Local identity checks cannot be reproduced from a downloaded archive's newly
 created inodes; offline reviewers check content/semantics and provider context,
 not pretend the original filesystem identities were independently attested.
@@ -333,7 +479,7 @@ not pretend the original filesystem identities were independently attested.
 | Condition | Required disposition |
 | --- | --- |
 | Missing approval, wrong/finally changed source SHA, wrong ref/event/repository, unregistered workflow | No dispatch; if encountered during an approved run, fail closed. Never substitute PR #21's SHA for `A`. |
-| Second dispatch, rerun, queued duplicate, expired approval or attempt other than 1 | No-go; no retry under the same authorization. Existing code does not fully enforce this. |
+| Second dispatch, rerun, queued duplicate, expired approval or attempt other than 1 | No-go; no retry under the same authorization. Attempt 1 is enforced; durable consumption remains a disconnected design. |
 | Missing/mismatched image, OS/CPU, application ancestry or conflicting provider logs | Abort; no fallback or automatic repin. Image identity fails before inventory/download/verifier. |
 | Unsafe environment, unowned/changed tool/keyring, dpkg mismatch, missing/ambiguous ELF, preload/hwcaps, incomplete inventory | Abort; no repair/install or relaxed allowlist. |
 | Unresolved lifecycle/clock/replay decision or missing delegated-assumption approval | No activation approval. Verification cannot supply the missing policy decision. |
@@ -362,9 +508,9 @@ is authorized, hardware is attested or trust-policy activation is permitted.
 | Finding | Classification | Needed at separate activation review |
 | --- | --- | --- |
 | Final activation SHA and default-branch workflow registration | Future approval blocker | Review resulting `A`, source tree/actions and registration; bind external approval to it. |
-| No technical one-shot/consumed-approval enforcement | Future approval blocker | Establish single-use run control, including queue/rerun handling and the limits of operator enforcement. |
+| No connected durable consumed-approval authority | Future approval blocker | Implement and independently review the external contract above; the pure model and synthetic CAS are not production enforcement. |
 | Rolling image availability and zstd summary/path ambiguity | Availability / compatibility unresolved | Retain strict admission; explain source observations without claiming unobserved bytes; no automatic repin. |
-| Python 3.12 intention exceeds explicit version checks; inventory is not complete runtime provenance | Source admission gap / delegated-host decision | Require an explicit version check in a reviewed future change or document an approved equivalent provider boundary; assess late loads and unpinned Python/library/CA/config observations. |
+| Python version/path gap closed; inventory is not complete runtime provenance | Implemented admission / delegated-host decision | Preserve explicit 3.12 check; assess already-loaded extensions, late OpenSSL providers/NSS modules, dlopen, Python stdlib and unpinned Python/library/CA/config observations. |
 | Key lifecycle, trusted assessment time and historical replay | Policy unresolved | Record reviewed lifecycle/time/replay decisions or explicitly limit separately authorized evidence gathering to unverified lifecycle/freshness. Do not claim these checks passed. |
 | GitHub image/provisioning/control plane and Canonical authority | Delegated assumptions | Name the accepted trust basis; no hardware attestation or independent root of trust is established. |
 | Local source/tool/packet TOCTOU and uploader handoff | Delegated runner-integrity limitation | Accept the bounded evidence model explicitly or require further hardening; do not equate atomic publication with immutable upload bytes. |
@@ -394,72 +540,77 @@ Every item below is for a **separate** approval; none is checked here:
 - [ ] Failure consumes the attempt; no rerun, repair, repin, policy activation,
   package installation, rootfs/native/desktop activity is implicitly authorized.
 
-**GO to a separate activation review as a source-only review package; NO-GO for
-authentication now.** Any unchecked material decision, unresolved approval
-blocker, failed admission condition or requested expansion of scope is an
-explicit no-go for dispatch. Publication or merge of this documentation PR
-cannot grant execution authority. This task stops after PR publication.
+**Merge decision:** GO for review/merge of this source-only hardening after
+the recorded checks and independent review pass. Merge grants no execution
+authority. **Activation decision:** NO-GO to advancing an activation package
+while the external authority/observer, runner/toolchain admission and
+lifecycle/time/replay decisions remain unresolved. A separate design review may
+resolve those blockers; no successful synthetic test is real Ubuntu admission.
+This task stops after PR publication.
 
 ## Local validation record
 
-Commands ran from the isolated worktree at the reviewed baseline plus these two
-documentation changes. Both local interpreters report Python 3.14.8; this is
-synthetic/static validation, not Ubuntu Python 3.12 runtime evidence. No dependency
-was installed or downloaded. No new tests were added: existing tests cover the
-source/protocol/packet invariants, and this change adds no production behavior.
-
-```fish
-python3 -B -m unittest discover -s tests -p 'test_ubuntu*.py' -v
-python3 -B -m unittest discover -s tests -p test_external_vm_s4.py -v
-python3 -B -m unittest discover -s tests -p test_bootstrap_provenance.py -v
-python3 -B -m unittest discover -s tests -v
-/home/adrian/Workspace/system/panda-workstation/tmp/s3-integration-review/venv/bin/python -B -m unittest discover -s tests -v
-```
+The final compatible full suite used the pre-existing environment at
+`/home/adrian/Workspace/system/panda-workstation/tmp/s3-integration-review/venv`.
+Both it and system Python report **3.14.8**; positive Python 3.12 tests substitute
+observations and do not claim Ubuntu runtime evidence. No packages were installed.
 
 | Check | Observed result |
 | --- | --- |
-| Ubuntu protocol, adapter, artifacts, status and packet tests | 60 passed; 0 failures/errors/skips. |
-| S4 stage tests | 21 passed; 0 failures/errors/skips. |
+| Ubuntu protocol/adapter/artifacts/status/packet/authorization tests | 75 passed; 0 failures/errors/skips. Baseline: 60 passed. |
+| S4 external VM stage tests | 21 passed; 0 failures/errors/skips. |
 | Bootstrap-provenance tests | 44 passed; 0 failures/errors/skips. |
-| Initial full suite, system Python inside sandbox | 584 run: 530 passed, 2 failures, 51 errors, 1 skip; not a passing run. |
-| Full suite, existing pinned environment outside sandbox | All 584 passed in 126.533 seconds; 0 failures/errors/skips. |
-| JSON Schema regressions using existing `jsonschema==4.25.1` | Four schema definitions valid; all 13 regressions passed, no skips. |
+| Initial full suite, system Python in sandbox, intermediate test tree | 597 run in 135.601 s: 543 passed, 2 failures, 51 errors, 1 skip. This was not a passing run. |
+| Final full suite, existing compatible environment outside sandbox | 599 passed in 140.514 s; 0 failures/errors/skips. |
+| JSON Schema validation with existing pinned `jsonschema==4.25.1` | Four schemas valid; all 13 existing regressions passed, 0 skips. |
+| AST parsing | All six modified/new Python files parse without executing them. |
+| Whitespace | `git diff --check` passed. |
+| Independent read-only source review | No critical, important or minor actionable findings; Ubuntu 75-test suite independently passed. |
 
-The initial errors were ancestor-owner refusals in desktop assessment, Plasma
-artifact writing and sandbox-supervisor fixtures: the filesystem sandbox exposed
-`/home` and temporary ancestors as UID 65534 rather than root/current UID. One
-failure expected a permission probe that this earlier refusal prevented. The
-Android refusal smoke test's expected message was preempted by its read-only
-Helios safety check receiving empty systemctl mask states. The skip was the
-system Python's absent jsonschema. No safety or test assertion was weakened.
-The rerun uses normal host visibility (`/home` UID 0 / mode 0755 and `/tmp`
-UID 0 / mode 01777) and a pre-existing environment containing the pinned
-validator; it passes without changing host policy or installing packages.
+The initial sandbox errors were 48 `test_sandbox_supervisor` setup errors,
+two `test_desktop_assessment` preserved-read errors and one
+`test_plasma_style` writer error. Sandbox ancestor ownership appears as
+UID 65534 instead of root/current UID, triggering the existing fail-closed
+ownership rules. The two failures were
+`test_permission_failure_never_falls_back_to_plain_read` (earlier ancestor
+refusal prevented the expected probe) and `test_android_apply_refused`
+(read-only systemctl mask observations were empty, causing an earlier Helios
+safety refusal). The skip was
+`test_capture_sections_require_each_named_section_once` because system Python
+lacks jsonschema. No assertions, safety checks or host policy were changed.
+The compatible run removes these environment-specific conditions and uses the
+already installed pinned validator; it passed without skips.
 
-Exact schema command (the existing CI validation body, without its install step):
+Representative verification commands (Fish-compatible, from the feature worktree):
 
 ```fish
-/home/adrian/Workspace/system/panda-workstation/tmp/s3-integration-review/venv/bin/python -B -c 'import json,unittest; from importlib.metadata import version; from pathlib import Path; from jsonschema import Draft202012Validator; assert version("jsonschema") == "4.25.1"; paths=sorted(Path("tests/native").rglob("*.schema.json")); [(Draft202012Validator.check_schema(json.loads(p.read_text())), print("Schema valid:", p, flush=True)) for p in paths]; suite=unittest.defaultTestLoader.discover("tests",pattern="test_external_vm_preparation.py"); result=unittest.TextTestRunner(verbosity=2).run(suite); assert result.testsRun and not result.skipped and result.wasSuccessful()'
-```
-
-Additional static commands:
-
-```fish
-python3 -B -c 'import ast; from pathlib import Path; paths=sorted(Path("tests/native/external_vm/s4").glob("*.py"))+sorted(Path("tests").glob("test_ubuntu*.py")); [ast.parse(p.read_bytes(),filename=str(p)) for p in paths]; print("PASS:",len(paths),"Python sources parsed without execution")'
-git diff --exit-code 626e38ed945bf898fbb4d0b7145f477a13676538 -- . ':(exclude)tests/native/external_vm/s4/README.md' ':(exclude)tests/native/external_vm/s4/ubuntu-auth-authorization-readiness.md'
-sha256sum tests/native/external_vm/s4/trust-policy.json tests/native/external_vm/s4/ubuntu-verification.pins.json tests/native/external_vm/packages.lock.json
+python3 -B -m unittest discover -s tests -p 'test_ubuntu*.py'
+python3 -B -m unittest discover -s tests -p test_external_vm_s4.py
+python3 -B -m unittest discover -s tests -p test_bootstrap_provenance.py
+python3 -B -m unittest discover -s tests -v
+/home/adrian/Workspace/system/panda-workstation/tmp/s3-integration-review/venv/bin/python -B -m unittest discover -s tests -v
 git diff --check
 ```
 
-Observed: 14 Python sources parse; no diff outside the two intended documentation
-paths; all three displayed digests match the baseline table; whitespace check
-passes. A separate byte comparison against Git objects confirmed all 334 tracked
-baseline files other than the edited README are identical, including all locks,
-pins, native source seals, policy and workflow. AST inspection confirms the runner
-constant is false; the disabled workflow retains its exact false job guard and
-has no enabled filename counterpart. Status contains only the two intended files.
+Schema validation used the existing CI body without its installation step:
+assert validator version 4.25.1, call `Draft202012Validator.check_schema` for
+every `tests/native/**/*.schema.json`, then discover
+`test_external_vm_preparation.py` and require success with no skips.
 
-No real authentication, candidate download/install/decode, rootfs assembly,
-native candidate execution, rendering, workflow dispatch/rerun/enablement, trust
-activation or Helios configuration change occurred. An independent read-only
-source-to-document review found no substantive inaccuracies or omissions.
+A Git-object byte comparison against the verified baseline found **330 baseline
+files unchanged**, with exactly six modified tracked paths and two new paths.
+The policy, both provenance pin files, package lock and disabled workflow are
+byte-identical; all other protected inputs are among the unchanged files.
+The trust-policy SHA-256 and both provenance-pin SHA-256 values match the
+baseline; policy remains `pending-review`. AST comparison additionally
+confirmed strict GnuPG status/negative-probe/keyring/protocol functions and the
+runner's authentication/invocation/CLI functions are unchanged. The packet
+publisher and workflow upload handoff remain byte-identical.
+
+The workflow still has its `.yml.disabled` suffix and exact unconditional
+`if: ${{ false }}`; no enabled counterpart exists. AST inspection confirms
+`AUTHENTICATION_ENABLED = False`. New model calls occur only in synthetic
+tests. No native build/render, rootfs or candidate-execution path was introduced.
+No workflow dispatch/rerun or live authority operation was issued during this
+task. Remote main was re-fetched before publication and still matched the
+baseline. Merge eligibility and authentication authority remain separate.
