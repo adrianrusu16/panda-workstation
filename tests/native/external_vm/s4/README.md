@@ -52,6 +52,10 @@ validates the real certificate set. No result can update `trust-policy.json`.
 
 ## Sealed hosted Ubuntu authentication
 
+The [authorization-readiness review](ubuntu-auth-authorization-readiness.md) records
+the reviewed baseline, proposed future activation changes, one-shot scope, admission
+criteria, abort conditions and unresolved decisions. It authorizes no execution.
+
 `ubuntu_bootstrap_runner.py` implements the hosted adapter but refuses all CLI
 calls with exit 78 while `AUTHENTICATION_ENABLED=False`. The workflow source is
 `.github/workflows/panda-ubuntu-bootstrap-verification.yml.disabled`: GitHub does
