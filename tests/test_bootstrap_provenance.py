@@ -599,6 +599,34 @@ class BootstrapProvenance(unittest.TestCase):
         self.assertFalse(receipt["execution_authorized"])
         self.assertIn("sealed", receipt["errors"][0])
 
+    def test_malformed_review_inputs_return_bounded_rejection_without_host_io(self):
+        module = self.module()
+        cases = (("empty", b""), ("null", b"null"), ("array", b"[]"),
+                 ("string", b'"text"'), ("boolean", b"true"), ("number", b"42"),
+                 ("truncated", b"{"), ("invalid-utf8", b"\xff"),
+                 ("infinity", b'{"x":Infinity}'), ("nesting", b"[" * 2000 + b"]" * 2000),
+                 ("long-integer", b'{"x":' + b"9" * 5000 + b"}"),
+                 ("nonbytes-string", "{}"), ("nonbytes-none", None))
+        with patch.object(module, "load_pins", return_value=copy.deepcopy(self.pins)), \
+             patch("subprocess.Popen", side_effect=AssertionError("native process reached")), \
+             patch("socket.socket", side_effect=AssertionError("network reached")), \
+             patch("os.open", side_effect=AssertionError("filesystem reached")), \
+             patch("builtins.open", side_effect=AssertionError("filesystem reached")), \
+             patch("io.open", side_effect=AssertionError("filesystem reached")):
+            for label, raw in cases:
+                with self.subTest(case=label):
+                    try:
+                        result = module.review(raw, {}, now_epoch=2000)
+                    except (ValueError, TypeError, UnicodeError, RecursionError) as error:
+                        self.fail("malformed input escaped review: " + type(error).__name__)
+                    self.assertEqual(result["status"], "rejected")
+                    self.assertTrue(result["errors"])
+                    for flag in ("consistency_checked", "accepted", "execution_authorized",
+                                 "trust_policy_activation_allowed", "real_certificate_set_validated"):
+                        self.assertFalse(result[flag])
+                    self.assertEqual(result["cryptographic_verification"], "not_performed")
+                    self.assertLessEqual(len(module.encode_result(result)), 65536)
+
     def test_bounded_json_rejects_duplicate_keys_nonfinite_numbers_and_extra_artifacts(self):
         module = self.module()
         for raw in (b'{"schema_version":1,"schema_version":1}', b'{"x":NaN}', b' ' * (512*1024+1)):

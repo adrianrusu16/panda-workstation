@@ -2,13 +2,16 @@
 import copy
 import hashlib
 import importlib
+import io
 import json
 import lzma
 from pathlib import Path
+import signal
 import struct
+import subprocess
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, call, patch
 from test_ubuntu_artifacts import synthetic_deb, synthetic_elf
 
 S4 = Path(__file__).resolve().parent / "native/external_vm/s4"
@@ -132,6 +135,26 @@ class UbuntuVerification(unittest.TestCase):
         sys.path.insert(0, str(S4)); self.addCleanup(sys.path.remove, str(S4))
         self.assertTrue((S4/"ubuntu_verification.py").is_file(), "Ubuntu verification protocol missing")
         self.api = importlib.import_module("ubuntu_verification")
+
+    def test_runner_timeout_kills_process_group_and_reaps_before_reraising(self):
+        runner = importlib.import_module("ubuntu_bootstrap_runner")
+        timeout = subprocess.TimeoutExpired("fictional-gpgv", 25)
+        process = Mock(pid=123456)
+        process.wait.side_effect = [timeout, -9]
+        streams = (io.BytesIO(), io.BytesIO())
+        lifecycle = Mock()
+        lifecycle.attach_mock(process.wait, "wait")
+        with patch.object(runner.tempfile, "TemporaryFile", side_effect=streams), \
+             patch.object(runner.subprocess, "Popen", return_value=process) as launch, \
+             patch.object(runner.os, "killpg") as kill:
+            lifecycle.attach_mock(kill, "killpg")
+            with self.assertRaises(subprocess.TimeoutExpired) as raised:
+                runner.invoke("gpgv", ["--version"], Path("/fictional-runner"), None, 100)
+        self.assertIs(raised.exception, timeout)
+        self.assertIs(launch.call_args.kwargs.get("start_new_session"), True)
+        self.assertEqual(lifecycle.mock_calls, [call.wait(timeout=25),
+                         call.killpg(123456, signal.SIGKILL), call.wait()])
+        self.assertTrue(all(stream.closed for stream in streams))
 
     def test_runner_records_actual_identity_without_hardware_attestation(self):
         result = self.api.runner_identity(runner_context(), b"ID=ubuntu\nVERSION_ID=24.04\n")
