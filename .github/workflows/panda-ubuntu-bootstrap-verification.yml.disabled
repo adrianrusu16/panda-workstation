@@ -1,0 +1,59 @@
+# Source-only template. GitHub does not load this .disabled suffix.
+# Separate authorization must review renaming, the false job guard and runner source seal.
+name: Panda Ubuntu bootstrap authentication (source-sealed)
+
+on:
+  workflow_dispatch:
+    inputs:
+      reviewed_source_sha:
+        description: Separately approved immutable verification source commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: panda-ubuntu-bootstrap-verification
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: ${{ false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: /usr/bin/python3 -I -S -B {0}
+    steps:
+      - name: Check out the reviewed immutable source
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+
+      - name: Inventory and authenticate using preinstalled tools only
+        env:
+          REVIEWED_SOURCE_SHA: ${{ inputs.reviewed_source_sha }}
+          EXPECTED_IMAGE_VERSION: "20261026.354.1"
+        run: |
+          import runpy
+          import sys
+          sys.argv = ["ubuntu_bootstrap_runner.py"]
+          runpy.run_path("tests/native/external_vm/s4/ubuntu_bootstrap_runner.py", run_name="__main__")
+
+      - name: Export only bounded authentication receipts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: panda-ubuntu-bootstrap-auth-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/panda-ubuntu-bootstrap-verification/*.json
+            ${{ runner.temp }}/panda-ubuntu-bootstrap-verification/SHA256SUMS
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 7
+          compression-level: 0

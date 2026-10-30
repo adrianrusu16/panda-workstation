@@ -50,6 +50,80 @@ Unknown proof flags such as `verified=true` are rejected. The synthetic tests
 substitute fictional references at the loader boundary; no synthetic success
 validates the real certificate set. No result can update `trust-policy.json`.
 
+## Sealed hosted Ubuntu authentication
+
+`ubuntu_bootstrap_runner.py` implements the hosted adapter but refuses all CLI
+calls with exit 78 while `AUTHENTICATION_ENABLED=False`. The workflow source is
+`.github/workflows/panda-ubuntu-bootstrap-verification.yml.disabled`: GitHub does
+not load this suffix, and its job additionally has an unconditional false guard.
+No source-only test removes these seals or runs the real verification sequence.
+
+The implementation requires a standard x86-64 GitHub-hosted `ubuntu-24.04` runner
+reporting image version **20261026.354.1**. Another or missing image fails before
+inventory, download or verifier invocation. The rolling runner label cannot
+guarantee this version remains available. The exact reviewed source SHA must
+match both GitHub's context and the detached checkout. Run/job/runner identity,
+actual image, kernel and observed runner-application version are contextual data;
+an unobservable/conflicting application version also fails closed.
+
+GitHub image/provisioning/control-plane integrity and Canonical's archive/key
+authority are explicit delegated assumptions. No hardware or machine attestation
+is established. The preinstalled archive keyring is measured and cross-checked
+against the reviewed full fingerprint
+`F6ECB3762474EDA9D21B7022871920D1991BC93C`; a downloaded keyring never replaces it.
+The adjacent `ubuntu-verification.pins.json` records reviewed package, file and
+link observations, **not** an activated trust policy or verified runner inventory.
+
+The future adapter uses only preinstalled `/usr/bin/gpgv`, `/usr/bin/zstd` and
+system Python. It inventories their static ELF dependencies, loaded native stdlib
+module files, source hashes, dpkg file owners and installed versions, TLS CA bundle
+and loader configuration. Keyring evidence includes its resolved path, size,
+ownership, mode and digest; every inventoried ELF must have one installed owner.
+It refuses influencing environment variables, nonempty system preload files,
+unreviewed hardware-capability variants, unsafe ownership and missing dependencies.
+Actual loader mappings and the underlying machine's integrity remain unresolved.
+
+The protocol verifies three InRelease signatures and six negative probes (altered
+content and an empty isolated keyring for each signature), checks full signing and
+primary fingerprints and permitted algorithms, then verifies compressed/plain
+index hashes and 13 exact package payloads. Candidate archives are decoded only
+as bounded data: no scriptlet, executable, interpreter or library is run. Thirteen
+ELFs and all required path aliases are checked against authenticated package
+membership, PT_INTERP/DT_NEEDED, SONAME and recorded symbol-version requirements.
+No rootfs-shaped output tree is created. Package installation dependencies are a
+separate graph outside this static executable closure.
+
+`gpgv` [does not check key expiry or revocation](https://gnupg.org/documentation/manuals/gnupg/gpgv.html).
+The implementation rejects failed/expired/revoked statuses when observed, checks
+signature expiration itself and rejects an observed anchor-revocation packet.
+Complete current key lifecycle, a trusted clock and historical snapshot replay
+acceptance remain unresolved; absent Valid-Until values are recorded explicitly.
+Successful signature equations never imply those properties.
+
+Nine bounded canonical JSON receipts distinguish cryptographic results, hash
+membership, local observations and policy assumptions. A sorted SHA256 manifest
+is written last. Job/time/path context and its binding to that content manifest
+are separate, so changing job identity does not change content receipts. These
+unsigned receipts identify content; they do not authenticate their producer.
+`validate_receipts(raw)` binds declared identities to reviewed references and
+recomputes the declared static graph. It performs data-only consistency checking
+and always returns
+`accepted=false`, `execution_authorized=false` and
+`trust_policy_activation_allowed=false`. The integrated checker is invoked with
+real Ubuntu data and an empty Arch section; its rejection at `arch fields` records
+the Ubuntu-only boundary without fabricating Arch evidence or altering its flags.
+
+Before separately authorized execution, review the exact source revision and the
+three explicit source changes needed to enable this template: its suffix, false
+job guard and new adapter seal. The minimal proposed run admits one reviewed
+image, inventories preinstalled inputs, retrieves only the pinned snapshot's
+three releases, four indexes and 13 packages, performs authentication/static
+inspection and exports only bounded JSON receipts plus their checksums. No APT,
+keyserver retrieval, candidate code, assembly, rendering, S4 activation, external
+VM preparation or Arch authentication is part of that scope. Existing S4 seals
+and `trust-policy.json` remain untouched. Failure packets identify incomplete
+evidence and contain no success or execution authority.
+
 The proposed Python interfaces are:
 
 - `authenticate.authenticate_set(lock_path, policy_path, keyring_path, cache,
