@@ -83,7 +83,7 @@ If a requested task would cross this boundary, stop and explain why before chang
 
 The approved design specification is:
 
-`docs/superpowers/specs/2026-10-06-panda-theme-system-design.md`
+`.agents/skills/panda-theme-system/references/design-spec.md`
 
 When work touches Panda themes, Plasma layout, widgets, wallpaper, splash, icons, terminals, shell theming, editor theming, or automatic theme switching, use the `panda-theme-system` skill.
 

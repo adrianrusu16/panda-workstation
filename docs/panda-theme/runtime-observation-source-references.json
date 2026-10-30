@@ -1,0 +1,299 @@
+{
+  "provenance": "Upstream source identities retained from the unexecuted R0 static audit; no fresh source acquisition, runtime observation or execution approval.",
+  "schema_version": 1,
+  "scope": "runtime-observation-static-source-contract",
+  "sources": [
+    {
+      "bytes": 116758,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "5d60c5fadf9997b60eec7f33082718d98ba8ec13",
+      "path": "shell/shellcorona.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/shellcorona.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "22dfa07599f0592d099b869cef03bbc75a1086388b2713b4b0de19961fd9aa55",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 10671,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "fe6cef54a8c01dbf37f0d55a9505fee371a6e288",
+      "path": "shell/shellcorona.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/shellcorona.h",
+      "repo": "plasma-workspace",
+      "sha256": "4b85875060ac43d318d672743525c10a3d313a95f59edda9e5ce42fd3e00b7bd",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 17455,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "3360b675268f64cb718df56f499a476babf77002",
+      "path": "shell/scripting/scriptengine.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/scriptengine.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "9889b7ef8ff23f4ef39f84c3ee00bcfb71d704a1d5a0616589f8ef7822cd147d",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 1962,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "e4111c9fd1b3e06165696b493b374c2093ebc620",
+      "path": "shell/scripting/scriptengine.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/scriptengine.h",
+      "repo": "plasma-workspace",
+      "sha256": "3a0047a708ed4d491a4a08044519afcae0591b2db869a1d62e7c114585f5c333",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 26250,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "f99d1eeabdfa09d4a13411d7257309d7c817a891",
+      "path": "shell/scripting/scriptengine_v1.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/scriptengine_v1.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "57507e80359b3e8feb29e57c5c22fba68fe47779f05c8bddd9e78f8b455cea34",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 2907,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "da82aed3c920503e399c44d847dd58b8bd2b5a13",
+      "path": "shell/scripting/scriptengine_v1.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/scriptengine_v1.h",
+      "repo": "plasma-workspace",
+      "sha256": "024645a4e6271c33ab75e9db2a5d69899a045c70f4c93f9c84eee23950476ed7",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 5204,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "f421fc67868942af5312eac70987391a4944d044",
+      "path": "shell/scripting/appinterface.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/appinterface.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "eb5f9a9ba5a38e0e267e8964c6a9accf88d84b69bf2777e5951567a2c763388b",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 2376,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "36ef0dd13bc3a046acbc24a974b6a418cca524ad",
+      "path": "shell/scripting/appinterface.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/appinterface.h",
+      "repo": "plasma-workspace",
+      "sha256": "611b243fb4a8b5d72232a20b87261396638022787e8eb51744e3e4cc53f7c5aa",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 5078,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "1cafd1c8262f11a059fe1db4be009ca5bae76caf",
+      "path": "shell/scripting/widget.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/widget.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "9ad16f0972d0a042b7c86b9d93ef1dbb338e474d8052f233ecad1d659a8d4cea",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 1734,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "7eecc51a920c0c9a91b0654131bfb78804d6af45",
+      "path": "shell/scripting/widget.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/widget.h",
+      "repo": "plasma-workspace",
+      "sha256": "d63457eff4f892c79a8a9cfbb1147a7b6bd3def1a841a6d89fe1c0abde609574",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 7121,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "88593e895ecdd7aa443366b65d0f21118cca6b9b",
+      "path": "shell/scripting/containment.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/containment.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "cd15e426a3de29d4b977e9a9f097f49099001167ace791b13857b29f49daf5f1",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 2196,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "63b3331ca3ef67bd8b4d05285164ee0cc5b7f4c3",
+      "path": "shell/scripting/containment.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/containment.h",
+      "repo": "plasma-workspace",
+      "sha256": "cd39bb38bda35a58b6f2643e7b6c041b915c1b96fb37f4af0281444aeb7e18f5",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 4276,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "7250b5f1ebe8c3e7465c790a9d7e2b140ffbe4d4",
+      "path": "shell/scripting/configgroup.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/configgroup.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "519697d81c33c0642a691e15b123f2bb6dca769433eeb5d6f55eee910b2cc5e5",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 1450,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "6529ebd9bbda8396e66c95fa364c7a65cdfd30ae",
+      "path": "shell/scripting/configgroup.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/configgroup.h",
+      "repo": "plasma-workspace",
+      "sha256": "1bce83554828e7986250e8b5224f7f21eac85a14d96334cb1099fa41a3568cea",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 21315,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "271fe12d410364493541af557b45b36e1ebcda67",
+      "path": "shell/desktopview.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/desktopview.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "18caa5dbdc959076926bb498b6e3d857a77e4de8f48dd2920fc5c13105461cc4",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 4334,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "6c722a516dd59761402434a3492cfe50f3fa98fb",
+      "path": "shell/desktopview.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/desktopview.h",
+      "repo": "plasma-workspace",
+      "sha256": "27ae4c9d8c5624200505bb287538c3e45b0268089fc5cb477a6bf07d8bf92e11",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 4062,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "757f817a882faedbf68b7060977b5310d7a33997",
+      "path": "shell/screenpool.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/screenpool.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "58d19a6c99821cbc655347139fa3ca00b593f031a15002758e32954c37c0282a",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 1689,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "339fe654c9b3ca348fd76c49d83711126864703d",
+      "path": "shell/screenpool.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/screenpool.h",
+      "repo": "plasma-workspace",
+      "sha256": "bfef58839d03faaea6612ac94859de813cbaf42b1ed94561679817a355969ae5",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 2958,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "2a237e9d7a6e8e132bb71664c3e2267499a337c4",
+      "path": "shell/dbus/org.kde.PlasmaShell.xml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/dbus/org.kde.PlasmaShell.xml",
+      "repo": "plasma-workspace",
+      "sha256": "54b1e09d93d01c8dd0ab95b3d4dd4eb08d07ea006097ea34f0f24ec7e6840fe8",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 4738,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "ad5c1badc1d93786bf17f02389d11b9956126aa2",
+      "path": "src/plasma/theme.cpp",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/theme.cpp",
+      "repo": "libplasma",
+      "sha256": "0799e4072e0526d6ff3f28a04244f649ea5dc7dc083ee133bdc379344d5b5c85",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 9604,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "319c0bb2ee9ed783ab4775f8be08b5d422fbb320",
+      "path": "src/plasma/theme.h",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/theme.h",
+      "repo": "libplasma",
+      "sha256": "cfc989cc2f619f24f17ab94295bbcbb5d2ad7bb998c4f6cee12d59d53509ed5f",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 17014,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "fcba0a277e955559e8afe05f08660f910ece72cd",
+      "path": "src/plasma/private/theme_p.cpp",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/private/theme_p.cpp",
+      "repo": "libplasma",
+      "sha256": "0898ba18450250442e6de194a9e4f5d89bd585772a7b4a6bdb2364cbf5d921c3",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 2931,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "52d2addb22ffa657ba77686114052f6ea73696b9",
+      "path": "src/plasma/private/theme_p.h",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/private/theme_p.h",
+      "repo": "libplasma",
+      "sha256": "652bb5b9273faffcfef8286a0f7224f8456ed690eb649400e3c8703197d2ea13",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 4745,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "9b69e32f936946145a04137be899587acbac4fc9",
+      "path": "shell/scripting/applet.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/applet.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "70d1af3b174beb9bce64cfe07c0aef633850a78d4a61417678e5a9db2e352b2e",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 1219,
+      "commit": "fb9b679a99078e68164b05b9cb3f5aaa6020222f",
+      "git_blob": "fa3030fb7929d2d39fecb0725064c30d1f2e3fa5",
+      "path": "shell/scripting/applet.h",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/fb9b679a99078e68164b05b9cb3f5aaa6020222f/shell/scripting/applet.h",
+      "repo": "plasma-workspace",
+      "sha256": "1d393cc6c3b3df31b1cd2bc4568a13030ac9bd8b9d5b2314ce494c1dd4aed357",
+      "tree": "459ab41f3a2b3a842b7f698ce5181f9cc6a66124"
+    },
+    {
+      "bytes": 2040,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "e565aa7bdc49d09b0d8568a70b16547743f073df",
+      "path": "src/plasma/private/blureffectwatcher.cpp",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/private/blureffectwatcher.cpp",
+      "repo": "libplasma",
+      "sha256": "3fca06948054f866f4df6dd2cabb24327f9683d17eeea6ec81e692043f567390",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 671,
+      "commit": "f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e",
+      "git_blob": "152df708e55c12ead1ec58a2538ce72c353e160c",
+      "path": "src/plasma/private/blureffectwatcher_p.h",
+      "reference": "https://github.com/KDE/libplasma/blob/f46c05f2174e8cf35c8d46f4e8cd8fe7d595874e/src/plasma/private/blureffectwatcher_p.h",
+      "repo": "libplasma",
+      "sha256": "0173b7fba64dcb0827c6eea926cf7078d3243f27b3740f3681f3c703bd518e6f",
+      "tree": "ebab6a7655279f7509f9f199ac116297b18489c4"
+    },
+    {
+      "bytes": 82954,
+      "commit": "8cc40e0c5e9234bf45084751ac53b1fbfe70b492",
+      "git_blob": "88eba5a51268e6d7348530d668ad9f9a9284324f",
+      "path": "src/busctl/busctl.c",
+      "reference": "https://github.com/systemd/systemd/blob/8cc40e0c5e9234bf45084751ac53b1fbfe70b492/src/busctl/busctl.c",
+      "repo": "systemd",
+      "sha256": "d9528e96fb6d636f1a2a9a2a41d9026aca4a659fb3f6a6309000837b5036413d",
+      "tag": "v262",
+      "tree": "caee668810accedd03b98370d48cdf92def5abd9"
+    },
+    {
+      "bytes": 140756,
+      "commit": "8cc40e0c5e9234bf45084751ac53b1fbfe70b492",
+      "git_blob": "2bd0439c59795cb95f798cc646e4a3f6ea7ef86c",
+      "path": "src/libsystemd/sd-bus/sd-bus.c",
+      "reference": "https://github.com/systemd/systemd/blob/8cc40e0c5e9234bf45084751ac53b1fbfe70b492/src/libsystemd/sd-bus/sd-bus.c",
+      "repo": "systemd",
+      "sha256": "134e5506f489a3885020104af2edfba7690bb05d3c4dcde62fbecd3ff4859025",
+      "tag": "v262",
+      "tree": "caee668810accedd03b98370d48cdf92def5abd9"
+    }
+  ]
+}
