@@ -1,0 +1,326 @@
+{
+  "anchor": "F6ECB3762474EDA9D21B7022871920D1991BC93C",
+  "anchor_sources": [
+    "https://documentation.ubuntu.com/security/software-integrity/image-verification/",
+    "https://wiki.ubuntu.com/Security/FAQ"
+  ],
+  "classification": "reviewed observations; not a trust policy or a cryptographic receipt",
+  "files": {
+    "/usr/bin/gpgv": {
+      "bytes": 310416,
+      "interpreter": "/lib64/ld-linux-x86-64.so.2",
+      "needed": [
+        "libz.so.1",
+        "libbz2.so.1.0",
+        "libgcrypt.so.20",
+        "libassuan.so.0",
+        "libnpth.so.0",
+        "libgpg-error.so.0",
+        "libc.so.6"
+      ],
+      "package": "gpgv",
+      "sha256": "f14d026b9eae172c432e015bce227483293b4966f2f3fdcfa582f71d3dbb2ae8"
+    },
+    "/usr/bin/vercmp": {
+      "bytes": 14640,
+      "interpreter": "/lib64/ld-linux-x86-64.so.2",
+      "needed": [
+        "libc.so.6"
+      ],
+      "package": "makepkg",
+      "sha256": "7d70777d1b94a4d0a4ff54323d0f1497240739fe49d53e9631788bff078725b2"
+    },
+    "/usr/bin/zstd": {
+      "bytes": 1022760,
+      "interpreter": "/lib64/ld-linux-x86-64.so.2",
+      "needed": [
+        "libz.so.1",
+        "liblzma.so.5",
+        "liblz4.so.1",
+        "libc.so.6"
+      ],
+      "package": "zstd",
+      "sha256": "7c5468b370f7c47eda07281e3437fafc568f95d10420051e3aa522709f9342c5"
+    },
+    "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2": {
+      "bytes": 236616,
+      "interpreter": null,
+      "needed": [],
+      "package": "libc6",
+      "sha256": "c20a2dc8917c755f02b94049356320fe1f62ac7d9f8994731f807d9df39302da"
+    },
+    "/usr/lib/x86_64-linux-gnu/libassuan.so.0.8.6": {
+      "bytes": 80176,
+      "interpreter": null,
+      "needed": [
+        "libgpg-error.so.0",
+        "libc.so.6"
+      ],
+      "package": "libassuan0",
+      "sha256": "ae80d8e06d17cd95d654da3dd52f3a63ad241ea5fc001fa2f52ada5e640cfdd8"
+    },
+    "/usr/lib/x86_64-linux-gnu/libbz2.so.1.0.4": {
+      "bytes": 78944,
+      "interpreter": null,
+      "needed": [
+        "libc.so.6"
+      ],
+      "package": "libbz2-1.0",
+      "sha256": "cc08c9f50a8009ffd6391e0116a100369b11ca9238fa52392c019e6645b122a1"
+    },
+    "/usr/lib/x86_64-linux-gnu/libc.so.6": {
+      "bytes": 2129424,
+      "interpreter": "/lib64/ld-linux-x86-64.so.2",
+      "needed": [
+        "ld-linux-x86-64.so.2"
+      ],
+      "package": "libc6",
+      "sha256": "3a15d66867d83762c7f2f1e37359cb8f6c5743edb369c65285cb0b1c4f7498bf"
+    },
+    "/usr/lib/x86_64-linux-gnu/libgcrypt.so.20.4.3": {
+      "bytes": 1345072,
+      "interpreter": null,
+      "needed": [
+        "libgpg-error.so.0",
+        "libc.so.6"
+      ],
+      "package": "libgcrypt20",
+      "sha256": "6ad6d7007ee1ad8319eb18ba9a512cf09dda49396a303774c68b47477020bad4"
+    },
+    "/usr/lib/x86_64-linux-gnu/libgpg-error.so.0.34.0": {
+      "bytes": 149760,
+      "interpreter": null,
+      "needed": [
+        "libc.so.6"
+      ],
+      "package": "libgpg-error0",
+      "sha256": "6cb18a007bfcb623029f4528a36b46578fea7dc34c2b505b8e6e0d99e6348cd1"
+    },
+    "/usr/lib/x86_64-linux-gnu/liblz4.so.1.9.4": {
+      "bytes": 137440,
+      "interpreter": null,
+      "needed": [
+        "libc.so.6"
+      ],
+      "package": "liblz4-1",
+      "sha256": "40bffd0a098387368b16b992abd5f7cf43c0fa2f05cabe5a6d483719554adfda"
+    },
+    "/usr/lib/x86_64-linux-gnu/liblzma.so.5.4.5": {
+      "bytes": 202904,
+      "interpreter": null,
+      "needed": [
+        "libc.so.6"
+      ],
+      "package": "liblzma5",
+      "sha256": "26b37d25f7ca2a2d348de8ecabacda12e921cd933b21fa069a179760db77219d"
+    },
+    "/usr/lib/x86_64-linux-gnu/libnpth.so.0.1.2": {
+      "bytes": 23040,
+      "interpreter": null,
+      "needed": [
+        "libc.so.6"
+      ],
+      "package": "libnpth0t64",
+      "sha256": "d5d934c9382c733e43edecf6d9ed446d9b9985591ee1c638413f4879c7f57f6a"
+    },
+    "/usr/lib/x86_64-linux-gnu/libz.so.1.3": {
+      "bytes": 113000,
+      "interpreter": null,
+      "needed": [
+        "libc.so.6"
+      ],
+      "package": "zlib1g",
+      "sha256": "f61677c7bdb7c2aa2a243ea781bfd16afcb361cede7b4ef76127a9d8eb9a5242"
+    }
+  },
+  "image_reference": {
+    "blob_sha": "97e7ec74186bddefe5bb53c8d3e573955364d89c",
+    "commit": "ac85c71971895cd6234578d6b11f49f7c27ff0c4",
+    "repository": "actions/runner-images",
+    "url": "https://github.com/actions/runner-images/blob/ac85c71971895cd6234578d6b11f49f7c27ff0c4/images/ubuntu/Ubuntu2404-Readme.md"
+  },
+  "image_version": "20261026.354.1",
+  "keyring_sha256": "80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31",
+  "links": {
+    "/lib": {
+      "kind": "symlink",
+      "package": "base-files",
+      "target": "usr/lib"
+    },
+    "/lib64": {
+      "kind": "symlink",
+      "package": "base-files",
+      "target": "usr/lib64"
+    },
+    "/usr/lib/x86_64-linux-gnu/libassuan.so.0": {
+      "kind": "symlink",
+      "package": "libassuan0",
+      "target": "libassuan.so.0.8.6"
+    },
+    "/usr/lib/x86_64-linux-gnu/libbz2.so.1.0": {
+      "kind": "symlink",
+      "package": "libbz2-1.0",
+      "target": "libbz2.so.1.0.4"
+    },
+    "/usr/lib/x86_64-linux-gnu/libgcrypt.so.20": {
+      "kind": "symlink",
+      "package": "libgcrypt20",
+      "target": "libgcrypt.so.20.4.3"
+    },
+    "/usr/lib/x86_64-linux-gnu/libgpg-error.so.0": {
+      "kind": "symlink",
+      "package": "libgpg-error0",
+      "target": "libgpg-error.so.0.34.0"
+    },
+    "/usr/lib/x86_64-linux-gnu/liblz4.so.1": {
+      "kind": "symlink",
+      "package": "liblz4-1",
+      "target": "liblz4.so.1.9.4"
+    },
+    "/usr/lib/x86_64-linux-gnu/liblzma.so.5": {
+      "kind": "symlink",
+      "package": "liblzma5",
+      "target": "liblzma.so.5.4.5"
+    },
+    "/usr/lib/x86_64-linux-gnu/libnpth.so.0": {
+      "kind": "symlink",
+      "package": "libnpth0t64",
+      "target": "libnpth.so.0.1.2"
+    },
+    "/usr/lib/x86_64-linux-gnu/libz.so.1": {
+      "kind": "symlink",
+      "package": "zlib1g",
+      "target": "libz.so.1.3"
+    },
+    "/usr/lib64/ld-linux-x86-64.so.2": {
+      "kind": "symlink",
+      "package": "libc6",
+      "target": "../lib/x86_64-linux-gnu/ld-linux-x86-64.so.2"
+    }
+  },
+  "packages": {
+    "base-files": {
+      "architecture": "amd64",
+      "filename": "pool/main/b/base-files/base-files_13ubuntu10.5_amd64.deb",
+      "index": "noble-updates:main",
+      "package": "base-files",
+      "sha256": "87e8c41e62f61625fb78a982d0bc0a70f40ef8375bc313b154914d1b3759c823",
+      "size": "73220",
+      "version": "13ubuntu10.5"
+    },
+    "gpgv": {
+      "architecture": "amd64",
+      "filename": "pool/main/g/gnupg2/gpgv_2.4.4-2ubuntu17.6_amd64.deb",
+      "index": "noble-security:main",
+      "package": "gpgv",
+      "sha256": "c8810069e98cd343c4c5c64b3ef5a0bb1f526419cff3266cd99ed4c87ad99868",
+      "size": "158120",
+      "version": "2.4.4-2ubuntu17.6"
+    },
+    "libassuan0": {
+      "architecture": "amd64",
+      "filename": "pool/main/liba/libassuan/libassuan0_2.5.6-1build1_amd64.deb",
+      "index": "noble:main",
+      "package": "libassuan0",
+      "sha256": "59c6ee6aa6fffb5d181f37373baec18c26791f5d1c907ceeb62163460b11daf2",
+      "size": "37256",
+      "version": "2.5.6-1build1"
+    },
+    "libbz2-1.0": {
+      "architecture": "amd64",
+      "filename": "pool/main/b/bzip2/libbz2-1.0_1.0.8-5.1ubuntu0.1_amd64.deb",
+      "index": "noble-security:main",
+      "package": "libbz2-1.0",
+      "sha256": "36ee08b00b1ee5018b2fce02881b7d2d73c9b4e32990bde3388400d86c48126a",
+      "size": "34562",
+      "version": "1.0.8-5.1ubuntu0.1"
+    },
+    "libc6": {
+      "architecture": "amd64",
+      "filename": "pool/main/g/glibc/libc6_2.39-0ubuntu8.9_amd64.deb",
+      "index": "noble-security:main",
+      "package": "libc6",
+      "sha256": "ff5557d99b51f761c4b7c92368b9cc45565eda17df9bf9eb4b134d09825008be",
+      "size": "3264314",
+      "version": "2.39-0ubuntu8.9"
+    },
+    "libgcrypt20": {
+      "architecture": "amd64",
+      "filename": "pool/main/libg/libgcrypt20/libgcrypt20_1.10.3-2ubuntu0.2_amd64.deb",
+      "index": "noble-security:main",
+      "package": "libgcrypt20",
+      "sha256": "957b9eeaa83cf6f2d5d5d76dbb8aa31d3297e6781d8a02fa08dcc897ae650a0b",
+      "size": "536494",
+      "version": "1.10.3-2ubuntu0.2"
+    },
+    "libgpg-error0": {
+      "architecture": "amd64",
+      "filename": "pool/main/libg/libgpg-error/libgpg-error0_1.47-3build2.1_amd64.deb",
+      "index": "noble-updates:main",
+      "package": "libgpg-error0",
+      "sha256": "93654ee8180a73a0363f25c51dc673d67cbabcbecd164187b8a2deb54d007aef",
+      "size": "70092",
+      "version": "1.47-3build2.1"
+    },
+    "liblz4-1": {
+      "architecture": "amd64",
+      "filename": "pool/main/l/lz4/liblz4-1_1.9.4-1build1.1_amd64.deb",
+      "index": "noble-updates:main",
+      "package": "liblz4-1",
+      "sha256": "319331270d5cc52d5ebffe51c941d7b01b432bc402c2924b557209a64d4ecbad",
+      "size": "63062",
+      "version": "1.9.4-1build1.1"
+    },
+    "liblzma5": {
+      "architecture": "amd64",
+      "filename": "pool/main/x/xz-utils/liblzma5_5.6.1+really5.4.5-1ubuntu0.4_amd64.deb",
+      "index": "noble-security:main",
+      "package": "liblzma5",
+      "sha256": "5bcf5da2339331e21d3f42a831e82c61c54c6b2f29804010e8d59abd0ae52167",
+      "size": "127704",
+      "version": "5.6.1+really5.4.5-1ubuntu0.4"
+    },
+    "libnpth0t64": {
+      "architecture": "amd64",
+      "filename": "pool/main/n/npth/libnpth0t64_1.6-3.1build1_amd64.deb",
+      "index": "noble:main",
+      "package": "libnpth0t64",
+      "sha256": "b380eca1221a9ac855427652452801c5ca9161dd69e12446d300524eba00944e",
+      "size": "8378",
+      "version": "1.6-3.1build1"
+    },
+    "makepkg": {
+      "architecture": "amd64",
+      "filename": "pool/universe/p/pacman-package-manager/makepkg_6.0.2-6ubuntu2_amd64.deb",
+      "index": "noble:universe",
+      "package": "makepkg",
+      "sha256": "bf4a72330e297a7fc4b259ef5be5c05eab0b5c6882cf3eccc65e0bb8c3271d1c",
+      "size": "76856",
+      "version": "6.0.2-6ubuntu2"
+    },
+    "zlib1g": {
+      "architecture": "amd64",
+      "filename": "pool/main/z/zlib/zlib1g_1.3.dfsg-3.1ubuntu2.3_amd64.deb",
+      "index": "noble-security:main",
+      "package": "zlib1g",
+      "sha256": "376249c8de139568221dbb242318cc8cb8f02299e3a62b7432948e1754fbddf9",
+      "size": "63158",
+      "version": "1:1.3.dfsg-3.1ubuntu2.3"
+    },
+    "zstd": {
+      "architecture": "amd64",
+      "filename": "pool/main/libz/libzstd/zstd_1.5.5+dfsg2-2build1.1_amd64.deb",
+      "index": "noble-updates:main",
+      "package": "zstd",
+      "sha256": "d7667f83e3a2caeaaecaca464d542ee6ccf537259a479622796c84afc96d6032",
+      "size": "644020",
+      "version": "1.5.5+dfsg2-2build1.1"
+    }
+  },
+  "schema_version": 1,
+  "tools": {
+    "gpgv": "/usr/bin/gpgv",
+    "vercmp": "/usr/bin/vercmp",
+    "zstd": "/usr/bin/zstd"
+  }
+}
