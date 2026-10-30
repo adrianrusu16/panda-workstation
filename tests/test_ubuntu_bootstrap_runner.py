@@ -4,7 +4,6 @@ import hashlib
 import importlib
 import io
 import json
-import os
 from pathlib import Path, PurePosixPath
 import sys
 import tempfile
@@ -168,36 +167,11 @@ class UbuntuBootstrapRunner(unittest.TestCase):
             self.api.download("https://snapshot.ubuntu.com/ubuntu/20261029T000000Z/file", 4, Opener())
         self.assertEqual(self.api.download("https://snapshot.ubuntu.com/ubuntu/20261029T000000Z/file", 5, Opener()), b"12345")
 
-    def test_receipt_writer_uses_an_allowlist_exclusive_files_and_content_only_manifest(self):
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name); root.chmod(0o700)
-            docs = {"authorization-state.json": b'{"execution_authorized":false}\n'}
-            self.api.write_documents(root, docs, {"run_id": "1"})
-            self.assertEqual((root/"authorization-state.json").read_bytes(), docs["authorization-state.json"])
-            self.assertNotIn("run-context.json", (root/"SHA256SUMS").read_text())
-            self.assertEqual((root/"authorization-state.json").stat().st_mode & 0o777, 0o600)
-            with self.assertRaises((ValueError, FileExistsError)): self.api.write_documents(root, docs, {})
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name); root.chmod(0o700)
-            with self.assertRaises(ValueError): self.api.write_documents(root, {"../escape.json": b"{}"}, {})
-            with self.assertRaises(ValueError): self.api.write_documents(root, {"candidate.elf": b"ELF"}, {})
-
     def test_real_process_adapter_never_accepts_candidate_paths(self):
         with tempfile.TemporaryDirectory() as name, \
              patch.object(self.api.subprocess, "Popen", side_effect=AssertionError("process reached")):
             with self.assertRaises(ValueError):
                 self.api.invoke("/tmp/gpgv", [], Path(name), None, 100)
-
-    def test_failed_packet_write_does_not_publish_a_completion_manifest(self):
-        with tempfile.TemporaryDirectory() as name:
-            root = Path(name); root.chmod(0o700)
-            original = os.open
-            def fail_json(path, flags, *args, **kwargs):
-                if path == "authorization-state.json": raise OSError("synthetic output failure")
-                return original(path, flags, *args, **kwargs)
-            with patch.object(self.api.os, "open", side_effect=fail_json), self.assertRaises(OSError):
-                self.api.write_documents(root, {"authorization-state.json": b"{}\n"}, {})
-            self.assertFalse((root/"SHA256SUMS").exists())
 
     def test_runner_application_version_is_observed_from_ancestry_not_guessed(self):
         row = self.api.runner_application(["/usr/bin/python3.12", "/home/runner/runners/2.338.0/bin/Runner.Worker"])

@@ -36,6 +36,7 @@ jobs:
           lfs: false
 
       - name: Inventory and authenticate using preinstalled tools only
+        id: authentication
         env:
           REVIEWED_SOURCE_SHA: ${{ inputs.reviewed_source_sha }}
           EXPECTED_IMAGE_VERSION: "20261026.354.1"
@@ -45,14 +46,24 @@ jobs:
           sys.argv = ["ubuntu_bootstrap_runner.py"]
           runpy.run_path("tests/native/external_vm/s4/ubuntu_bootstrap_runner.py", run_name="__main__")
 
-      - name: Export only bounded authentication receipts
-        if: ${{ always() }}
+      - name: Validate the complete published evidence packet
+        id: packet
+        if: ${{ always() && steps.authentication.outputs.packet_token != '' }}
+        env:
+          PACKET_TOKEN: ${{ steps.authentication.outputs.packet_token }}
+        run: |
+          import sys
+          from pathlib import Path
+          sys.path.insert(0, str(Path("tests/native/external_vm/s4").resolve()))
+          import ubuntu_packets
+          ubuntu_packets.github_upload_gate()
+
+      - name: Export only validated authentication packet files
+        if: ${{ always() && steps.packet.outcome == 'success' && steps.packet.outputs.complete == 'true' }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: panda-ubuntu-bootstrap-auth-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/panda-ubuntu-bootstrap-verification/*.json
-            ${{ runner.temp }}/panda-ubuntu-bootstrap-verification/SHA256SUMS
+          path: ${{ steps.packet.outputs.paths }}
           if-no-files-found: error
           include-hidden-files: false
           retention-days: 7

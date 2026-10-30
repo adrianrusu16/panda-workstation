@@ -18,7 +18,8 @@ import urllib.request
 # Also supports a future isolated `/usr/bin/python3 -I -S -B` invocation.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ubuntu_verification as protocol
-from common import MIB, read_bounded, read_json, require, sha256
+import ubuntu_packets as packets
+from common import MIB, read_bounded, require, sha256
 from ubuntu_artifacts import LIB_DIRS, elf_info
 
 AUTHENTICATION_ENABLED = False  # Source seal; never controlled by argv or environment.
@@ -270,27 +271,21 @@ def invoke(tool, arguments, directory, stdin, limit):
         return code, output.read(limit+1), errors.read(65537)
 
 
-def write_documents(directory, documents, context):
-    allowed = {name+".json" for name in protocol.RECEIPTS} | {"failure.json"}
-    require(type(documents) is dict and set(documents) <= allowed and documents, "receipt output allowlist")
-    require(all(type(raw) is bytes and len(raw) <= protocol.MAX_RECEIPT for raw in documents.values()) and
-            sum(map(len, documents.values())) <= protocol.MAX_RECEIPTS, "receipt aggregate output budget")
-    for raw in documents.values(): read_json(raw)
-    context_bytes = protocol.canonical(context, 32768)
-    manifest = "".join(sha256(raw)+"  "+name+"\n" for name, raw in sorted(documents.items())).encode()
-    binding = protocol.canonical(dict(content_manifest_sha256=sha256(manifest), run_context_sha256=sha256(context_bytes),
-                                      machine_integrity_attested=False))
-    outputs = {**documents, "SHA256SUMS": manifest, "run-context.json": context_bytes, "context-binding.json": binding}
-    fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-    try:
-        info = os.fstat(fd)
-        require(info.st_uid == os.getuid() and stat.S_IMODE(info.st_mode) == 0o700 and not os.listdir(fd), "fresh private receipt directory required")
-        for name, raw in sorted(outputs.items(), key=lambda row: (row[0] == "SHA256SUMS", row[0])):
-            child = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=fd)
-            with os.fdopen(child, "wb") as output:
-                output.write(raw); output.flush(); os.fsync(output.fileno())
-        os.fsync(fd)
-    finally: os.close(fd)
+def gpgv_verifier(work, toolchain):
+    """The real adapter callback; tests replace only preinstalled I/O/processes."""
+    def verifier(raw, ring):
+        row = system_file(TOOLS["gpgv"], 32*MIB)
+        require(sha256(row["raw"]) == toolchain["files"][toolchain["tools"]["gpgv"]]["sha256"], "preinstalled tool changed")
+        with tempfile.TemporaryDirectory(dir=work) as name:
+            directory = Path(name)
+            for filename, data in (("input", raw), ("keyring.gpg", ring)):
+                with (directory/filename).open("xb") as value: value.write(data)
+            code, status, _ = invoke("gpgv", ["--homedir", str(directory), "--keyring", "./keyring.gpg",
+                "--status-fd", "1", "--output", "plain", "input"], directory, None, 2*MIB)
+            plain = read_bounded(directory/"plain", 2*MIB) if (directory/"plain").exists() else b""
+            require(len(status) <= 16384, "GPG status stream budget")
+            return code, status, plain
+    return verifier
 
 
 def authenticate_hosted():
@@ -303,8 +298,7 @@ def authenticate_hosted():
     require(sha256(read_bounded(policy, 16384)) == POLICY_SHA256, "pending trust policy changed")
     parent = Path(os.environ.get("RUNNER_TEMP", ""))
     require(parent.is_absolute() and parent.resolve() == parent and parent.is_dir(), "runner private output parent")
-    output = parent/"panda-ubuntu-bootstrap-verification"
-    output.mkdir(mode=0o700)  # Exclusive: incomplete or previous packets are never reused.
+    output = parent/packets.DESTINATION
     context = dict(observed_image_version=os.environ.get("ImageVersion"), hardware_attested=False,
                    job={key: os.environ.get(key) for key in ENV_KEYS if key not in ("GITHUB_ACTIONS", "REVIEWED_SOURCE_SHA")})
     phase = "runner-admission"
@@ -325,17 +319,7 @@ def authenticate_hosted():
             def unchanged(tool):
                 row = system_file(TOOLS[tool], 32*MIB)
                 require(sha256(row["raw"]) == toolchain["files"][toolchain["tools"][tool]]["sha256"], "preinstalled tool changed")
-            def verifier(raw, ring):
-                unchanged("gpgv")
-                with tempfile.TemporaryDirectory(dir=work) as name:
-                    directory = Path(name)
-                    for filename, data in (("input", raw), ("keyring.gpg", ring)):
-                        with (directory/filename).open("xb") as value: value.write(data)
-                    code, status, _ = invoke("gpgv", ["--homedir", str(directory), "--keyring", "./keyring.gpg",
-                        "--status-fd", "1", "--output", "plain", "input"], directory, None, 2*MIB)
-                    plain = read_bounded(directory/"plain", 2*MIB) if (directory/"plain").exists() else b""
-                    require(len(status) <= 16384, "GPG status stream budget")
-                    return code, status, plain
+            verifier = gpgv_verifier(work, toolchain)
             def inflate(raw, limit):
                 unchanged("zstd")
                 with tempfile.TemporaryFile(dir=work) as source:
@@ -349,15 +333,10 @@ def authenticate_hosted():
             require(sha256(system_file(path, 32*MIB)["raw"]) == row["sha256"], "post-verification toolchain drift")
         require(sha256(read_bounded(policy, 16384)) == POLICY_SHA256, "trust policy mutated")
         documents = {name+".json": protocol.canonical(row) for name, row in bundle["receipts"].items()}
-        write_documents(output, documents, context)
-        return 0
     except Exception as error:
         # Error class/phase only: never expose arbitrary diagnostics, env or payload data.
-        documents = {"failure.json": protocol.canonical(dict(status="failed-closed", phase=phase, error_class=type(error).__name__, evidence_complete=False)),
-                     "authorization-state.json": protocol.canonical(dict(accepted=False, execution_authorized=False,
-                         trust_policy_activation_allowed=False, hardware_attested=False))}
-        write_documents(output, documents, context)
-        return 78
+        return packets.publish_with_fallback(output, None, context, failure=error, phase=phase)
+    return packets.publish_with_fallback(output, documents, context)
 
 
 def main(argv=None):
@@ -366,7 +345,9 @@ def main(argv=None):
             execution_authorized=False, trust_policy_activation_allowed=False)).decode(), end="")
         return 78
     require(not (sys.argv[1:] if argv is None else argv), "runner accepts no arbitrary paths or commands")
-    return authenticate_hosted()
+    result = authenticate_hosted()
+    if result["packet_token"] is not None: packets.github_publication_handoff(result["packet_token"])
+    return result["exit_code"]
 
 
 if __name__ == "__main__":
