@@ -1,0 +1,9 @@
+Installed packages:
+  build-tools/36.0.0      36.0.0                    Synthetic Build Tools
+  cmdline-tools/22.0      unknown   ->     22.0.0   Synthetic Command-Line Tools
+  platform-tools         36.0.0                    Synthetic Platform Tools
+  platforms/android-36.1 1.0.0                     Synthetic SDK Platform
+  example-extra/one      2.0.0                     Synthetic Extra One
+  example-extra/two      3.0.0                     Synthetic Extra Two
+  example-extra/three    4.0.0                     Synthetic Extra Three
+  example-extra/four     5.0.0                     Synthetic Extra Four
