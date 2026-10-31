@@ -11,6 +11,7 @@ set -l stages \
     'desktop|install-desktop.fish|🖥️|Desktop & applications|required' \
     'plugins|setup-plugins.fish|🧩|Plugins & integrations|required' \
     'development|setup-development.fish|🧪|Development environment|required' \
+    'android|setup-android.fish|🤖|Android developer profile (OFF by default)|optional' \
     'gaming|setup-gaming.fish|🎮|Gaming|planned' \
     'panda|setup-panda.fish|🐼|Panda experience|planned' \
     'validate|validate.fish|✅|Final validation|required'
@@ -45,6 +46,30 @@ function print_stage_list
     end
 end
 
+# Android-only dispatch never runs core/development/chezmoi or any other stage.
+# No environment variable enables this stage during ordinary workstation setup.
+if test (count $argv) -gt 0; and test "$argv[1]" = --android
+    if test (count $argv) -gt 2
+        ui_error 'Usage: setup-workstation.fish --android [--plan | --help | --check | --cli-check | --install | --repair]'
+        exit 2
+    end
+    set -l mode --plan
+    if test (count $argv) -eq 2
+        set mode "$argv[2]"
+    end
+    if not contains -- "$mode" --plan --help --dry-run --check --cli-check --install --repair
+        ui_error "Unknown Android mode: $mode"
+        exit 2
+    end
+    fish --no-config "$script_dir/setup-android.fish" "$mode"
+    exit $status
+end
+
+if test (count $argv) -gt 1
+    ui_error 'Choose one workstation option; --android accepts one optional mode'
+    exit 2
+end
+
 if test (count $argv) -gt 0
     switch $argv[1]
         case '--list'
@@ -57,6 +82,8 @@ if test (count $argv) -gt 0
             echo '  ./bootstrap/setup-workstation.fish'
             echo '  ./bootstrap/setup-workstation.fish --list'
             echo '  ./bootstrap/setup-workstation.fish --help'
+            echo '  ./bootstrap/setup-workstation.fish --android [--plan | --help | --check | --cli-check | --install | --repair]'
+            echo 'Android is optional and OFF by default; --android runs only that stage.'
             exit 0
 
         case '*'
@@ -103,6 +130,12 @@ for current in (seq $total)
     end
 
     ui_chapter "$icon" "Chapter $current/$total · $title"
+
+    if test "$availability" = optional
+        ui_skip 'Optional Android stage is OFF; use --android --plan for separate review'
+        set results[$current] 'SKIPPED'
+        continue
+    end
 
     if not test -f "$path"
         if test "$availability" = 'planned'

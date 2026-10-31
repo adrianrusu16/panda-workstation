@@ -1,0 +1,66 @@
+schema_version = 1
+
+[jdk]
+required_major = 21
+prefer_existing = true
+arch_package = "jdk21-openjdk"
+change_system_java_default = false
+
+[studio]
+manual_install = true
+preferred_path = ""
+allow_automated_replacement = false
+
+[sdk]
+default_home_relative = "Android/Sdk"
+packages = ["platform-tools", "cmdline-tools;latest", "platforms;android-36.1", "build-tools;36.0.0"]
+
+# Publisher page and archive bytes/layout independently checked on 2026-10-27.
+# Filename build 15859902 is not Pkg.Revision. See the provenance document and
+# metadata-only fixture; this pin does not authorize live installation or terms.
+[command_line_tools]
+verified = true
+revision = "22.0"
+url = "https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip"
+sha256 = "4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583"
+publisher_source = "https://developer.android.com/studio"
+verified_on = "2026-10-27"
+
+# Bundled launcher provenance is the verified archive above. Its product version
+# and capabilities are established only by separately approved --cli-check.
+[android_cli]
+preferred = "bundled"
+preferred_tools_revision = "22.0"
+required_commands = ["info sdk", "sdk list", "sdk install"]
+publisher_source = "https://developer.android.com/tools/agents/android-cli"
+fallback = "explicit-sdkmanager"
+timeout_seconds = 120
+# Narrow unknown-inventory exception: source-reviewed archive pin plus the exact
+# bundled launcher identity reported in the operator's CLI 1.1 pilot. Neither is
+# the CLI application version or proof that an arrow target is installed.
+bundled_archive_sha256 = "4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583"
+bundled_launcher_sha256 = "24ff3bac5db16e5bcc5fd2a54dc58041fd06db373389cd6442dedb004fe092be"
+
+[android_cli.features]
+init = false
+skills = false
+completion = false
+auth = false
+update = false
+studio = false
+devices = false
+
+[optional]
+ndk = false
+rust_android_targets = false
+aaos_emulator = false
+
+[ide]
+apply_plugins = false
+apply_preferences = false
+theme = "preserve"
+editor_font = "preserve"
+editor_font_size = 0 # 0 means preserve; no font or size chosen by the operator.
+keymap = "preserve"
+code_style = "project-owned"
+settings_workflow = "manual-reviewed-export-import"
