@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+import uuid
 import xml.etree.ElementTree as ET
 
 VM_NAME = "panda-ghostty-audit"
@@ -491,9 +492,9 @@ def assert_vm_absent(base: Path, disk: Path):
         raise LabError("Domain already exists; refusing to re-install or modify")
     if disk.exists() or disk.is_symlink():
         raise LabError("Disk already exists; refusing to overwrite")
-    for name in ("nvram.fd", ".install-completed"):
+    for name in ("nvram.fd", ".install-completed", ".readiness-accepted"):
         if (base / name).exists() or (base / name).is_symlink():
-            raise LabError("NVRAM or installer marker already exists; inspect previous installation")
+            raise LabError("NVRAM, installer or readiness marker already exists; inspect previous installation")
     if (base / "baseline.qcow2").exists() or (base / "baseline.qcow2").is_symlink():
         raise LabError("Baseline already exists; refusing to overwrite")
 
@@ -538,7 +539,7 @@ def install(base: Path, iso: Path, disk: Path):
     assert_isolated(domain_xml(), disk)
     off()
     write_private(base / ".install-completed", "virt-install completed; verify guest before baseline.\n")
-    print("Installer completed. Verify the guest manually before creating a baseline.")
+    print("Installer completed. Inspect the guest, then use accept-readiness --confirm-readiness before baseline.")
 
 
 def state():
@@ -552,12 +553,67 @@ def off():
         raise LabError("Guest must be shut off for this operation")
 
 
+def readiness_record(base: Path, disk: Path) -> str:
+    """Bind an operator assertion to the installed guest's inactive configuration."""
+    marker = base / ".install-completed"
+    regular_file(marker, nonempty=True, private=True)
+    info = marker.stat()
+    if info.st_size > 4096:
+        raise LabError("Installer completion marker exceeds readiness record budget")
+    root = domain_xml(inactive=True)
+    assert_isolated(root, disk)
+    try:
+        if len(root.findall("uuid")) != 1:
+            raise ValueError("missing or duplicate UUID")
+        identity = str(uuid.UUID(root.findtext("uuid", "")))
+    except ValueError as exc:
+        raise LabError("Guest UUID required for readiness acceptance") from exc
+    canonical = ET.canonicalize(ET.tostring(root, encoding="unicode"), strip_text=True)
+    record = {
+        "schema_version": 1, "vm_name": VM_NAME, "domain_uuid": identity,
+        "inactive_xml_sha256": hashlib.sha256(canonical.encode()).hexdigest(),
+        "installer_marker": {
+            "device": info.st_dev, "inode": info.st_ino,
+            "sha256": hashlib.sha256(marker.read_bytes()).hexdigest(),
+        },
+    }
+    return json.dumps(record, sort_keys=True, indent=2) + "\n"
+
+
+def require_readiness(base: Path, disk: Path, expected: str | None = None):
+    receipt = base / ".readiness-accepted"
+    if not receipt.exists() and not receipt.is_symlink():
+        raise LabError("Guest readiness not accepted; inspect guest, then use accept-readiness --confirm-readiness")
+    regular_file(receipt, nonempty=True, private=True)
+    if receipt.stat().st_size > 4096 or receipt.read_text() != (
+            expected if expected is not None else readiness_record(base, disk)):
+        raise LabError("Guest readiness record is stale or invalid; inspect it before accepting this guest")
+
+
+def accept_readiness(base: Path, disk: Path, confirm: bool):
+    if not confirm:
+        raise LabError("Readiness requires explicit --confirm-readiness after operator inspection")
+    if state() != "shut off":
+        raise LabError("Installed guest must be shut off before readiness acceptance")
+    expected = readiness_record(base, disk)
+    assert_safe_image(disk)
+    physical_storage_check(base, required_gib=0)
+    receipt = base / ".readiness-accepted"
+    if receipt.exists() or receipt.is_symlink():
+        require_readiness(base, disk, expected)
+        print("Guest readiness already accepted for this installation and configuration")
+        return
+    write_private(receipt, expected)
+    print("Operator guest readiness accepted; this assertion is not automated runtime verification")
+
+
 def baseline(base: Path, disk: Path):
     off()
     if state() == "absent":
         raise LabError("Cannot baseline an undefined VM")
     assert_isolated(domain_xml(), disk)
     regular_file(base / ".install-completed", nonempty=True, private=True)
+    require_readiness(base, disk)
     if disk.is_symlink() or not disk.is_file():
         raise LabError("Guest disk missing")
     physical_storage_check(base, required_gib=41)
@@ -606,10 +662,13 @@ def reset(base: Path, disk: Path, confirm: bool):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("plan", "preflight", "acquire", "verify", "install", "status", "start", "stop", "baseline", "reset"))
+    parser.add_argument("command", choices=("plan", "preflight", "acquire", "verify", "install", "status", "start", "stop", "accept-readiness", "baseline", "reset"))
     parser.add_argument("--confirm-reset", action="store_true")
+    parser.add_argument("--confirm-readiness", action="store_true")
     args = parser.parse_args(argv)
     base, iso, disk = paths()
+    if args.confirm_readiness and args.command != "accept-readiness":
+        parser.error("--confirm-readiness is only valid with accept-readiness")
     if args.confirm_reset and args.command != "reset":
         parser.error("--confirm-reset is only valid with reset")
     if args.command == "plan":
@@ -622,7 +681,9 @@ def main(argv=None):
         ensure_safe_base(base)
         if args.command == "reset" and not args.confirm_reset:
             raise LabError("Reset is destructive. Pass --confirm-reset explicitly")
-        mutating = args.command in {"acquire", "install", "start", "stop", "baseline", "reset"}
+        if args.command == "accept-readiness" and not args.confirm_readiness:
+            raise LabError("Readiness requires explicit --confirm-readiness after operator inspection")
+        mutating = args.command in {"acquire", "install", "start", "stop", "accept-readiness", "baseline", "reset"}
         with operation_lock(base) if mutating else nullcontext():
             return dispatch(args, base, iso, disk)
     except (LabError, OSError, ValueError) as err:
@@ -682,6 +743,9 @@ def dispatch(args, base, iso, disk):
             assert_isolated(domain_xml(), disk)
             call("virsh", "-c", CONNECTION, "shutdown", VM_NAME, capture=False)
             print("Graceful shutdown requested; check status before disk operations")
+    elif args.command == "accept-readiness":
+        require_programs("virsh", "qemu-img", "findmnt")
+        accept_readiness(base, disk, args.confirm_readiness)
     elif args.command == "baseline":
         require_programs("virsh", "qemu-img")
         baseline(base, disk)

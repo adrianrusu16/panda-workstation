@@ -18,7 +18,7 @@ spec.loader.exec_module(lab)
 
 
 def xml(devices):
-    return ET.fromstring(f"<domain><name>{lab.VM_NAME}</name><vcpu>2</vcpu><memory unit='MiB'>4096</memory><devices>{devices}</devices></domain>")
+    return ET.fromstring(f"<domain><uuid>11111111-2222-4333-8444-555555555555</uuid><name>{lab.VM_NAME}</name><vcpu>2</vcpu><memory unit='MiB'>4096</memory><devices>{devices}</devices></domain>")
 
 
 class TestAuditLab(unittest.TestCase):
@@ -350,6 +350,7 @@ class TestAuditLab(unittest.TestCase):
         with patch.object(lab, "state", return_value="shut off"), \
              patch.object(lab, "domain_xml", return_value=xml(self.clean_devices)), \
              patch.object(lab, "physical_storage_check"), patch.object(lab, "call", side_effect=command):
+            self.assertEqual(self.readiness_cli("accept-readiness", "--confirm-readiness"), 0)
             lab.baseline(self.disk.parent, self.disk)
             baseline = self.disk.parent / "baseline.qcow2"
             self.assertEqual(baseline.read_bytes(), b"working guest")
@@ -418,6 +419,7 @@ class TestAuditLab(unittest.TestCase):
                     else:
                         lab.install(base, base / lab.ISO_NAME, disk)
                         self.assertEqual((base / ".install-completed").stat().st_mode & 0o777, 0o600)
+                    self.assertFalse((base / ".readiness-accepted").exists())
                     self.assertEqual(launch_count, 1)
                     self.assertEqual(disk.read_bytes(), b"fixture guest disk")
                     with self.assertRaisesRegex(lab.LabError, "already exists"):
@@ -503,6 +505,133 @@ class TestAuditLab(unittest.TestCase):
                 lab.download("https://example.invalid/fixture", target)
         self.assertEqual(target.read_bytes(), b"preexisting destination")
         self.assertEqual(list(target.parent.iterdir()), [target])
+
+    def test_installer_completion_alone_cannot_create_baseline(self):
+        command = self.lifecycle_fixture()
+        with patch.object(lab, "state", return_value="shut off"), \
+             patch.object(lab, "domain_xml", return_value=xml(self.clean_devices)), \
+             patch.object(lab, "physical_storage_check"), patch.object(lab, "call", side_effect=command):
+            with self.assertRaisesRegex(lab.LabError, "readiness"):
+                lab.baseline(self.disk.parent, self.disk)
+        self.assertFalse((self.disk.parent / "baseline.qcow2").exists())
+        self.assertFalse((self.disk.parent / ".baseline.pending.qcow2").exists())
+        self.assertEqual(self.disk.read_bytes(), b"working guest")
+
+    def readiness_cli(self, *arguments):
+        with patch.object(lab, "paths", return_value=(self.disk.parent, self.disk.parent / lab.ISO_NAME, self.disk)), \
+             patch.object(lab, "check_user"), patch.object(Path, "home", return_value=self.disk.parent), \
+             patch.object(lab, "require_programs"):
+            try:
+                return lab.main(list(arguments))
+            except SystemExit as error:
+                return error.code
+
+    def test_readiness_confirmation_is_explicit_before_any_write(self):
+        with patch.object(lab, "call", side_effect=AssertionError("host contact")):
+            self.assertEqual(self.readiness_cli("accept-readiness"), 1)
+        self.assertEqual(list(self.disk.parent.iterdir()), [])
+
+    def test_readiness_acceptance_is_private_idempotent_and_binds_guest_config(self):
+        command = self.lifecycle_fixture()
+        root = xml(self.clean_devices)
+        with patch.object(lab, "state", return_value="shut off"), \
+             patch.object(lab, "domain_xml", return_value=root), \
+             patch.object(lab, "physical_storage_check"), patch.object(lab, "call", side_effect=command):
+            self.assertEqual(self.readiness_cli("accept-readiness", "--confirm-readiness"), 0)
+            receipt = self.disk.parent / ".readiness-accepted"
+            self.assertEqual(receipt.stat().st_mode & 0o777, 0o600)
+            before = (receipt.read_bytes(), receipt.stat().st_ino, receipt.stat().st_mtime_ns)
+            self.assertEqual(self.readiness_cli("accept-readiness", "--confirm-readiness"), 0)
+            self.assertEqual((receipt.read_bytes(), receipt.stat().st_ino, receipt.stat().st_mtime_ns), before)
+            root.find("uuid").text = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+            with self.assertRaisesRegex(lab.LabError, "readiness"):
+                lab.baseline(self.disk.parent, self.disk)
+            self.assertEqual(receipt.read_bytes(), before[0])
+
+    def test_readiness_refuses_running_guest_or_missing_installation(self):
+        command = self.lifecycle_fixture()
+        with patch.object(lab, "state", return_value="running"), \
+             patch.object(lab, "call", side_effect=AssertionError("must not inspect running disk")):
+            self.assertEqual(self.readiness_cli("accept-readiness", "--confirm-readiness"), 1)
+        self.assertFalse((self.disk.parent / ".readiness-accepted").exists())
+        (self.disk.parent / ".install-completed").unlink()
+        with patch.object(lab, "state", return_value="shut off"), \
+             patch.object(lab, "domain_xml", return_value=xml(self.clean_devices)), \
+             patch.object(lab, "call", side_effect=command):
+            self.assertEqual(self.readiness_cli("accept-readiness", "--confirm-readiness"), 1)
+        self.assertFalse((self.disk.parent / ".readiness-accepted").exists())
+
+    def test_baseline_rejects_unsafe_or_fabricated_readiness_receipt(self):
+        command = self.lifecycle_fixture()
+        receipt = self.disk.parent / ".readiness-accepted"
+        receipt.symlink_to(self.disk.parent / ".install-completed")
+        with patch.object(lab, "state", return_value="shut off"), \
+             patch.object(lab, "domain_xml", return_value=xml(self.clean_devices)), \
+             patch.object(lab, "physical_storage_check"), patch.object(lab, "call", side_effect=command):
+            with self.assertRaises(lab.LabError):
+                lab.baseline(self.disk.parent, self.disk)
+            receipt.unlink()
+            receipt.write_text("operator accepted")
+            receipt.chmod(0o600)
+            with self.assertRaisesRegex(lab.LabError, "readiness"):
+                lab.baseline(self.disk.parent, self.disk)
+
+    def test_fresh_install_refuses_stale_readiness_receipt(self):
+        receipt = self.disk.parent / ".readiness-accepted"
+        receipt.write_text("stale")
+        receipt.chmod(0o600)
+        with patch.object(lab, "domain_exists", return_value=False):
+            with self.assertRaisesRegex(lab.LabError, "readiness"):
+                lab.assert_vm_absent(self.disk.parent, self.disk)
+
+    def test_readiness_binding_rejects_changed_config_and_replaced_install_marker(self):
+        command = self.lifecycle_fixture()
+        root = xml(self.clean_devices)
+        marker = self.disk.parent / ".install-completed"
+        with patch.object(lab, "state", return_value="shut off"), \
+             patch.object(lab, "domain_xml", return_value=root), \
+             patch.object(lab, "physical_storage_check"), patch.object(lab, "call", side_effect=command):
+            self.assertEqual(self.readiness_cli("accept-readiness", "--confirm-readiness"), 0)
+            receipt = self.disk.parent / ".readiness-accepted"
+            accepted = receipt.read_bytes()
+            description = ET.SubElement(root, "description")
+            description.text = "changed configuration"
+            with self.assertRaisesRegex(lab.LabError, "readiness"):
+                lab.baseline(self.disk.parent, self.disk)
+            self.assertEqual(self.readiness_cli("accept-readiness", "--confirm-readiness"), 1)
+            self.assertEqual(receipt.read_bytes(), accepted)
+            root.remove(description)
+            previous = marker.read_bytes()
+            marker.write_text("different installation")
+            with self.assertRaisesRegex(lab.LabError, "readiness"):
+                lab.baseline(self.disk.parent, self.disk)
+            replacement = self.disk.parent / "replacement-marker"
+            replacement.write_bytes(previous)
+            replacement.chmod(0o600)
+            os.replace(replacement, marker)
+            with self.assertRaisesRegex(lab.LabError, "readiness"):
+                lab.baseline(self.disk.parent, self.disk)
+        self.assertFalse((self.disk.parent / "baseline.qcow2").exists())
+
+    def test_readiness_refuses_missing_invalid_or_duplicate_guest_uuid(self):
+        command = self.lifecycle_fixture()
+        for kind in ("missing", "invalid", "duplicate"):
+            root = xml(self.clean_devices)
+            if kind == "missing":
+                root.remove(root.find("uuid"))
+            elif kind == "invalid":
+                root.find("uuid").text = "not-a-domain-uuid"
+            else:
+                ET.SubElement(root, "uuid").text = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"
+            with self.subTest(kind=kind), patch.object(lab, "state", return_value="shut off"), \
+                 patch.object(lab, "domain_xml", return_value=root), patch.object(lab, "call", side_effect=command):
+                self.assertEqual(self.readiness_cli("accept-readiness", "--confirm-readiness"), 1)
+            self.assertFalse((self.disk.parent / ".readiness-accepted").exists())
+
+    def test_readiness_confirmation_cannot_be_reused_with_another_command(self):
+        with patch.object(lab, "call", side_effect=AssertionError("host contact")):
+            self.assertEqual(self.readiness_cli("baseline", "--confirm-readiness"), 2)
+        self.assertEqual(list(self.disk.parent.iterdir()), [])
 
 
 if __name__ == "__main__":

@@ -52,6 +52,8 @@ python virtualization/audit_lab.py install
 python virtualization/audit_lab.py status
 python virtualization/audit_lab.py start
 python virtualization/audit_lab.py stop
+# After manual guest readiness inspection and shutdown:
+python virtualization/audit_lab.py accept-readiness --confirm-readiness
 python virtualization/audit_lab.py baseline
 python virtualization/audit_lab.py reset --confirm-reset
 ```
@@ -70,12 +72,19 @@ python virtualization/audit_lab.py reset --confirm-reset
   unattended installer. The installer uses DVD-1 and no guest NIC or mirror.
   It waits for shutdown and writes a completion marker only after command
   success and domain isolation checks. This marker is not proof that Debian
-  installed correctly; inspect the guest before taking a baseline.
+  installed correctly and never grants guest readiness acceptance.
 - `start` checks the completion marker, disk metadata and domain isolation;
   a running isolated guest is left running. `stop` requests graceful shutdown
   without forced power-off. Check `status` before disk operations.
-- `baseline` requires a stopped domain and a completion marker, validates qcow2,
-  and makes a one-time standalone copy. It never overwrites an existing baseline.
+- `accept-readiness --confirm-readiness` records the operator's separate assertion
+  after inspecting a successfully booted installed guest, logging in as `auditor`,
+  checking the intended offline/no-sharing configuration, and shutting it down.
+  The command checks the stopped isolated domain, disk metadata and trusted
+  storage, then writes a private `.readiness-accepted` receipt. Neither installer
+  completion nor `verify` automatically grants this acceptance.
+- `baseline` requires shutdown, the installer completion marker and a matching
+  operator readiness receipt before any disk conversion. It validates qcow2 and
+  makes a one-time standalone copy without overwriting an existing baseline.
 - `reset` requires shutdown and `--confirm-reset`. It validates and converts the
   baseline to a private pending file before replacing the working disk.
   Failed conversion preserves both the working disk and pending evidence.
@@ -118,8 +127,8 @@ The fixed local root is:
 `~/Workspace/VMs/panda-ghostty-audit/`
 
 Managed directories require owner-only permissions. Media, keys, disk, NVRAM,
-completion marker and baseline live under that root. Managed files reject
-symlinks, hard links and special files. Private files use mode 0600.
+completion marker, readiness receipt and baseline live under that root. Managed
+files reject symlinks, hard links and special files. Private files use mode 0600.
 
 An authorized install generates an `auditor` password at
 `private/audit-user-password` and a SHA512-crypt hash in `private/preseed.cfg`.
@@ -135,11 +144,23 @@ are refused. Provisioning requires 55 GiB free, and baseline/reset conversions
 require 41 GiB free. A changed device naming or storage layout needs manual
 review, not a bypass.
 
-First install refuses an existing domain, disk, baseline, NVRAM or completion
-marker. XML rejects guest NICs, host sharing, passthrough, non-loopback VNC,
-foreign disks/boot paths, writable firmware and unknown device types.
+First install refuses an existing domain, disk, baseline, NVRAM, completion
+marker or readiness receipt. XML rejects guest NICs, host sharing, passthrough,
+non-loopback VNC, foreign disks/boot paths, writable firmware and unknown device types.
 Disk operations reject backing chains and external data files. VNC is
 loopback-only and has no password; local host processes can connect.
+
+Readiness acceptance is a cooperative operator declaration, not automated guest
+inspection, cryptographic authentication or proof of the six live acceptance
+gates. The receipt binds the guest UUID and canonical inactive domain XML to the
+current installer marker's identity and contents. Missing, unsafe, malformed or
+stale receipts refuse baseline creation; re-running acceptance for unchanged
+state is idempotent. A changed guest/configuration or replaced completion marker
+requires investigation and a fresh operator inspection. The tool preserves a
+stale receipt rather than overwriting it: after reviewing the change, move that
+receipt aside deliberately before accepting the current guest. Do not copy a
+receipt from another installation or treat it as a disk-content attestation.
+Disk-only reset retains acceptance for the same installed guest/configuration.
 
 A baseline is immutable by convention, not filesystem-enforced. Reset replaces
 the working disk only: it does not roll back UEFI NVRAM, domain XML or other
@@ -172,7 +193,8 @@ After separate authorization, live acceptance still needs to establish:
 3. Session KVM/OVMF capability, trusted storage, and actual generated installer
    and post-install XML for the installed virt-install/libvirt versions.
 4. A first unattended offline installation, including DVD detection, preseed
-   partitioning of only the new `/dev/vda`, user login and installer shutdown.
+   partitioning of only the new `/dev/vda`, user login and installer shutdown;
+   explicitly record operator readiness only after those checks and inspection.
 5. Real start/stop, absence of NIC/shares/host passthrough, and graceful shutdown.
 6. Stopped-guest baseline/reset behavior, guest-disk changes being discarded,
    documented NVRAM persistence, and safe retention after an induced failure.
