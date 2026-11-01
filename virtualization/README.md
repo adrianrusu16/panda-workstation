@@ -97,8 +97,11 @@ evidence that an operation is active.
 ## Media and local state
 
 The recovered pin is Debian `13.7.0` amd64 DVD-1, using a versioned URL rather
-than the moving `current` directory. Its availability has not been checked by a
-download. An absent or archived release fails explicitly. A pin/URL update must
+than the moving `current` directory. Official Debian web pages checked on
+2026-11-01 identify stable 13.7 and installation-image release 13.7.0, matching
+the pin; see the runbook's source links and limits. The image-server metadata
+could not be inspected through browsing, and artifact availability/signatures
+have not been checked by a download or real verification. An absent or archived release fails explicitly. A pin/URL update must
 be reviewed with fresh Debian release and signing evidence; there is no fallback
 to a different image.
 
@@ -173,6 +176,12 @@ automatically resumes an ambiguous installation. Do not switch to
 a troubleshooting shortcut.
 
 ## Validation and remaining live acceptance
+
+Follow the [sequential operator runbook](acceptance-runbook.md) for exact Fish
+commands, expected results, host resources, failure responses and stage stop
+conditions. It is preparation for separately authorized live actions, not
+permission to execute them now. No readiness receipt substitutes for guest
+observations or closes the six gates.
 
 Offline checks (no package install, network download, real libvirt, KVM or VM):
 
