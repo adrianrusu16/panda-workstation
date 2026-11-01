@@ -4,6 +4,7 @@ Python 3.11+ standard library only. Never installs Studio, Java, plugins or dotf
 """
 
 import datetime
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -404,6 +405,23 @@ def check_cli_inventory(result, items, data=None):
             raise android_cli.CliError("Platform 36.1 must have approved revision 1; manual review required")
 
 
+def legacy_tree_identity(slot, sdk):
+    """Local stability evidence only, never a publisher-provenance attestation."""
+    entries = []
+    for path in [slot, *sorted(slot.rglob("*"))]:
+        android_cli.safe(path, sdk)
+        name = str(path.relative_to(slot))
+        mode = path.stat().st_mode
+        if path.is_dir():
+            entries.append((name, mode, None))
+        elif path.is_file():
+            entries.append((name, mode, android_cli.identity(path)))
+        else:
+            raise Error("Unsupported legacy SDK Manager tree entry; manual review required")
+    # A digest names the exact approved local tree without publishing its content.
+    return hashlib.sha256(json.dumps(entries, separators=(",", ":")).encode()).hexdigest()
+
+
 def install(data, state, mode, approve=confirm, run=run_vendor):
     validate_manifest(data)
     if not state["jdk_ok"]:
@@ -452,25 +470,34 @@ def install(data, state, mode, approve=confirm, run=run_vendor):
                 unavailable.add(package)
         vendor = cli_runner(state, run)
     else:
-        manager = items["cmdline-tools;latest"]["path"] / "bin/sdkmanager"
-        android_cli.safe(manager, sdk)
+        slot = items["cmdline-tools;latest"]["path"]
+        manager = slot / "bin/sdkmanager"
+        identity = legacy_tree_identity(slot, sdk)
         command = [str(manager), f"--sdk_root={sdk}"]
-        require(approve, f"Explicitly approve deprecated SDK Manager fallback, startup/network/cache writes for repository listing at {sdk}?")
-        listing = run([*command, "--list"], capture=True)
+        require(approve, f"Explicitly approve deprecated SDK Manager fallback: execute unverified SDK-local "
+                f"launcher and supporting code at {slot}, tree SHA-256={identity}, with your account privileges? "
+                "No publisher provenance is established by ownership, metadata or this digest. "
+                f"Startup/repository listing may access network and write caches at SDK {sdk}; "
+                "review the installed code and selected JDK independently before approving")
+        def legacy_run(args, capture=False):
+            if legacy_tree_identity(slot, sdk) != identity:
+                raise Error("Legacy SDK Manager code tree changed during approval/execution; rerun --plan")
+            return run(args, capture=capture)
+        listing = legacy_run([*command, "--list"], capture=True)
         unavailable = set(missing) - available_packages(listing)
         if "platforms;android-36.1" in missing and "platforms;android-36.1" not in unavailable:
             revisions = legacy_platform_revision(listing)
             if not revisions or not all(android_cli.revisions_equal(version, "1") for version in revisions):
                 raise Error("Exact SDK platform revision 1 unavailable or ambiguous in legacy listing; manual review required")
         package_args = missing
-        vendor = run
+        vendor = legacy_run
     if unavailable:
         raise Error("Exact SDK packages unavailable (no substitutions): " + ", ".join(sorted(unavailable)))
     require(approve, "Install only missing approved packages: " + ", ".join(package_args) +
             ("; quarantine/retain corrupt directories: " + ", ".join(str(items[p]["path"]) for p in corrupt) if corrupt else ""))
     require(approve, "Review interactive Google licenses? Decline unwanted terms; never accept automatically")
     if not preferred:
-        run([*command, "--licenses"])
+        vendor([*command, "--licenses"])
     require(approve, "Proceed with these exact package changes after license review? Further terms stay interactive")
     # A separate installer/IDE may have changed the SDK while consent was open.
     # Replan rather than pass a now-healthy package to SDK Manager for replacement.

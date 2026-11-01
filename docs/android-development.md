@@ -114,6 +114,17 @@ required**, preserves backup/output entries and withholds rollback and fallback.
 Stop the vendor process group before inspecting/restoring or retrying. A pipe-close
 error cannot erase this cleanup-uncertainty gate.
 
+On Linux, cleanup observes the child with `waitid(WNOWAIT)` and retains the
+session leader until the final group signal, then performs a bounded reap.
+TERM grace is at most two seconds; an observed launcher exit triggers immediate
+KILL escalation so its remaining group members do not get a new grace period.
+A reaped leader or lost child custody requires manual recovery without signaling
+a potentially reused group ID. Post-reap selector/pipe failures retain that gate.
+This assumes the runner is the sole child reaper; external reapers, detached
+sessions and background descendants after an otherwise successful command are
+outside the cooperative contract. Successful launcher exit is not descendant
+containment evidence.
+
 Power loss/SIGKILL cannot run Python rollback. There is no durable transaction
 journal across Google's package manager. New packages, licenses and caches may
 remain after a partial operation; nothing automatically uninstalls or erases them.

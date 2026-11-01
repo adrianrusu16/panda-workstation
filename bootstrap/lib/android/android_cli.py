@@ -96,15 +96,31 @@ def runtime_env(env, sdk, executable):
 
 
 def stop_group(process):
-    for sig in (signal.SIGTERM, signal.SIGKILL):
-        try:
-            os.killpg(process.pid, sig)
-        except ProcessLookupError:
-            pass
-        try:
-            process.wait(timeout=2)
-        except subprocess.TimeoutExpired:
-            pass
+    """Keep the session leader waitable until the last numeric group signal."""
+    if process.returncode is not None:
+        raise ProcessCleanupError('Vendor leader already reaped; group identity unconfirmed; manual recovery required')
+    flags = os.WEXITED | os.WNOWAIT | os.WNOHANG
+    try:
+        status = os.waitid(os.P_PID, process.pid, flags)
+    except ChildProcessError as exc:
+        raise ProcessCleanupError('Vendor child custody lost; group identity unconfirmed; manual recovery required') from exc
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    deadline = time.monotonic() + 2
+    while status is None:
+        status = os.waitid(os.P_PID, process.pid, flags)
+        remaining = deadline - time.monotonic()
+        if status is not None or remaining <= 0:
+            break
+        time.sleep(min(0.05, remaining))
+    # WNOWAIT retains even an exited leader, preventing its PID/PGID reuse here.
+    # Never poll/wait/reap between TERM and this final signal.
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
     process.wait(timeout=2)
 
 
@@ -157,7 +173,9 @@ def run_command(args, capture=True, env=None, timeout=120, label='Android CLI'):
                     # Never replace an unconfirmed-cleanup signal with an ordinary
                     # close error that could let the installer start rollback.
                     if failure is None:
-                        failure = close_error
+                        failure = ProcessCleanupError(
+                            'Vendor pipe close failed after reap; group cleanup unconfirmed; manual recovery required')
+                        failure.__cause__ = close_error
     if isinstance(failure, ProcessCleanupError):
         # Reporting must not replace the manual-recovery classification.
         raise failure

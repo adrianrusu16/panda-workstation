@@ -222,6 +222,74 @@ class AndroidCliContracts(unittest.TestCase):
         self.assertTrue(any("fallback" in text.lower() for text in approvals))
         self.assertEqual(self.f.calls[-1][2:], ["platforms;android-36.1"])
 
+    def test_failed_cli_fallback_requires_explicit_unverified_code_approval(self):
+        shutil.rmtree(self.sdk / "platforms/android-36.1")
+        self.root_output = "/wrong-sdk"
+        prompts = []
+        def approve(message):
+            if "fallback" in message.lower():
+                prompts.append(message)
+                return False
+            return True
+        with self.assertRaises(self.api.Error) as caught:
+            self.install(approve=approve)
+        self.assertEqual(caught.exception.code, 20)
+        self.assertEqual(len(prompts), 1)
+        for disclosure in ("unverified", "publisher provenance", "supporting code", "SHA-256=", str(self.slot)):
+            self.assertIn(disclosure, prompts[0])
+        self.assertFalse(self.f.calls)
+
+    def test_fallback_rechecks_supporting_tree_before_each_vendor_start(self):
+        for phase in ("listing", "licenses", "install"):
+            for change in ("manager", "jar", "new-jar"):
+                with self.subTest(phase=phase, change=change):
+                    context = AndroidCliContracts()
+                    context.setUp()
+                    self.addCleanup(context.doCleanups)
+                    shutil.rmtree(context.sdk / "platforms/android-36.1")
+                    context.root_output = "/wrong-sdk"
+                    def approve(message):
+                        trigger = (phase == "listing" and "fallback" in message.lower()
+                                   or phase == "licenses" and message.startswith("Review interactive")
+                                   or phase == "install" and message.startswith("Proceed with"))
+                        if trigger:
+                            target = context.slot / {"manager": "bin/sdkmanager", "jar": "lib/sdkmanager-classpath.jar",
+                                                     "new-jar": "lib/new.jar"}[change]
+                            target.write_bytes(b"changed after approval")
+                        return True
+                    def runner(args, capture=False):
+                        if Path(args[0]).name == "sdkmanager":
+                            return context.f.fake_run(args, capture)
+                        return context.fake(args, capture)
+                    with self.assertRaisesRegex(context.api.Error, "changed"):
+                        context.install(approve=approve, runner=runner)
+                    self.assertEqual(len(context.f.calls), {"listing": 0, "licenses": 1, "install": 2}[phase])
+                    self.assertFalse((context.sdk / "platforms/android-36.1").exists())
+
+    def test_fallback_refuses_unsafe_supporting_code_before_startup(self):
+        for unsafe in ("writable", "symlink"):
+            with self.subTest(unsafe=unsafe):
+                context = AndroidCliContracts()
+                context.setUp()
+                self.addCleanup(context.doCleanups)
+                shutil.rmtree(context.sdk / "platforms/android-36.1")
+                context.root_output = "/wrong-sdk"
+                extra = context.slot / "lib/additional.jar"
+                if unsafe == "writable":
+                    extra.write_bytes(b"untrusted supporting code")
+                    extra.chmod(0o666)
+                else:
+                    outside = context.f.home / "outside.jar"
+                    outside.write_bytes(b"outside slot")
+                    extra.symlink_to(outside)
+                def runner(args, capture=False):
+                    if Path(args[0]).name == "sdkmanager":
+                        return context.f.fake_run(args, capture)
+                    return context.fake(args, capture)
+                with self.assertRaisesRegex(context.api.android_cli.CliError, "writable|symlink"):
+                    context.install(runner=runner)
+                self.assertEqual(context.f.calls, [])
+
     def test_rechecks_executable_after_approval_before_vendor_execution(self):
         def replace(text):
             (self.slot / "bin/android").write_text("#!/bin/sh\nexit 97\n")

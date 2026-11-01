@@ -75,11 +75,23 @@ consent. CLI package IDs use slashes; platform and Build Tools revisions are
 requested explicitly (`platforms/android-36.1@1`, `build-tools/36.0.0@36.0.0`) with
 no-downgrade behavior. No unqualified update, removal or silent substitution runs.
 
-If the CLI contract fails, legacy fallback needs its own approval for startup,
-repository/network/cache effects. Available platform revision must be exactly 1;
-post-install metadata checks apply to both routes. Refusal, timeout, interruption
-or unconfirmed process cleanup never silently triggers fallback. Existing extra
-SDK packages are preserved. See [installation and recovery](android-development.md).
+If the CLI contract fails, legacy fallback requires explicit approval to run
+**unverified SDK-local code with the operator's account privileges**, separately
+from repository/network/cache, package and license approvals. The prompt names
+the selected tool slot and its local tree SHA-256. Ownership, plausible metadata
+and this digest establish no publisher provenance: independently review the
+installed launcher, supporting code and JDK, or decline.
+
+The selected Command-Line Tools tree must contain only user-owned, non-writable
+by group/others, regular files and directories without symlinks. Its content,
+entries and modes are rechecked before listing, licenses and package execution;
+any change requires replanning. These checks detect changes between approvals,
+not hostile concurrent replacement or code loaded outside that tree.
+
+Available platform revision must be exactly 1; post-install metadata checks apply
+to both routes. Refusal, timeout, interruption or unconfirmed process cleanup
+never silently triggers fallback. Existing extra SDK packages are preserved.
+See [installation and recovery](android-development.md).
 
 ## Optional capabilities remain gated
 
