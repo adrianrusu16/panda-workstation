@@ -219,3 +219,10 @@ python3 -B -I -S tests/test_host_canary_offline.py
 These eight tests read source and the fixed baseline before entering their
 filesystem guards, then prohibit file open/stat/list/mutation/sync calls during
 the pure probes. They do not allocate fixtures or replace the blocked suite.
+
+A [prospective supervisor contract](host-canary-supervisor.md) now specifies the
+source-only verification stage and future runtime gates. The injected-boundary
+descriptor checks, bounded registry writer and diagnostic model do not provide
+a real allocator, lifecycle authority or cleanup adapter. Their offline CI result
+is separate from the 79 blocked dynamic methods; the broad workflow remains
+unchanged. Fresh fixture execution still requires explicit authorization.

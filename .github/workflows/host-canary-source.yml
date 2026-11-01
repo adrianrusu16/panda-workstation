@@ -1,0 +1,39 @@
+name: Host Canary source-only checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-mock:
+    name: Offline and mock checks (dynamic acceptance BLOCKED)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - name: Filesystem-prohibited offline checks
+        run: /usr/bin/python3 -B -I -S tests/test_host_canary_offline.py
+      - name: In-memory supervisor verification checks
+        run: /usr/bin/python3 -B -I -S tests/test_host_canary_supervisor.py
+      - name: Publish explicit NOT EXECUTED dynamic manifest
+        if: always()
+        run: |
+          /usr/bin/python3 -B -I -S -c '
+          import ast, json
+          from pathlib import Path
+          tree = ast.parse(Path("tests/test_theme_host_canary.py").read_bytes())
+          names = ["test_theme_host_canary." + node.name + "." + method.name
+                   for node in tree.body if isinstance(node, ast.ClassDef)
+                   for method in node.body if isinstance(method, ast.FunctionDef)
+                   and method.name.startswith("test_")]
+          assert len(names) == 79, "review the blocked inventory; never silently omit methods"
+          print(json.dumps({"dynamic_status": "BLOCKED", "executed": False,
+                            "reason": "runtime supervisor and fresh-fixture authorization absent",
+                            "methods": [{"name": name, "status": "NOT EXECUTED / BLOCKED"}
+                                        for name in names]}, indent=2))
+          '
