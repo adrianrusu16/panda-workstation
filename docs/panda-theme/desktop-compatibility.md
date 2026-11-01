@@ -268,11 +268,19 @@ panel/tray children never substitute. Preserve timezone/calendar/locale/global
 typography and media's global VolumeStep. Source parity does not establish fresh
 pins, activity, output, font, geometry or recovery readiness.
 
-## Proposed separately authorized observation — not executed
+## Blocked observation scope — not executed
 
-Recommend one short, operator-attended observation of already-running Plasma,
-with a private new evidence root, a fixed allowlist and no polling loop.
-This is a proposal for an authorization scope, not a ready-to-run collector.
+A future observation would be short and operator-attended, using already-running
+Plasma, a private new evidence root, a fixed allowlist and no polling loop.
+The minimum useful set is the loaded Plasma version, selected output/desktop
+containment binding and available geometry. No execution-cleared accessor set
+covers these fields; no observation collector is ready to run.
+
+The [runtime observation source receipts](runtime-observation-source-references.json)
+retain the static R0 audit's 29 pinned KDE/systemd source identities. They are
+design evidence, not fresh host observations or approval to execute commands.
+The inspected KDE sources are Plasma 6.8.1; the bus client sources are systemd
+v262. Applicability to an installed client or running session remains unverified.
 
 ### R0: offline approval prerequisites
 
@@ -285,24 +293,37 @@ The D-Bus transport must resolve existing unique owners through the bus daemon,
 set NO_AUTO_START, disable interactive authorization and target the unique owner.
 Recheck owner/PID/start-time identity around observations. An absent/replaced
 owner, unsupported getter, timeout or permission error ends that portion.
-Do not instantiate a default auto-activating proxy.
+Do not instantiate a default auto-activating proxy. A persistent client must
+bind observations to the same bus lifetime and existing owner; separate busctl
+invocations alone do not establish that binding. This client and the
+provenance-checked private evidence writer remain unimplemented and unreviewed.
+
+The pinned evaluateScript path constructs ScriptEngine and AppInterface before
+evaluating the supplied expression. AppInterface constructs Plasma::Theme;
+cold initialization can create shared theme state, a KSvg ImageSet, configuration
+watchers and conditional Wayland effect objects. A getter-only expression does
+not bound that startup/teardown path. The constructor's settingsChanged(false)
+does not establish an unconditional settings write, but the unresolved cold/shared
+state and configuration-read effects still withhold execution. Do not use
+evaluateScript, widget wrappers or a substitute QML/debugger path for this scope.
 
 ### Requested outputs and safe-route requirements
 
 | Output | Proposed minimum observation | Required limitation / stop |
 | --- | --- | --- |
-| Loaded Plasma version | A single source-reviewed getter-only Plasma script may read applicationVersion; implementation returns the running qApp version. Bind to the existing Plasma owner. | evaluateScript is a general mutation-capable API, not inherently read-only. The exact fixed payload and engine/theme-construction path need separate approval. No arbitrary scripts, actions, ConfigFile constructors, theme assignment or widget enumeration/loaders. |
+| Loaded Plasma version | AppInterface.applicationVersion returns the running qApp version through the withheld scripting path. No execution-cleared alternative exported getter is established. | No evaluateScript call: its engine/theme-construction path is not cleared. No arbitrary scripts, actions, ConfigFile constructors, theme assignment or widget enumeration/loaders. |
 | Loaded Qt/KF identities | If separately authorized, inspect only the same process's selected Qt/KF mapped-library identity records, matched to package evidence; accept a process-specific already-available diagnostic when it identifies runtime versions. | No environment, command line, full memory maps, debugger, injection, process restart or reading unrelated processes. A newly launched --version program proves only the on-disk build. Mapping identity alone is not qVersion(); deleted/replaced/ambiguous modules leave exact versions unverified. |
-| Active target output and activity | Obtain operator-selected connector/desktop binding, then use verified getters such as screenForConnector and screenGeometry; correlate with a separately approved read-only existing-output endpoint and existing activity owner. | Source shows currentActivity() creates a KActivities::Consumer: do not call it until its no-activation path is audited. Exact activity and fractional-scale endpoints are not established by this proposal. No ordinal screen assumptions, supportInformation GPU dump, KScreen activation or output setters. |
+| Active target output, containment binding and geometry | Require operator-selected connector/desktop binding and an approved existing-output endpoint. In-process screenForConnector, screenGeometry and availableScreenRect methods do not establish an exported D-Bus route. | The pinned PlasmaShell D-Bus interface does not export the geometry methods; invalid screen IDs can fall back to primary-screen geometry. currentActivity() creates a KActivities::Consumer whose no-activation path is not cleared. Exact activity and fractional-scale endpoints remain unestablished. No ordinal screen assumptions, supportInformation GPU dump, KScreen activation or output setters. |
 | Ordered task pins | Read the existing identified task model's launcherList, retaining raw order, preferred:// identities and activity metadata privately; compare with its current configuration. | Source proves the in-process property, not a public D-Bus export. Scripting readConfig is not established as the effective model value. No model recreation, setters, serialization, app launching or pin normalization. If no audited existing-object accessor exists, stop with pins unknown. |
 | Native font metrics | Required values: actual QFontInfo family/style/size, QFontMetricsF ascent/descent/height/advance/ink bounds, QScreen logical DPI/DPR, and effective Kirigami Units for the relevant existing object. | These are C++/QML APIs, not demonstrated Plasma scripting exports. No QML loader, debug server/attach, GPU/rendering window or helper is authorized here. Without a separately reviewed safe accessor, exact native metrics remain unknown. Scripting gridUnit is only its own font-derived surrogate. |
 
-The source does not establish a single supported command that safely provides
-all requested fields. A partial owner-bound pass may establish running Plasma
-version and screen mapping; it must not be reported as completing pins, exact
-loaded Qt identity, activity, fractional scale or native font metrics.
-Missing accessors are explicit D4C2 design prerequisites, not permission to
-install tooling or weaken the boundary.
+A broker/endpoint identity subset cannot establish the minimum useful runtime
+set. The narrow exported PlasmaShell.shell property identifies a shell, not its
+loaded version, selected output, containment binding or available geometry.
+No broker-only pass or command catalog may be reported as completing those
+fields, ordered pins, exact loaded Qt identity, activity, fractional scale or
+native font metrics. Missing accessors remain blockers; they do not authorize
+tool installation, service activation or a weaker preservation boundary.
 
 A later offline CPU-only Qt metric helper could measure a supplied font at a
 specified DPI without using the live desktop. It would need separate development
