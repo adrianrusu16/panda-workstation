@@ -6,6 +6,10 @@ installation or establish current host acceptance. Android Studio, plugins,
 preferences, Gradle builds, devices, emulators and native development remain
 separate operator tasks.
 
+Use the [live acceptance matrix](android-acceptance.md) to prepare separately
+authorized JDK, CLI, package, recovery, IDE and project checks. Its commands
+are future operator gates, not evidence that this profile has run on a host.
+
 The separate [Panda Setup Manager](panda-setup-manager.md) Android/AOSP module
 remains plan-only and blocks apply. The legacy workstation entrypoint supports
 an independent `--android` route; Android is OFF during ordinary workstation and
