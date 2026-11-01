@@ -9,6 +9,8 @@ import subprocess
 
 BRANCH = re.compile(r'(feat|fix|docs|refactor|test|ci|chore)/[a-z0-9]+(?:-[a-z0-9]+)*')
 SUBJECT = re.compile(r'(feat|fix|refactor|perf|docs|test|chore|build|ci|revert)(?:\([a-z0-9][a-z0-9./_-]*\))?!?: \S[^\r\n]*')
+EMAIL = re.compile(r'[^\s<>@]+@[^\s<>@]+')
+ASSISTANT = re.compile(r'(?:^|[^a-z0-9])(?:codex|chatgpt|copilot|openai|assistant|claude[ ._-]?code)(?:$|[^a-z0-9])', re.I)
 OID = re.compile(r'(?:[0-9a-f]{40}|[0-9a-f]{64})')
 ATTRIBUTION = re.compile(r'^(?:Co-authored-by|Generated[ -]by|Generated[ -]with):?[^\n]*(?:Codex|OpenAI|ChatGPT|Copilot|Claude)', re.I | re.M)
 
@@ -47,13 +49,21 @@ def check(event: dict) -> list[str]:
         raise ValueError('Expected full base/head commit IDs')
     for oid in (base, head):
         git('cat-file', '-e', oid + '^{commit}')
-    commits = git('rev-list', '--no-merges', base + '..' + head).decode('ascii').splitlines()
+    commits = git('rev-list', base + '..' + head).decode('ascii').splitlines()
     if not commits:
-        failures.append('PR must contain at least one new non-merge commit')
+        failures.append('PR must contain at least one new commit')
     for oid in commits:
         subject = git('show', '-s', '--format=%s', oid).decode('utf-8', errors='replace').rstrip('\n')
-        if not conventional(subject):
+        parents = git('show', '-s', '--format=%P', oid).split()
+        if len(parents) < 2 and not conventional(subject):
             failures.append('Invalid commit subject: ' + oid[:12])
+        identities = git('show', '-s', '--format=%an%x00%ae%x00%cn%x00%ce', oid).decode('utf-8', errors='replace').rstrip('\n').split('\0')
+        for role, offset in (('author', 0), ('committer', 2)):
+            name, email = identities[offset:offset + 2]
+            if (not name.strip() or any(ord(char) < 32 for char in name)
+                    or not EMAIL.fullmatch(email)
+                    or ASSISTANT.search(name) or ASSISTANT.search(email.partition("@")[0])):
+                failures.append('Invalid ' + role + ' identity: ' + oid[:12])
         message = git('show', '-s', '--format=%B', oid).decode('utf-8', errors='replace')
         if ATTRIBUTION.search(message):
             failures.append('Remove automatic assistant attribution: ' + oid[:12])

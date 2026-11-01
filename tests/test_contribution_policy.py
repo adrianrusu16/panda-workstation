@@ -3,6 +3,7 @@ from pathlib import Path
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import tempfile
 import unittest
@@ -95,6 +96,91 @@ class ContributionPolicyTests(unittest.TestCase):
         result = self.check(title='feat: handle $(touch ' + str(marker) + ')')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertFalse(marker.exists())
+
+    def test_workflow_rejects_bad_history_even_when_head_replaces_policy(self):
+        self.commit('.github/scripts/check_contribution.py', SCRIPT.read_text(),
+                    'ci: establish trusted policy fixture')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        self.commit('.github/scripts/check_contribution.py',
+                    "from pathlib import Path\nPath('executed').touch()\n",
+                    'invalid subject intended to be rejected')
+        head = self.git('rev-parse', 'HEAD').strip()
+        event = self.repo / 'event.json'
+        event.write_text(json.dumps({'pull_request': {
+            'title': 'ci: exercise trusted policy',
+            'head': {'ref': 'ci/trust-fixture', 'sha': head},
+            'base': {'ref': 'main', 'sha': self.base},
+        }}))
+        workflow = (ROOT / '.github/workflows/contribution-policy.yml').read_text()
+        # Exercise the declared checkout revision and validation command against
+        # real Git objects; the hostile head policy must never be executed.
+        refs = re.findall(r'^          ref: (.+)$', workflow, re.M)
+        self.assertEqual(len(refs), 1, 'Exactly one trusted checkout is required')
+        revisions = {'${{ github.event.pull_request.base.sha }}': self.base,
+                     '${{ github.event.pull_request.head.sha }}': head}
+        self.assertIn(refs[0], revisions)
+        self.git('checkout', '--detach', '-q', revisions[refs[0]])
+        command = re.search(r'run: (python3[^\n]+check_contribution.py[^\n]+)', workflow)
+        self.assertIsNotNone(command)
+        env = dict(self.env, GITHUB_EVENT_PATH=str(event))
+        result = subprocess.run(['sh', '-c', command.group(1)], cwd=self.repo,
+                                env=env, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0, 'PR policy replacement bypassed validation')
+        self.assertIn('commit subject', result.stdout)
+        self.assertFalse((self.repo / 'executed').exists())
+        self.assertIn('\n  pull_request_target:', workflow)
+        self.assertNotIn('\n  pull_request:', workflow)
+
+    def test_rejects_assistant_author_and_committer_names_and_emails(self):
+        cases = (('author', 'name', 'Codex'),
+                 ('author', 'email', 'codex@openai.com'),
+                 ('committer', 'name', 'GitHub Copilot'),
+                 ('committer', 'email', 'assistant@example.invalid'))
+        for role, field, value in cases:
+            with self.subTest(role=role, field=field):
+                key = 'GIT_' + role.upper() + '_' + field.upper()
+                self.env[key] = value  # Deliberately invalid fixture-only identity.
+                self.commit('source.py', value, 'test: exercise identity rejection')
+                self.env.pop(key)
+                result = self.check()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(role + ' identity', result.stdout)
+                self.base = self.git('rev-parse', 'HEAD').strip()
+
+    def test_rejects_malformed_author_and_committer_email(self):
+        for role in ('author', 'committer'):
+            with self.subTest(role=role):
+                key = 'GIT_' + role.upper() + '_EMAIL'
+                self.env[key] = 'missing-domain'
+                self.commit('source.py', role, 'test: exercise malformed identity')
+                self.env.pop(key)
+                result = self.check()
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(role + ' identity', result.stdout)
+                self.base = self.git('rev-parse', 'HEAD').strip()
+
+    def test_accepts_distinct_normal_author_and_committer(self):
+        self.env.update(GIT_AUTHOR_NAME='Fixture Author',
+                        GIT_AUTHOR_EMAIL='human@openai.com',
+                        GIT_COMMITTER_NAME='Fixture Reviewer',
+                        GIT_COMMITTER_EMAIL='reviewer@example.invalid')
+        self.commit('source.py', 'fixture', 'test: preserve normal contributor identities')
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_merge_subject_exemption_does_not_exempt_committer_identity(self):
+        self.commit('source.py', 'fixture', 'test: add primary fixture')
+        self.git('branch', 'fixture-side', self.base)
+        self.git('checkout', '-q', 'fixture-side')
+        self.commit('side.py', 'fixture', 'test: add side fixture')
+        self.git('checkout', '-q', 'main')
+        self.env['GIT_COMMITTER_NAME'] = 'Codex'
+        self.git('merge', '--no-ff', '-q', '-m', 'Merge fixture branch', 'fixture-side')
+        self.env.pop('GIT_COMMITTER_NAME')
+        result = self.check()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('committer identity', result.stdout)
+        self.assertNotIn('commit subject', result.stdout)
 
     def test_missing_or_invalid_commit_metadata_fails_closed(self):
         self.commit('source.py', 'value = 1\n', 'feat: recover source')
