@@ -33,6 +33,9 @@ explicit `--sdk=<selected-root>` for version, help, `info sdk`, SDK help/install
 help and package listing. Unsupported output or a different SDK root refuses.
 Runtime environment forwards selected HOME/JAVA_HOME/locale/terminal values and
 fixed JDK/SDK bins, excluding unrelated auth and launcher override variables.
+The same filtering applies to each approved legacy fallback listing, license and
+install invocation; inherited shell/JVM injection and alternate cache variables
+are not forwarded. This filtering does not authenticate either tool or its JDK.
 It does not create an authentication home or change `CODEX_HOME`.
 
 Captured stdout/stderr are bounded while the process runs. Timeout, interruption

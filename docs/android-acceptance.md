@@ -96,6 +96,22 @@ Java switches or a vendor command copied from documentation to bypass approvals.
 
 ## Ordered acceptance matrix
 
+The first operator request is **A only**: authorize read-only metadata inventory
+of the reviewed checkout, selected JDK/SDK and Studio metadata candidates described
+above. Provide the exact absolute JDK/SDK selections and record the source commit
+before running `git diff --check` and
+`fish --no-config bootstrap/setup-android.fish --plan` in a fresh Fish child.
+The profile can inspect existing PATH/default JDK and HOME/Studio candidates as
+part of discovery; its environment selections last only in that child. Expected
+effects are filesystem reads, launcher hashing and terminal output, which may
+contain private paths and must remain private. No Java/vendor code, network,
+download, installation, licenses or persistent profile write is authorized.
+Stop on nonzero status, mismatched selections, unsafe ownership/links, conflicting
+roots or any unexplained candidate; a zero-status plan can still report gaps.
+Review that sanitized evidence before requesting **B** separately. Acquisition,
+vendor startup/cache effects, terms, package writes/repair, IDE/project execution
+and every device/emulator operation remain deferred.
+
 | Gate | Separate authorization and prerequisites | Exact future command or controlled step | Success evidence; failure stop |
 |---|---|---|---|
 | A — source and metadata inventory | Read the chosen JDK/SDK metadata and paths; approve the checkout and quiescent private root first. No vendor execution. | `git rev-parse HEAD`, `git diff --check`, then `fish --no-config bootstrap/setup-android.fish --plan` | Record source SHA and sanitized plan. All four baseline IDs, selected root, candidate path/hash and gaps must be understood. Exit 0 is a plan, not healthy/runtime acceptance. Stop on conflicting roots, unsafe paths, malformed metadata or an unexplained selected tool. |

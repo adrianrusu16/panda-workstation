@@ -479,10 +479,11 @@ def install(data, state, mode, approve=confirm, run=run_vendor):
                 "No publisher provenance is established by ownership, metadata or this digest. "
                 f"Startup/repository listing may access network and write caches at SDK {sdk}; "
                 "review the installed code and selected JDK independently before approving")
+        legacy_vendor = cli_runner(state, run)
         def legacy_run(args, capture=False):
             if legacy_tree_identity(slot, sdk) != identity:
                 raise Error("Legacy SDK Manager code tree changed during approval/execution; rerun --plan")
-            return run(args, capture=capture)
+            return legacy_vendor(args, capture=capture)
         listing = legacy_run([*command, "--list"], capture=True)
         unavailable = set(missing) - available_packages(listing)
         if "platforms;android-36.1" in missing and "platforms;android-36.1" not in unavailable:

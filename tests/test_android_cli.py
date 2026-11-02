@@ -239,6 +239,37 @@ class AndroidCliContracts(unittest.TestCase):
             self.assertIn(disclosure, prompts[0])
         self.assertFalse(self.f.calls)
 
+    def test_fallback_uses_selected_filtered_environment_at_every_vendor_start(self):
+        shutil.rmtree(self.sdk / "platforms/android-36.1")
+        self.root_output = "/wrong-sdk"
+        self.f.env.update(JAVA_TOOL_OPTIONS="inherited-agent", BASH_ENV="inherited-shell",
+                          ANDROID_USER_HOME="unreviewed-cache", ANDROID_CLI_DOWNLOAD_URL="unreviewed-url")
+        starts = []
+
+        def mock_command(args, capture=False, **kwargs):
+            if Path(args[0]).name == "sdkmanager":
+                starts.append((list(args), kwargs))
+                return self.f.fake_run(args, capture)
+            return self.fake(args, capture)
+
+        # Use the production dispatch with its process execution boundary mocked.
+        # No synthetic executable or real vendor is started.
+        with patch.object(self.api.android_cli, "run_command", side_effect=mock_command), \
+                contextlib.redirect_stdout(self.f.output):
+            self.api.install(self.f.manifest, self.f.state(), "--install", approve=lambda text: True)
+        self.assertEqual(len(starts), 3)  # listing, interactive licenses, install
+        for args, kwargs in starts:
+            selected = kwargs.get("env")
+            self.assertIsNotNone(selected, "fallback inherited the ambient process environment")
+            self.assertEqual(selected["JAVA_HOME"], str(self.f.jdk))
+            self.assertEqual(selected["ANDROID_HOME"], str(self.sdk))
+            self.assertEqual(selected["ANDROID_SDK_ROOT"], str(self.sdk))
+            self.assertEqual(selected["PATH"].split(os.pathsep),
+                             [str(self.slot / "bin"), str(self.f.jdk / "bin"), "/usr/bin", "/bin"])
+            for name in ("JAVA_TOOL_OPTIONS", "BASH_ENV", "ANDROID_USER_HOME", "ANDROID_CLI_DOWNLOAD_URL"):
+                self.assertNotIn(name, selected)
+            self.assertEqual(kwargs["timeout"], 120 if "--list" in args else 600)
+
     def test_fallback_rechecks_supporting_tree_before_each_vendor_start(self):
         for phase in ("listing", "licenses", "install"):
             for change in ("manager", "jar", "new-jar"):
