@@ -186,9 +186,10 @@ Before any fixture exists, the supervisor must also inject a prospective
 Teardown delegates to this captured capability; there is no `rmtree` fallback.
 Unknown descendants or changed/missing evidence require preservation. An env var
 alone, ambient XDG runtime, a reconstructed inventory or later stat is insufficient.
-The full supervisor is **not shipped by this recovery**. Do not improvise one to
-make discovery pass. Native Fish may create XDG data/cache children, so future
-supervision must witness them prospectively or prevent their creation by design.
+OS-backed supervisor sources are now present, but their real adapters and
+broker/operator integration remain unaccepted and unexecuted. Do not improvise
+a wrapper to make discovery pass. Native Fish may create XDG data/cache children,
+so future supervision must witness them prospectively or prevent their creation by design.
 
 The recovered suite covers interruption, replacement/redirects, metadata, locks,
 impossible ledgers, injected I/O failures, final verification, frozen recovery and
@@ -220,9 +221,10 @@ These eight tests read source and the fixed baseline before entering their
 filesystem guards, then prohibit file open/stat/list/mutation/sync calls during
 the pure probes. They do not allocate fixtures or replace the blocked suite.
 
-A [prospective supervisor contract](host-canary-supervisor.md) now specifies the
-source-only verification stage and future runtime gates. The injected-boundary
-descriptor checks, bounded registry writer and diagnostic model do not provide
-a real allocator, lifecycle authority or cleanup adapter. Their offline CI result
-is separate from the 79 blocked dynamic methods; the broad workflow remains
-unchanged. Fresh fixture execution still requires explicit authorization.
+The [prospective supervisor contract](host-canary-supervisor.md) describes the
+unexecuted OS-backed adapters alongside the older injected-boundary model. The
+model itself provides no real allocator, lifecycle authority or cleanup adapter.
+Neither a model/mock pass nor implemented source establishes validated custody
+or accepted cleanup. Their scoped CI result is separate from the 79 blocked
+dynamic methods; the broad workflow remains unchanged. Broker/operator integration
+and fresh fixture execution still require independent review and explicit authorization.

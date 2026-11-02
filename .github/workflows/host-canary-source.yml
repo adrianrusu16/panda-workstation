@@ -20,6 +20,12 @@ jobs:
         run: /usr/bin/python3 -B -I -S tests/test_host_canary_offline.py
       - name: In-memory supervisor verification checks
         run: /usr/bin/python3 -B -I -S tests/test_host_canary_supervisor.py
+      - name: Fake-kernel filesystem custody checks
+        run: /usr/bin/python3 -B -I -S tests/test_host_canary_runtime.py
+      - name: Mock native lifecycle protocol checks
+        run: /usr/bin/python3 -B -I -S tests/test_host_canary_lifecycle.py
+      - name: Native custodian syntax only (never executed)
+        run: cc -std=c11 -Wall -Wextra -Werror -fsyntax-only tests/native/host_canary/custodian.c
       - name: Publish explicit NOT EXECUTED dynamic manifest
         if: always()
         run: |

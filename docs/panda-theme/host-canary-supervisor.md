@@ -1,279 +1,214 @@
 # Host Canary prospective supervisor contract
 
-**Design for independent review; runtime adapter disabled.** This supplements the
-[file-only fixture contract](host-canary-fixture.md). It grants no permission to
-allocate Host Canary fixtures, run their dynamic tests, inspect historical roots,
-or activate a theme. The existing 79 pre-allocation refusals remain visible.
+**OS adapters implemented; execution and custody acceptance blocked.** This
+supplements the [file-only fixture contract](host-canary-fixture.md). No adapter,
+native helper, fresh fixture or dynamic Host Canary test may run without a
+separately approved trial. Historical roots and retained runners remain excluded
+from inspection, adoption and cleanup. All 79 original dynamic refusals remain.
 
-## Authority and trust boundary
+## Authority and supported boundary
 
-The supported model is a cooperative sole user with quiescent external writers.
-`mkdir` followed by first `open` cannot prove creation custody against hostile
-same-UID substitution. A checksum, inode tuple, JSON record, environment variable,
-successful callback or later matching observation cannot repair that limitation.
-An owner-authorized fresh session must establish the cooperative premise before
-allocation; absent that premise, allocation and cleanup remain disabled.
+The controller, interpreter, reviewed native helper and cooperative worker are
+trusted. External writers must be quiescent and descriptor ownership exclusive.
+This is prospective custody, not a hostile same-UID sandbox: `mkdir` and first
+`open` are separate syscalls, and an unknown close/reopen onto the same inode is
+not detectable from `fstat`. Losing original descriptors or restarting a
+custodian permanently loses cleanup authority. A later matching path, digest,
+environment variable, registry record or callback cannot restore it.
 
-The supervisor never reads or searches historical fixture paths. Preexisting or
-interrupted resources are preserved indefinitely. Their journals are evidence,
-not authority to reopen or adopt them. Lost original descriptors, custodian
-restart, failed descriptor transfer or uncertain durability revoke cleanup.
-An independently sustained custodian may retain original descriptors across a
-worker crash; this is continuous custody, not restart recovery from pathnames.
+The root of trust is an independently authorized controller outside all fixture
+roots. It supplies already-held, private allocation-parent and separate external
+evidence-parent descriptors. Their prior selection/custody is an explicit trusted
+bootstrap precondition, never a claim learned from their metadata. The adapter
+checks current effective non-root UID/GID, ownership, exact 0700 mode, no ACL/xattrs,
+supported backing filesystem and namespace context before allocating anything.
+Both external parents remain outside teardown.
 
-The approved theme transaction, 24 roles, schema-2 baseline-last enrollment,
-engine/operator separation and Helios safety rules remain unchanged. The
-supervisor's ledger is a separate test-custody protocol, not schema-3 enrollment.
+`TrustedBootstrap` exclusively creates a 0600 external ledger and retains its
+original descriptor and advisory lock. This bootstrap action is authorized by
+the external controller; the ledger does not certify its own birth or supply
+permission to delete itself. The ledger and its parent are retained indefinitely.
+The first fixture intent is durable there before any fixture allocation, avoiding
+a circular runner-registry bootstrap. No replay/import, path-adoption, environment
+bootstrap or untrusted-worker RPC exists. Calling the trusted Python constructor
+is itself a live operation; only import and bare `LinuxKernel()` are inert.
 
-## Approaches and selected boundary
+The approved theme transaction, 24 roles, schema 2 baseline-last enrollment,
+engine/operator separation and Helios boot/kernel/GPU/sleep/storage boundaries
+remain unchanged. This separate custody ledger is not a new enrollment schema.
 
-Path snapshots, `rmtree`, PGID scans, subreaper status and Python audit hooks alone
-cannot establish complete creation/descendant custody; they are rejected.
-A fully brokered runtime can establish prospective evidence but requires a new,
-independently reviewed allocation, filesystem and lifecycle adapter.
+## Creation, descriptors and durable acknowledgement
 
-The selected first stage is a **source-only state/protocol model** for that broker.
-It has no filesystem allocator, process launcher, deletion implementation or
-operator integration. Mock records exercise decisions; they cannot mint a live
-capability. The future runtime design below is a prerequisite contract, not a
-claim that this stage implements containment or cleanup.
+[`tests/host_canary_runtime.py`](../../tests/host_canary_runtime.py) contains the
+actual Linux filesystem adapter and prospective broker. It uses parent-relative
+exclusive creation, no-follow/no-atime/CLOEXEC descriptors, retained mount/user
+namespace descriptors, kernel mount IDs, filesystem identity and full pinned
+metadata. Temporary binding observations are nonblocking to avoid a raced FIFO
+blocking an observation. Symlinks, special files, unexpected links/ACL/xattrs,
+foreign mounts, descriptor flags, metadata changes or unknown children refuse.
 
-## Custodian, runner and allocation protocol
+Every allocation follows this ordering:
 
-The future custodian is outside the worker PID namespace and inside the same
-approved private filesystem/user-namespace view. It holds the original parent,
-runner, runtime, registry and active object descriptors. It performs no native
-Fish startup. A fresh private runner has fixed isolated HOME/XDG/TMP/search paths,
-0700 directories and an exclusively created 0600 registry with one writer.
-No inherited display, session bus, auth home or unrelated environment is authority.
+1. Check the complete registered graph and original external-parent binding.
+2. Append and synchronize one bounded exclusive creation intent in the external
+   ledger, including its parent, role, mode and exact basename.
+3. Perform exclusive creation, immediately retain the first descriptor, and
+   capture birth identity. Failed first open preserves the uncertain entry;
+   there is no retry by learning its pathname.
+4. Verify empty-directory/fresh-file state, kernel context and parent/name
+   binding. Synchronize the new object and parent, then durably register birth.
+5. Apply only explicitly logged metadata transitions, recheck bindings after
+   synchronization/registration, then return the local object handle.
 
-Bootstrap cannot register its own birth in a not-yet-created runner registry.
-Before creating the runner, an owner-authorized external bootstrap anchor must
-already provide private storage, an exclusive durable ledger and retained parent
-descriptors, under a separately accepted creation boundary. Runner, runtime and
-registry intents/results are recorded and synced in that external ledger. Only
-after their creation and bindings are accepted may a handoff record bind the
-internal registry to the external session. The external anchor stays outside
-runner teardown and retains final evidence. Its creation, exclusivity and handoff
-are unimplemented runtime acceptance gates; an ambient path or internal registry
-content cannot self-certify them. The first-stage writer receives an **alleged
-existing bound registry** and proves neither its exclusive birth nor this anchor.
+Only fixed runner scaffolding and the file-only fixture's exact roles are allowed.
+Names are single basenames; absolute paths, traversal, separators and controls
+are rejected before syscalls. Originals remain held through successful removal
+and retained terminal evidence. Numeric descriptors or a copied object record
+are not transferable cleanup authority.
 
-Each resource has a session-local object ID and retained descriptor generation,
-creation role, parent ID/name, device/inode, UID/GID, full mode, mount and namespace
-binding. Regular files require one link; symlinks, special files, unexpected
-ACL/xattrs, foreign mounts/owners or unknown names refuse. Numeric descriptor reuse
-must not match a prior generation. This counter is an exclusive-custodian
-protocol property: `fstat` plus a generation cannot detect an unreported close
-and reopen of the same numeric descriptor onto the same inode. Descriptor
-ownership must be exclusive; unsupported close/dup/replace operations are
-forbidden. Known loss, transfer ambiguity or unsupported manipulation revokes
-the session. Mock generation/replacement checks do not prove kernel open-file-
-description identity. No descriptor number or recorded inode alone serves as a
-transferable capability.
+Birth requests use 0600 files and 0700 directories; unexpected resulting modes
+refuse. Ordinary 022/077 umasks preserve those requested modes; owner-stripping
+umasks remain unsupported. The source/deployed baseline and paired stage roles
+use a separately recorded fixed transition to 0644. Directory link changes are explicit:
+ext4 increments/decrements for child directories; btrfs keeps its directory link
+count at one. Potential btrfs subvolume roots (directory inode 256) refuse. Current
+metadata is updated only across the broker's exact permitted syscall transition;
+unexplained drift is never relearned as a new expectation.
 
-Every parent-relative name is one nonempty basename: reject absolute names,
-`.`/`..`, separators, traversal, multi-component names and control/NUL characters
-before any OS call. Observe metadata against original expectations; drift refuses
-rather than replacing those expectations.
+The ledger requires one retained read/write append descriptor, CLOEXEC, a held
+exclusive advisory lock, exact offset/size/ctime/content and parent/name binding.
+It checks the complete committed history before append and after write, file
+fsync and parent fsync. Canonical records bind session, sequence, preceding record
+digest and event. Limits are 4 KiB per record, 100,000 records and 64 MiB per session.
+Short writes, invalid records, budget overflow, interruption, failed fsync or
+ambiguous acknowledgement irreversibly poison the session. Partial bytes and all
+descriptors remain evidence. Logical successful fsync calls do not prove physical
+power-loss durability on the actual storage stack.
 
-Before the first fixture allocation, a reviewed runtime must supply a narrow,
-session-bound cleanup-policy handle. It names only fresh object roles for that
-session; it contains no arbitrary root path or general delete function. It has
-no removal authority until all registration, binding and lifecycle conditions
-below hold. The current `fixture_cleanup = None` stays unchanged in this stage.
+## Narrow filesystem mutations
 
-Using the external bootstrap ledger first, then the accepted internal registry,
-for every runner, fixture, directory and file creation:
+The broker exposes scoped creation, bounded append, fixed zero-timestamp freeze,
+paired stage-to-target publication and transient unlink. There is no arbitrary
+chmod, destination path, recursive deletion or general rename/unlink interface.
+Freeze verifies both atime and mtime; retained no-atime descriptors keep broker
+observations from silently changing them. Once frozen, a file cannot be appended
+through the same handle.
 
-1. Verify the retained parent descriptor and its binding; persist an exclusive
-   `create-intent` with a new object ID and fixed basename. Sync the ledger and
-   required ledger parent before any allocation.
-2. Perform one exclusive creation relative to that parent. Capture and retain the
-   first descriptor immediately, under the stated quiescent-writer premise. A
-   failed first open or uncertain creation preserves the object; do not retry by
-   learning the path's current identity.
-3. Verify descriptor type, identity, metadata, namespace/mount and parent binding;
-   durably register the creation before returning a use grant. Sync newly created
-   directory entries and the registry. After write, file fsync and parent fsync,
-   recheck the registry descriptor, parent descriptor, parent/name binding and
-   permitted metadata against the retained expectations **before acknowledgement**.
-   Any post-sync mismatch or failure poisons the session and preserves partial
-   effects. Until acknowledged, the worker cannot use the object, enroll it or
-   create children.
-4. Keep original descriptors while active. Recheck against original evidence
-   before every modeled grant; observations compare and never replace evidence.
+Publication records both endpoints and any replaced original before mutation.
+Only an allowlisted frozen stage can replace its paired registered target. The
+replaced original remains held, with its zero-link identity checked throughout
+the rest of the session. File and parent synchronization, explicit parent metadata
+transition, new binding verification and a durable completion precede a returned
+grant. Partial rename/sync/registration preserves both original descriptors.
 
-The ledger uses bounded canonical records with version, session/object IDs,
-strictly increasing sequence, previous-record digest and event payload digest.
-Hashes detect corruption, not hostile-user forgery. There is one exclusive writer
-and a held advisory session lock. Any short/incomplete write, fsync failure,
-sequence gap, duplicate/out-of-order event or ambiguous acknowledgement permanently
-puts the session into `PRESERVE`; no use or cleanup grant follows. A durable intent
-without durable registration is retained uncertainty, not an owned empty object.
-Physical power-loss durability still requires separate validation.
+Transient unlink is limited to the fixed staging roles and generated fragment.
+Support evidence, baseline files and directories cannot be removed through it.
+Removal during final teardown has the stricter lifecycle and graph conditions
+below. All operations are controller APIs; no direct worker filesystem mutation
+has been mediated merely by adding these sources.
 
-All later file publication, replacement, rename, unlink and metadata changes must
-pass through the same broker with pre-intent and post-result identity records.
-Both rename endpoints and replaced objects remain accounted for. The existing
-operator/direct engine syscalls and frozen subprocesses are not fully mediated;
-a future adapter must close this gap before any real suite authorization. Late
-tree walking cannot substitute for missed creation or mutation events.
+## Linux process lifecycle and handoff
 
-## Process and descendant lifecycle authority
+[`tests/host_canary_lifecycle.py`](../../tests/host_canary_lifecycle.py) binds the
+standalone [native custodian source](../../tests/native/host_canary/custodian.c).
+There is no automatic helper compilation, PATH selection or executable download.
+The controller must independently review/build the helper, authorize the exact
+binary digest and reviewed worker arguments, and retain its executable descriptor.
+Binary metadata/content are checked across launch. No source-only hash attests an
+unobserved executable.
 
-The proposed Linux lifecycle backend creates a fresh PID namespace with a trusted
-init and a birth-bound pidfd/namespace descriptor held by the external custodian.
-No test worker or helper runs before that identity handshake and durable session
-registration. Every test/validator subprocess must be born below that init; the
-custodian launches no uncontained test helpers. The init reaps descendants and
-does not delegate launch to external services. `setsid` and double-fork do not
-escape this PID namespace lineage.
+`start_worker` requires all private HOME, XDG, TMP and system-search scaffolding
+roles to be registered first. The original root descriptor is retained in the
+controller and explicitly duplicated through the native launch. Child paths/cwd
+derive from that descriptor, not inherited HOME/XDG or a retrospective pathname.
+There is no inherited display/session bus, authentication home or worker control
+socket. The native helper uses atomic `clone3(CLONE_NEWPID|CLONE_PIDFD)` and keeps
+init blocked until its birth has been durably registered. It verifies the new
+namespace's parent and hands pidfd/namespace descriptors through SCM_RIGHTS while
+retaining originals. Per-message kernel credentials, session, descriptor type,
+namespace identity and pidfd binding are checked before START.
 
-The namespace is an explicit lifecycle boundary: Linux kills namespace processes
-when its init terminates and prevents new forks into that dead namespace.
-See the [Linux PID namespace contract](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html).
-The future adapter must independently verify birth bindings and the completed
-kernel shutdown/wait semantics, including nested namespaces and delayed exits.
-If it cannot demonstrate completion within its bound, it preserves resources.
-This is not a promise that sending SIGKILL alone proves closure.
+The trusted init traces worker fork/vfork/clone and exit events. Each bounded
+sequenced task event must be durably recorded by the controller and acknowledged
+before the stopped tracee continues. Unknown creators/tasks, gaps, lost tracing,
+unsupported nonleader exec/TID changes, resource limits or timeout preserve the
+session. The helper drops worker capabilities, sets no-new-privileges and uses
+seccomp to refuse namespace/untraced-clone/ptrace escapes and external socket or
+service delegation. This remains a cooperative worker contract, not a general
+security boundary against hostile programs.
 
-After tests: seal the launch channel, revoke all worker grants, terminate the
-contained init using its retained process capability, and establish completed
-namespace teardown with the reviewed backend before any filesystem deletion.
-The custodian remains alive with all custody descriptors. A reaped test leader,
-empty process group, liveness-pipe EOF or callback returning success is insufficient.
-Process capability/namespace loss, unexpected external launch, timeout or uncertain
-shutdown puts the session into `PRESERVE`. No PGID-only fallback is permitted.
-Kernel feature availability, pidfd birth handshake, external-launch exclusion and
-shutdown completion are live-adapter acceptance gates, unproved by model tests.
+`run()` synchronously processes this event protocol; worker success alone does
+not close the namespace. `finish()` requires the registered run to be complete,
+durably records STOP intent, and uses the held pidfd to kill namespace init.
+The native parent must observe completed `waitid(P_PIDFD,WEXITED)` for that exact
+init, then send authenticated CLOSED. The controller checks original descriptors,
+bounded helper termination and exit 0 before recording namespace closure.
+PGID, init-death notification, pipe EOF, a callback returning true or a reaped
+ordinary worker is insufficient. Failure to establish completion preserves all
+filesystem resources; there is no stale numeric PID/group signal fallback.
 
-## Narrow teardown and interrupted-state preservation
+This closure reasoning follows the Linux [PID namespace](https://man7.org/linux/man-pages/man7/pid_namespaces.7.html)
+and [atomic clone/pidfd](https://man7.org/linux/man-pages/man2/clone.2.html)
+contracts. The kernel's namespace shutdown path terminates namespace processes
+before init becomes waitable; actual target-kernel behavior, trace ordering,
+descriptor transport and failure cleanup still require a separately approved
+live trial. Native syntax and mocked protocol tests establish none of those
+runtime facts.
 
-Cleanup requires all of: continuously held original descriptors, durable complete
-event history, closed worker grant set, accepted real lifecycle authority and an
-exact current inventory matching original/authorized mutation evidence. Unknown
-children or changed/missing bindings preserve the entire affected root, including
-known siblings; their later identity must not be learned for deletion.
+## Teardown, interrupted states and unaccepted integration
 
-An authorized adapter removes only individually registered entries, deepest first,
-relative to retained verified parent descriptors. Every removal has a durable
-intent, identity/binding check, exact `unlinkat`/empty-directory removal, parent
-sync and durable result. A directory must be empty; no recursive delete primitive,
-glob, follow-symlink operation or inferred ownership is available. Retain removed
-object descriptors until zero-link status and durable result are established.
+Teardown accepts only the exact birth-bound native lifecycle registered by that
+session. It verifies the entire graph before lifecycle closure and before the
+first deletion. Unknown descendants, changed/missing names, replaced roots,
+incomplete registration or uncertain process custody preserve the affected tree,
+including known siblings. No late inventory grants ownership of an unknown entry.
 
-Any failure stops remaining deletion. Successfully removed entries stay recorded;
-remaining/ambiguous entries and evidence stay preserved. No automatic compensation,
-journal-based resumption or adoption is permitted. Registry/runner removal is
-last and requires its own held-parent authority; an external private final receipt
-must be durable before the last evidence object is removed. A failed final receipt
-keeps the runner. No expiry or historical cleanup job is introduced.
+Removal visits only individually registered entries, deepest first, through held
+verified parent descriptors. Each exact unlink/empty-directory removal has a
+durable intent, binding check, parent fsync, zero-link original descriptor check
+and durable result. Before removing the final runner root, an external final
+evidence record must be durable. A failed final record keeps that root. Any
+partial teardown failure stops remaining deletion; surviving entries and all
+original/superseded descriptors remain preserved. There is no compensation,
+restart cleanup, expiry, historical cleanup or `rmtree` fallback.
 
-## First implementation stage and regression scope
+The old operator and frozen engine still perform direct filesystem operations;
+they are **not integrated** with this broker. Their 79 tests retain the original
+pre-allocation refusal. The new process adapter is a synchronous, bounded worker
+pilot primitive, not a full unittest harness or accepted mutation-broker RPC.
+Direct writes, interpreter atime changes or Fish-created cache/data descendants
+can therefore cause preservation rather than accepted cleanup. Closing this
+integration gap requires reviewed mediation and separate fresh-fixture authority.
 
-After independent design approval, proposed files are
-`tests/host_canary_supervisor.py` and `tests/test_host_canary_supervisor.py`.
-The module implements three concrete verification components, plus state handling:
+Unsupported environments include hostile/concurrent same-UID writers, external
+reapers, unknown FD duplication/close, nonlocal/overlay/tmpfs storage, missing
+procfs/kernel APIs, unexpected ACL/xattrs, unavailable existing PID-namespace
+privilege, non-x86_64/aarch64 ABIs, unsupported tracing/exec behavior and any
+unregistered mutation. The adapter does not obtain privilege, create a user
+namespace, install capabilities or change host policy to work around a refusal.
+Physical power-loss behavior remains unvalidated on every filesystem.
 
-- A descriptor verifier accepts only already-supplied descriptors. Through an
-  injected OS boundary it calls `fstat` and non-following parent-relative `stat`,
-  checks type/owner/mode/link expectations and exact parent/object bindings, and
-  tracks descriptor generations. It never opens or allocates a path. Its first
-  capture is only an alleged birth descriptor until a future creation broker is
-  accepted; its consistency checks do not prove the missing creation interval.
-  Mount/namespace labels supplied by that boundary are unverified context. Their
-  comparison detects label drift only; kernel identity/binding requires the
-  separately accepted runtime backend. `fstat`/`stat` alone cannot establish it.
-  The fixed pin includes directory link count: a legitimate new child directory
-  can change that count and safely cause refusal. No accepted metadata-transition
-  backend exists to approve such a change; this stage does not relax or relearn it.
-- A bounded registry writer receives an alleged existing bound registry and
-  parent; it does not establish exclusive creation or bootstrap provenance. It
-  serializes canonical sequence/hash-linked records, checks the binding before
-  writes, checks the exact write count, fsyncs the file and required directory,
-  then repeats descriptor, parent/name and metadata checks before acknowledgement.
-  The proposed fixed limits are 4 KiB per record, 100,000 records and 64 MiB per
-  session. A short write, OS error,
-  failed sync, limit violation or uncertain result irreversibly poisons it.
-  Tests inject the low-level write/fsync/stat boundary; a successful arbitrary
-  high-level persistence callback is not a durability acknowledgement.
-  It does not establish descriptor flags, current file offset or `O_APPEND`, an
-  actual exclusive lock, whole-history content readback or ctime continuity.
-  These are prerequisites for an independently accepted runtime registry adapter;
-  the first-stage checks grant no real append or durability authority. An alleged
-  empty file, stable size and matching identity do not supply those prerequisites.
-- A session state machine consumes that writer/verifier's local results, enforces
-  intent/registration-before-use and irreversible preservation. `cleanup_plan`
-  always refuses; it returns neither a teardown plan nor a permit. The model
-  does not import paths/journals to restore state.
+## Offline verification and retained gates
 
-It exposes **no live cleanup permit**, accepts no root-path deletion request and
-cannot set the operator's cleanup callable. The lifecycle gate has no accepted
-backend and always refuses live teardown. Simulated records, boolean claims and
-callbacks returning success cannot change that gate. No constructor parameter,
-environment flag or public approval method can enable it in this stage.
+The [source-only workflow](../../.github/workflows/host-canary-source.yml) runs the
+eight original filesystem-prohibited checks, old model tests, new fake-kernel and
+mock-transport tests, plus native `-fsyntax-only`. A separate compiled mock harness
+exercises deadline and task-wait code with syscall boundaries replaced; it never
+calls the production custodian entry point. Neither the real helper nor real
+adapters are executed. The new tests inject descriptors/syscalls and deliberately fail
+partial initialization, registration, publication, process acknowledgement and
+teardown boundaries. A simulated successful deletion is not validated custody.
 
-Regression tests first reproduce: use before durable registration; missing intent;
-short write/fsync/ack uncertainty; foreign/replaced parent; reused descriptor;
-lost descriptors/restart; unsafe basenames; post-sync binding/metadata drift;
-duplicate/gapped records; unknown descendants; teardown
-before verified lifecycle closure; leader-reap/PGID/callback-only false closure;
-partial cleanup failure; and any attempt to upgrade a simulated result to a live
-permit. Pure tests prohibit OS open/stat/allocation/process/signal/delete calls.
-Any descriptor-I/O test added later uses a separately named disposable sandbox
-with no Host Canary prefix or operator integration, under explicit test scope.
-The eight existing filesystem-prohibited offline checks remain unchanged.
+The general validation workflow and all 79 dynamic methods remain unchanged. Local
+permitted regression discovery excludes their module **before import** and names
+all 79 as `NOT EXECUTED / BLOCKED`; this is neither a pass nor a skip. Broad hosted
+discovery continues to expose the79 expected supervisor refusals. A green scoped
+source check must never replace that general custody gate.
 
-The real allocator, runtime registry creation/adapter, IPC/descriptor transport, syscall broker,
-PID-namespace/pidfd backend and actual cleanup adapter are **not implemented or
-enabled in this authorization**. Their separate acceptance requires adversarial
-failure/race review, then explicit permission for fresh fixtures and dynamic runs.
-Host/native theme activation remains a later independent gate.
-
-## CI reporting without hiding the block
-
-Keep the general validation workflow and all79 existing methods unchanged. Do not
-run those methods locally, even to reproduce their known supervisor refusals.
-Static AST collection can produce a separate manifest naming all79 methods with
-`NOT EXECUTED / BLOCKED: prospective supervisor and fresh-fixture authorization`.
-It is blocked evidence, never a pass or skip. Report an aggregate dynamic status
-of `BLOCKED`, alongside independently scoped permitted results.
-
-A later separate source-only job may run the eight offline checks and model tests
-with a name that states that scope. Its success cannot replace the existing broad
-job or dynamic acceptance. Ordinary discovery currently reaches79 pre-allocation
-guard refusals; preserve those visible CI failures and draft status. The sealed
-native validation input is unchanged. Broader permitted regression discovery must
-publish its explicit excluded-method manifest and aggregate blocked status.
-
-## Requirement and review checklist
-
-| Required property | Contract / first-stage evidence |
-|---|---|
-| Creation-time identity/custody | Durable intent, exclusive create, first descriptor; cooperative gap explicit |
-| Private runner/runtime/exclusive registry | Fixed isolated tree, one writer, original descriptors; real adapter gated |
-| Descriptor binding | Parent/name metadata and protocol generations; pinned link counts may refuse legitimate changes; mount/namespace labels remain unverified kernel context |
-| Capability before allocation | Session-bound policy, initially inert; no live capability issued in model |
-| Descendant supervision | Fresh trusted-init PID namespace; real closure backend separately accepted |
-| Durable/fail-closed registration | Modeled ordering/poisoning only; flags, offset/append, actual lock, history readback and ctime require accepted runtime adapter |
-| Preserve ambiguity/interruption | Irreversible PRESERVE; no restart adoption or late identity learning |
-| No preexisting adoption | No adoption/import API; runtime birth and prior nonexistence proof remain gated |
-| No unrestricted deletion | Exact registered entries only; no delete implementation in first stage |
-
-Review must challenge missing creation intervals, interrupted registration, worker
-death before descriptor handoff, false closure, stale FD/identity reuse, unknown
-Fish descendants, partial teardown and final evidence durability. Source-only
-success resolves none of the real adapter, fixture execution or live-use gates.
-
-Implemented source-only checks are available in the separate
-[offline/mock workflow](../../.github/workflows/host-canary-source.yml):
-
-```fish
-python3 -B -I -S tests/test_host_canary_offline.py
-python3 -B -I -S tests/test_host_canary_supervisor.py
-```
-
-The workflow always prints the static 79-method NOT EXECUTED/BLOCKED manifest,
-including when a permitted check fails. It executes neither the dynamic methods
-nor a runtime adapter. General validation and its custody refusals remain unchanged.
+Remaining acceptance requires independent source review, an exact supported
+kernel/storage/privilege decision, helper binary review, broker/worker integration
+review, and separately authorized isolated fresh trials covering creation,
+transport, trace ordering, descendant completion, interrupted registration and
+partial teardown. Historical resources are permanently outside that trial.
+Host/native theme activation is a later independent authorization gate. Keep the
+PR draft until complete runtime custody and operator acceptance are recorded.
