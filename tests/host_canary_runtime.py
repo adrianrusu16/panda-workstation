@@ -386,6 +386,8 @@ class ProspectiveSession:
         self.parent_pin = dict(bootstrap.parent_pin)
         self.objects, self.retired, self._birth_fds = {}, [], []
         self.preserved, self.closed, self._lifecycle = False, False, None
+        self._phase_controller = None
+        self._completed_lifecycle = None
         self.requires_mediation = hasattr(bootstrap, 'canonical_grant')
 
     def ready(self):
@@ -657,7 +659,7 @@ class ProspectiveSession:
         synchronously before teardown. Helper source/binary execution stays gated.
         """
         self.ready()
-        if self.requires_mediation:
+        if self.requires_mediation or self._phase_controller is not None:
             raise CustodyError('canonical session requires enforced mediated lifecycle')
         try:
             self.check()
@@ -697,7 +699,8 @@ class ProspectiveSession:
     def start_mediated_worker(self, helper_fd, digest, runtime, store, plan):
         """One explicit canonical epoch; never resume/reconstruct lost custody."""
         self.ready()
-        if not self.requires_mediation or self._lifecycle is not None or getattr(store, 's', None) is not self:
+        if (not self.requires_mediation or self._lifecycle is not None or self._phase_controller is not None
+                or getattr(store, 's', None) is not self):
             raise CustodyError('one canonical mediated lifecycle bound to original store required')
         try:
             self.check()
@@ -720,6 +723,8 @@ class ProspectiveSession:
 
     def teardown(self, lifecycle):
         self.ready()
+        if self._phase_controller is not None:
+            raise CustodyError('phase collection requires its own verified teardown')
         # A bool, JSON, arbitrary callback or another session's helper is not
         # lifecycle authority. Only this broker's registered native session is.
         if lifecycle is not self._lifecycle or lifecycle is None:
@@ -729,6 +734,44 @@ class ProspectiveSession:
         try:
             self.check()  # Full graph BEFORE first deletion, not late tree learning.
             lifecycle.finish()
+            self.check()
+            self._completed_lifecycle = lifecycle
+            self._remove_registered(lifecycle)
+        except BaseException:
+            self.preserved = True
+            raise
+
+    @staticmethod
+    def phases_module():
+        name = '_panda_host_phases'
+        if name not in sys.modules:
+            path = Path(__file__).with_name('host_canary_phases.py')
+            spec = importlib.util.spec_from_file_location(name, path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[name] = module
+            try:
+                spec.loader.exec_module(module)
+            except BaseException:
+                del sys.modules[name]
+                raise
+        return sys.modules[name]
+
+    def offline_phases(self, helper_fd, digest, runtime, store):
+        """Injected-boundary experiment only; no real Linux/native execution."""
+        return self.phases_module().PhaseController(self, helper_fd, digest, runtime, store)
+
+    def _remove_registered(self, authority=None):
+        """Guard removal itself; calling this helper never manufactures closure."""
+        self.ready()
+        if self._phase_controller is not None:
+            if authority is not self._phase_controller or type(authority) is not self.phases_module().PhaseController:
+                raise CustodyError('original closed phase collection required')
+            authority.authorize_removal(self)
+        elif (authority is None or authority is not self._lifecycle
+              or authority is not self._completed_lifecycle):
+            raise CustodyError('completed original lifecycle required')
+        try:
+            self._completed_lifecycle = None
             self.check()
             self.ledger.append(dict(kind='teardown-intent', roles=self.registered()))
             for path in sorted(self.objects, key=lambda p: (p.count('/'), len(p)), reverse=True):

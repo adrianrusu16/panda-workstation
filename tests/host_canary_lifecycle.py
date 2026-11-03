@@ -318,7 +318,7 @@ class LinuxTransport:
 class NativeLifecycle:
     """Session-bound protocol; no accepted boolean/callback closure interface."""
     @classmethod
-    def start(cls, kernel, ledger, helper_fd, digest, argv, session, root_fd, root_pin, *, _mediation=None):
+    def start(cls, kernel, ledger, helper_fd, digest, argv, session, root_fd, root_pin, *, _mediation=None, _capture=None):
         if (not isinstance(session, str) or not re.fullmatch('[0-9a-f]{32}', session)
                 or not isinstance(digest, str) or not re.fullmatch('[0-9a-f]{64}', digest)
                 or not isinstance(argv, (list, tuple)) or not argv or len(argv) > 128
@@ -330,6 +330,7 @@ class NativeLifecycle:
         self.k, self.ledger, self.session = kernel, ledger, session
         self.root_fd, self.root_pin = root_fd, dict(root_pin)
         self.preserved = self.ran = self.closed = False
+        self.birth = self._closure_witness = self._closed_sequence = None
         self._mediation = _mediation
         self._policy_ready = self._exec_ready = False
         if kernel.snapshot(root_fd) != self.root_pin:
@@ -341,7 +342,10 @@ class NativeLifecycle:
         try:
             try:
                 args = (helper_fd, digest, list(argv), session, root_fd)
-                self.transport = factory(*args, _mediation[0].fd) if _mediation else factory(*args)
+                if _capture is not None:
+                    self.transport = factory(*args, _mediation[0].fd, output_budget=_capture)
+                else:
+                    self.transport = factory(*args, _mediation[0].fd) if _mediation else factory(*args)
             except BaseException as exc:
                 self.transport = getattr(exc, 'transport', None)
                 raise
@@ -351,6 +355,7 @@ class NativeLifecycle:
                     (int(match[4]), int(match[5])) != (root_pin['dev'], root_pin['ino'])):
                 raise LifecycleError('invalid atomic namespace birth packet')
             birth = self.transport.bind_birth(int(match[2]), int(match[3]))
+            self.birth = dict(birth)
             self.check()
             ledger.append({'kind': 'namespace-born', 'birth': birth})
             return self
@@ -516,6 +521,8 @@ class NativeLifecycle:
             witness = self.transport.wait_closed()
             self.check()
             self.ledger.append({'kind': 'namespace-closed', 'witness': witness})
+            self._closure_witness = dict(witness)
+            self._closed_sequence = getattr(self.ledger, 'sequence', None)
             self.closed = True
         except BaseException:
             self.preserved = True

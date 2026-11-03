@@ -66,6 +66,7 @@ class BrokerStore:
         self.views, self.programs, self.lease = {}, {}, None
         self.record_stages = {}
         self.readonly, self._plan_bound = False, False
+        self._phase_owner = None
         self.counter, self.removed_outputs = 0, []
         self.baseline = approved_baseline
         if approved_baseline is not None and (type(approved_baseline) is not bytes or len(approved_baseline) != 1376
@@ -103,6 +104,51 @@ class BrokerStore:
                 raise runtime.CustodyError('provision requires this plan initialization')
         self.readonly = all(command['action'] in ('status', 'preview') for command in plan)
         self._plan_bound = True
+
+    def bind_phases(self, controller):
+        if (self._plan_bound or self._phase_owner is not None
+                or self.s._phase_controller is not controller
+                or type(controller) is not self.s.phases_module().PhaseController):
+            raise runtime.CustodyError('original typed phase controller required')
+        self.quiescent()
+        self._phase_owner, self._plan_bound = controller, True
+
+    def quiescent(self):
+        if self.views or self.programs or self.lease is not None or self.record_stages:
+            raise runtime.CustodyError('incomplete view/source/lease/record-stage custody')
+        self.root_receipt()
+
+    def phase_checkpoint(self, phase):
+        """Controller observation of original held objects, never journal adoption."""
+        self.quiescent()
+        enrollment, baseline, journal, journal_obj = self.e.observe(self._evidence_view())
+        if phase == 'A':
+            valid = journal is None and journal_obj is None and not self.removed_outputs
+            state = 'enrolled'
+        else:
+            states = {'B': 'installed', 'C': 'restored', 'D': 'closed'}
+            state = states.get(phase)
+            valid = (state is not None and journal is not None and journal['phase'] == state
+                     and journal['intent'] is None and len(journal['forward']) == 6
+                     and len(journal['reverse']) == (0 if phase == 'B' else 5))
+            if phase in ('B', 'C'):
+                valid = valid and self.read(self.e.CLEANUP) is None and not self.removed_outputs
+            elif phase == 'D':
+                expected = list(reversed(self.e.OUTPUT_DIRS))
+                valid = valid and self.removed_outputs == expected
+                for path in expected:
+                    held = [o for o in self.s.retired if o.path == path and o.directory]
+                    valid = valid and len(held) == 1 and self.pin(held[0]) == enrollment['dirs'][path]
+        if not valid:
+            raise runtime.CustodyError('phase checkpoint does not match exact complete transaction')
+        graph = [(p, o.birth, o.pin) for p, o in sorted(self.s.objects.items())]
+        retired = [(o.path, o.birth, o.pin) for o in self.s.retired]
+        self.quiescent()
+        return dict(state=state, enrollment_id=enrollment['enrollment_id'],
+                    baseline=self.e.digest(self.e.decode(baseline['image'])),
+                    journal=None if journal_obj is None else self.e.digest(self.e.decode(journal_obj['image'])),
+                    graph_sha256=hashlib.sha256(runtime.canonical([graph, retired])).hexdigest(),
+                    removed=list(self.removed_outputs))
 
     def preserve(self, reason):
         self.s.preserved = True
@@ -235,6 +281,10 @@ class BrokerStore:
         enrollment, baseline = self.e.load(evidence)
         journal, obj = self._record(self.e.JOURNAL)
         self.e.verify(evidence, enrollment, baseline, journal, obj)
+        if self._phase_owner is not None:
+            phase = self._phase_owner._grant.epoch
+            if journal['phase'] != {2: 'applying', 3: 'recovering'}.get(phase):
+                self._phase_owner.refuse('managed mutation outside current phase')
         if journal['intent'] != [operation, target]:
             raise runtime.CustodyError('no exact durable managed mutation intent')
         current, stages = self.e.model(journal, enrollment, baseline)
@@ -249,6 +299,11 @@ class BrokerStore:
 
     def _record_transition(self, view, target, value):
         self._scope(value)
+        if self._phase_owner is not None and target == self.e.JOURNAL:
+            phase = self._phase_owner._grant.epoch
+            states = {2: ('applying', 'installed'), 3: ('recovering', 'restored'), 4: ('closed',)}
+            if value.get('phase') not in states.get(phase, ()):
+                self._phase_owner.refuse('journal transition outside current phase')
         old_obj = self.read(target)
         old = None if old_obj is None else self.e.unpack(self.e.decode(old_obj['image']))
         evidence = self._evidence_view()
@@ -415,7 +470,37 @@ class BrokerStore:
             raise runtime.CustodyError('post-create image mismatch')
         return result
 
+    def _phase_operation(self, op, args):
+        """Restrict mutation roles before even parsing worker-supplied images."""
+        owner = self._phase_owner
+        if owner is None:
+            return
+        owner.require_dispatch()
+        phase = owner._grant.epoch
+        e, path = self.e, args.get('path')
+        records = {1: (e.PROVISION, e.BASELINE), 2: (e.JOURNAL,),
+                   3: (e.JOURNAL,), 4: (e.CLEANUP, e.JOURNAL)}[phase]
+        create = {e.STAGES[p] for p in records if p in e.STAGES}
+        if phase == 1:
+            create.update((e.PROGRAM, e.LOCK, e.SOURCE, e.DEPLOYED, e.SOURCE_BEFORE,
+                           e.DEPLOYED_BEFORE, e.PROVISION, e.BASELINE))
+        if phase == 4:
+            create.add(e.CLEANUP)
+        if phase in (2, 3):
+            create.update(e.STAGES[p] for p in e.MANAGED)
+        allowed = True
+        if op == 'create': allowed = path in create
+        elif op == 'publish': allowed = path in records or phase in (2, 3) and path in e.MANAGED
+        elif op == 'unlink': allowed = phase == 3 and path == e.TARGET
+        elif op == 'operator_mkdir': allowed = phase == 1
+        elif op == 'operator_remove_output': allowed = phase == 4
+        elif op == 'operator_baseline': allowed = phase == 1
+        if not allowed:
+            owner.refuse('mutation outside current phase authority')
+
     def dispatch(self, op, args):
+        if self._phase_owner is not None:
+            self._phase_owner.require_dispatch()
         if not isinstance(op, str) or op not in self.OPS or type(args) is not dict:
             raise runtime.CustodyError('unknown broker operation')
         required, optional = self.FIELDS[op]
@@ -425,6 +510,7 @@ class BrokerStore:
         if self.readonly and op in ('create', 'publish', 'unlink', 'sync', 'sync_directory', 'lock', 'unlock',
                                      'operator_mkdir', 'operator_remove_output'):
             raise runtime.CustodyError('controller plan authorizes observation only')
+        self._phase_operation(op, args)
         self.s.check()
         if op == 'open':
             if args['root'] != self.root:

@@ -347,13 +347,14 @@ lifecycle entry points, and creates only profiling output. It does not invoke a
 worker/custodian or allocate a real fixture. Do not use profiler-inflated totals
 as deadline acceptance measurements or convert fake sync costs into real I/O costs.
 
-**Full transaction readiness remains blocked.** The next smallest protocol proposal
-is bounded ordered aggregation of independent observations, with complete failure
-evidence and unchanged per-occurrence checks. It is not implemented. The separately
-reviewable [bounded handoff proposal](host-canary-worker-handoff.md) also specifies
-successful phase boundaries, complete old closure, uninterrupted controller/FD
-custody, new epoch/birth/RPC identity, cumulative budgets and fail-closed partial
-handoff. It does not implement or accept replacement-worker recovery.
+**Full transaction readiness remains blocked.** Bounded ordered aggregation of
+independent observations remains an unimplemented alternative. The independently
+reviewed [bounded handoff contract](host-canary-worker-handoff.md) now has an opt-in
+controller over injected boundaries: fixed A/B/C/D checkpoints, complete prior
+closure, uninterrupted controller/FD custody, independent native invocation nonce
+and RPC epoch, cumulative budgets and permanent preservation after ambiguity.
+The default single-worker path is unchanged. Linux handoff is explicitly refused;
+mocked lifetimes do not establish real custody, durability or deadline acceptance.
 
 An **initialize-only** trial can be proposed separately: the measured action is
 about 0.06 seconds, but native startup, actual synchronization and runtime

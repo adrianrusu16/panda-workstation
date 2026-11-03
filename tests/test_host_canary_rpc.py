@@ -164,6 +164,40 @@ class ProtocolTests(unittest.TestCase):
                 self.assertTrue(self.store.preserved)
                 self.assertTrue(self.server.revoked)
 
+    def test_shared_budget_charges_before_dispatch_and_cannot_reset_at_new_epoch(self):
+        budget=self.api.RequestBudget(self.store,self.ledger,'a'*32)
+        budget.open_epoch(1)
+        self.server=self.api.Server(self.store,self.ledger,'a'*32,1,budget=budget)
+        self.client=self.api.Client(9,'a'*32,1,io=Wire(self.server))
+        self.assertEqual(self.client.call('read',{'value':1}),1)
+        self.assertEqual(budget.total,1)
+        self.server.retire();budget.close_epoch(1);budget.open_epoch(2)
+        server=self.api.Server(self.store,self.ledger,'a'*32,2,budget=budget)
+        client=self.api.Client(9,'a'*32,2,io=Wire(server))
+        budget._total=self.api.MAX_REQUESTS
+        before=len(self.store.calls)
+        with self.assertRaises(ValueError):client.call('create',{})
+        self.assertEqual(len(self.store.calls),before)
+        self.assertTrue(self.store.preserved)
+
+    def test_retired_epoch_replay_preserves_without_dispatch_or_erasing_evidence(self):
+        self.client.call('read',{'value':1})
+        contents=dict(self.server.contents)
+        self.server.retire()
+        self.assertTrue(self.server.quiescent)
+        with self.assertRaises(ValueError):
+            self.server.accept(self.api.request_frames('a'*32,1,2,'create',{})[0])
+        self.assertEqual(len(self.store.calls),1)
+        self.assertEqual(self.server.contents,contents)
+        self.assertTrue(self.store.preserved)
+
+    def test_per_worker_exhaustion_preserves_even_when_called_outside_lifecycle(self):
+        self.server.seq = self.api.MAX_REQUESTS + 1
+        with self.assertRaises(ValueError): self.server.accept(b'{}')
+        self.assertTrue(self.store.preserved)
+        self.assertTrue(self.server.revoked)
+        self.assertFalse(self.store.calls)
+
     def test_broker_error_is_terminal_and_not_a_false_success(self):
         def fail(op, args): raise OSError(5, 'injected partial operation')
         self.store.dispatch = fail

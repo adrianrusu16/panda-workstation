@@ -153,6 +153,39 @@ class Client:
             raise
 
 
+class RequestBudget:
+    """One continuously held fixture budget; epochs never replenish requests."""
+    def __init__(self, store, ledger, session):
+        scope(session, 1)
+        self.store, self.ledger, self.session = store, ledger, session
+        self.epoch, self.active, self.last, self._total = 0, False, 0, 0
+
+    @property
+    def total(self):
+        return self._total
+
+    def _refuse(self):
+        self.store.preserve('cumulative RPC budget/epoch lost')
+        raise ProtocolError('cumulative RPC budget/epoch lost')
+
+    def open_epoch(self, epoch):
+        if type(epoch) is not int or self.active or epoch != self.epoch + 1:
+            self._refuse()
+        self.epoch, self.active, self.last = epoch, True, 0
+
+    def reserve(self, epoch, sequence):
+        if not self.active or epoch != self.epoch or sequence != self.last + 1 or self._total >= MAX_REQUESTS:
+            self._refuse()
+        self._total += 1
+        self.last = sequence
+        return self._total
+
+    def close_epoch(self, epoch):
+        if not self.active or epoch != self.epoch:
+            self._refuse()
+        self.active = False
+
+
 class Server:
     """One controller-owned store, one native-authenticated worker epoch.
 
@@ -160,8 +193,13 @@ class Server:
     The store owns all custody; JSON, this framer, and successful callbacks cannot
     create a lifecycle or teardown grant.
     """
-    def __init__(self, store, ledger, session, epoch):
+    def __init__(self, store, ledger, session, epoch, *, budget=None):
         scope(session, epoch)
+        if budget is not None and (type(budget) is not RequestBudget or budget.store is not store
+                or budget.ledger is not ledger or budget.session != session
+                or not budget.active or budget.epoch != epoch):
+            raise ProtocolError('original shared request budget required')
+        self.budget, self.retired = budget, False
         self.store, self.ledger, self.session, self.epoch = store, ledger, session, epoch
         self.seq, self.parts, self.pending, self.revoked = 1, [], None, False
         self.total = self.digest = None
@@ -176,6 +214,12 @@ class Server:
     def abort(self, reason):
         self.revoked = True
         self.store.preserve(reason)
+
+    def retire(self):
+        if self.retired or not self.quiescent:
+            self.abort('incomplete or duplicate epoch retirement')
+            raise ProtocolError('incomplete or duplicate epoch retirement')
+        self.retired = True  # retain all content/evidence; late frames poison custody
 
     def _retain(self, direction, raw):
         # Complete evidence, not replay authority. Compression bounds redundant
@@ -200,7 +244,12 @@ class Server:
         self.contents[digest] = (encoded,self.seq,direction)
 
     def accept(self, raw):
-        if self.revoked or self.seq > MAX_REQUESTS: raise ProtocolError('RPC server revoked/budget exhausted')
+        if self.retired:
+            self.abort('retired worker epoch replay')
+            raise ProtocolError('retired worker epoch replay')
+        if self.revoked or self.seq > MAX_REQUESTS:
+            self.abort('RPC server revoked/budget exhausted')
+            raise ProtocolError('RPC server revoked/budget exhausted')
         try:
             if len(raw) > MAX_FRAME: raise ProtocolError('RPC frame budget exceeded')
             value = unpack(raw)
@@ -228,9 +277,10 @@ class Server:
                 if type(message) is not dict or set(message) != {'op', 'args'} or type(message['op']) is not str or type(message['args']) is not dict:
                     raise ProtocolError('invalid RPC request envelope')
                 self.pending = message
+                charge = {} if self.budget is None else {'total_request': self.budget.reserve(self.epoch, self.seq)}
                 self._retain('request', request)
                 self.ledger.append({'kind': 'rpc-intent', 'epoch': self.epoch, 'seq': self.seq,
-                                    'op': message['op'], 'sha256': self.digest, 'bytes': len(request)})
+                                    'op': message['op'], 'sha256': self.digest, 'bytes': len(request), **charge})
                 try:
                     result = {'ok': True, 'result': self.store.dispatch(message['op'], message['args'])}
                 except Exception as exc:

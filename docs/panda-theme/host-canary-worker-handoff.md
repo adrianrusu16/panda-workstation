@@ -1,9 +1,10 @@
-# Host Canary bounded worker handoff proposal
+# Host Canary bounded worker handoff contract
 
-**Design only; not implemented or authorized.** PR #26 still supports one worker
-lifetime. This document grants no restart, adoption, fixture or cleanup authority.
-It addresses the contingency that a complete supported plan does not fit the
-unchanged 30-second run window after safe computational optimization.
+**Offline mechanism implemented; Linux handoff unsupported and unexecuted.**
+The default PR #26 entry still grants one worker lifetime. The opt-in
+`ProspectiveSession.offline_phases()` controller accepts only explicit injected
+boundaries and refuses the real Linux kernel adapter or implicit native spawn.
+It grants no host trial, restart, adoption, historical-fixture or cleanup authority.
 
 ## Decision and alternatives
 
@@ -15,7 +16,7 @@ The fake kernel's separate immutable-file copy remains deliberately unchanged.
 Do not cache current filesystem observations, replace complete history with a
 rolling digest, suppress full checks or extend/reset the existing run deadline.
 
-The smallest next protocol proposal is **ordered observation aggregation** for
+A separate possible protocol optimization is **ordered observation aggregation** for
 adjacent independent file expectations. It could reduce RPC/evidence volume
 without adding process custody. It is not implemented: before approval it must
 retain every original per-occurrence read/dispatch check, original failure order,
@@ -25,12 +26,12 @@ operations. No mutation, synchronization, lease, source-grant or lifecycle barri
 may enter a batch. Two legal 1 MiB images may exceed the RPC ceiling after base64;
 partitioning must be decided before requests, never by retrying a failed batch.
 
-If that work still lacks comfortable margin, the bounded phase-worker design
-below is the next lifecycle option. Timings alone do not prove it safe or necessary.
-Do not implement it by calling the existing start method a second time, clearing
+The bounded phase-worker mechanism below can be studied independently of that
+optimization. Timings alone do not establish native safety or sufficient margin.
+It must never be implemented by calling the existing start method a second time, clearing
 `preserved`, replacing `_lifecycle`, resetting a timer or trusting a saved journal.
 
-## Candidate successful phase boundaries
+## Fixed successful phase boundaries
 
 | Phase | Explicit plan | Controller-verified terminal checkpoint |
 |---|---|---|
@@ -43,12 +44,13 @@ Initialization and provisioning cannot be split: the current Provider is not an
 interrupted-provisioning resumption capability. Cleanup uses a new operator view
 but obtains all authority from the continuously held broker and validated records.
 Each phase must close every view/source grant/lease and pending record stage.
-These are candidate boundaries, not accepted new worker lifetimes. Native startup,
-runtime validation, real sync costs and extra evidence must be measured afresh.
+These are enforced offline boundaries, not accepted native worker lifetimes.
+Native startup, runtime validation, real sync costs and extra evidence remain
+unmeasured and require separate implementation review and authorization.
 
 Only clean successful phases qualify. A stopped/incomplete/manual-inspection
 result, nonzero exit, signal, policy failure or timeout remains preserved. Crash
-recovery is **not** added by this proposal. No phase may declare a partial mutation
+recovery remains unsupported. No phase may declare a partial mutation
 successful merely to obtain another 30 seconds.
 
 ## Controller authority and durable state
@@ -89,7 +91,7 @@ Before a handoff intent, require all of the following in order:
 5. The controller rechecks its entire original graph and ledger. Every old
    lifecycle/pidfd/nsfd proof stays retained; a boolean or EOF cannot replace it.
 
-This ordering must be embodied by a new typed controller transition, not an
+This ordering is embodied by an opt-in typed controller transition, never an
 arbitrary callback or worker-provided receipt. Existing `finish()` and `teardown()`
 are one-shot and cannot simply be called again; a reviewed epoch-collection API
 must distinguish already-proved closure from missing closure without rereaping
@@ -131,7 +133,7 @@ authorize a resumed action. No handoff grant transfers fixture descriptors to a
 worker; the external broker retains them continuously.
 
 Each new worker gets its own absolute 30-second run window, established once for
-that new proven birth. This is a proposed new lifecycle architecture, not a reset
+that new proven birth. This is a separate lifecycle architecture; no timer is reset
 inside a running transaction worker. Bootstrap/closure bounds remain unchanged.
 No handoff is allowed simply because a previous deadline is approaching.
 
@@ -154,17 +156,81 @@ durable external final evidence. Do not substitute the last worker's closure for
 all prior births. Existing narrow descriptor-relative deletion constraints remain.
 Historical resources and resources without prospective custody are always excluded.
 
-## Required review and validation before implementation acceptance
+## Offline implementation and review boundary
 
-First implement/refuse transitions over synthetic descriptors and fake transports:
-normal A→B→C→D, repeated/skipped/out-of-order phase, duplicate handoff, stale old
-frames, equal numeric PID in a new birth, failed intent/birth/exec/ACK/closure sync,
-controller loss, missing original FD, replaced root, unexpected descendant, all
-ceilings and interrupted teardown. No successor may become active while any old
-lifetime is incomplete or any broker grant is outstanding.
+`tests/host_canary_phases.py` keeps the original controller/session/broker/ledger,
+root birth and immutable original FD values. It appends durable phase intent,
+registers fresh birth before START, validates an authoritative checkpoint, retires
+the RPC server, completes original namespace closure, and records phase completion
+before granting the next lifetime. Only this original object can advance; there
+is no receipt import or reconstruction API. All failure states are permanent.
 
-Then independently review the complete Linux/native authority path, not only a
-cooperative state model. Neither a mock handoff nor an exported closure record
-constitutes real custody. Finally request separately scoped isolated fresh trials
-for the exact reviewed helper/runtime/kernel/storage/privilege combination.
-The existing 79-test refusal gate remains unchanged throughout this work.
+`PhaseLifecycle` deliberately shares the inherited native packet, policy, task,
+RPC, run deadline and finish protocol. It has a separate constructor because
+`start_mediated()` binds one plan and conflates filesystem session with native
+invocation identity. The phase constructor repeats its runtime/source/interpreter
+approval checks, then uses the inherited birth path. It never clears the existing
+one-worker latch or replaces the session's single-worker lifecycle. Each phase
+uses an independent random native nonce, the same filesystem session, a strictly
+increasing RPC epoch and a fresh evidence cache. Broker role/journal guards reject
+mutations outside that phase before allocation or publication; an eventual failed
+checkpoint is not the authorization boundary.
+
+The closed-lifetime collection retains original transports, pidfd/nsfd birth
+records, output counts and durable closure sequences. Rechecks use the original
+transport's identity check; they do not call a closed lifecycle's `check()` against
+obsolete root metadata, send another STOP, signal a saved PID or reap again.
+Current filesystem authority is checked separately through the original broker.
+Deletion itself requires the exact typed collection, complete final checkpoint,
+quiescence and durable final collection evidence before the existing narrow
+registered-role removal. Interrupted deletion preserves survivors and descriptors.
+
+`tests/host_canary_phase_fixture.py` supplies fake descriptors, fake kernel packets
+and a cooperative in-process Python thread running the actual mediated engine.
+All real Linux filesystem methods and native spawn are patched to fail. This
+harness exercises the controller protocol but cannot enforce a kernel boundary or
+prove descendant termination. Tests cover missing/reordered acknowledgements,
+unauthorized phase mutations, descriptor/controller loss, stale grants, incomplete
+closure, output/request ceilings and failure before/after durable transition writes.
+The original 79 dynamic refusals and mandatory general CI workflow stay unchanged.
+
+For a reproducible **synthetic** sample, run from the repository root:
+
+```fish
+env PYTHONHASHSEED=0 python3 -B tests/host_canary_phase_performance.py --out /tmp/panda-phase-sample.json
+```
+
+Choose a new output path for every run. The benchmark runs the full reviewed engine
+source with unchanged 30-second lifecycle deadlines, full history equality checks,
+synchronization calls and aggregate budgets over fake boundaries. It reports
+per-phase wall/CPU time, worker run time and controller overhead, request/record/
+frame counts, retained compressed payloads and Linux `ru_maxrss` in KiB. Each RSS
+sample is the process cumulative high-water mark, not an independent phase peak.
+Total timing includes controller initialization; teardown is tested separately.
+No measured fake sync or closure counts constitute actual durability or custody.
+
+## Remaining live acceptance gates
+
+The phase mechanism cannot run with `LinuxKernel`: the existing real transport
+has no reviewed cumulative capture interface or accepted multi-invocation closure
+collection. A later source change must implement and independently review that
+path before a four-phase host trial can even be requested. Do not replace this
+gate with a callback, environment flag, serialized proof or adapter-name disguise.
+Real storage latency, kernel namespace/pidfd continuity, process descendants,
+resource use and deadline margin remain unvalidated. Mock success cannot accept
+any of them.
+
+The first possible separately scoped trial is the existing **one-worker,
+initialize-only** path, on a newly and exclusively created fixture. Before asking
+for execution, pin and review exact helper source/binary/toolchain digest, curated
+runtime manifest and source/baseline digests; specify the nonroot controller,
+approved allocation/evidence/runtime parents, kernel namespace/seccomp/Landlock/
+pidfd support, supported ext4/btrfs state, descriptor handoff and private evidence
+retention. Define exact creation and closure steps and the stopping/preservation
+conditions for every failed birth, policy, RPC, registration, sync, timeout or
+closure proof. Initialization remains inside 30 seconds and must establish
+creation-time custody and enforced denial of direct mutation before any broader
+phase plan is considered. Any deletion requires its own explicit scoped approval
+and complete original custody; ambiguity preserves all resources. No historical
+fixture interaction, host policy change, provision/install/recover/output cleanup
+or four-phase live acceptance follows from an initialize-only authorization.
