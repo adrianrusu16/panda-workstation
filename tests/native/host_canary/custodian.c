@@ -1,5 +1,5 @@
 /* Linux Host Canary custodian. Build/syntax checking is permitted; offline
- * tests MUST NOT execute this program. No fixture/worker integration is enabled.
+ * tests MUST NOT execute this program. Mediated integration remains unexecuted.
  * Requires existing CLONE_NEWPID privilege, procfs, clone3/pidfds, ptrace,
  * close_range and seccomp. Never acquires privilege or changes host policy.
  * AF_UNIX SOCK_SEQPACKET protocol: BIRTH+pidfd/nsfd; START; durably ACKed
@@ -7,11 +7,13 @@
  */
 #define _GNU_SOURCE
 #include <errno.h>
+#include <asm/termbits.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <linux/audit.h>
 #include <linux/capability.h>
 #include <linux/filter.h>
+#include <linux/mount.h>
 #include <linux/nsfs.h>
 #include <linux/sched.h>
 #include <linux/seccomp.h>
@@ -23,10 +25,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <sys/mount.h>
 #include <sys/prctl.h>
 #include <sys/ptrace.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -38,6 +43,9 @@ static pid_t child_pid = -1;
 #define LIMIT 4096
 #define EVENTS 100000
 #define BOUND_MS 30000
+#define RPC_FD 3
+#define RPC_BOUND 32768
+#define FRAME_BOUND (RPC_BOUND + 192)
 
 static int64_t milliseconds(void) {
     struct timespec t;
@@ -172,6 +180,195 @@ static int worker_filter(void) {
 #undef DENY
 }
 
+/* The mediated policy is deliberately separate from cooperative generic
+ * custody. Unsupported architectures refuse this mode. Each disallowed syscall
+ * raises SIGSYS; native init treats even a caught SIGSYS as a custody failure.
+ * No FD duplication/replacement or shared mapping can bypass the write checks.
+ * execve requests a tracer decision before loading an image; only the initial
+ * attempt is accepted. A second stop confirms successful exec before userspace.
+ * Failed initial exec exits without an execution/RPC grant. */
+#if defined(__x86_64__)
+#define M_ALLOW(n) BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_##n, 0, 1), BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW)
+static const struct sock_filter mediated_code[] = {
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, arch)),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, THIS_ARCH, 1, 0),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL_PROCESS),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, nr)),
+    BPF_JUMP(BPF_JMP | BPF_JSET | BPF_K, 0x40000000, 0, 1),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_KILL_PROCESS),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_open, 0, 4),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[1])),
+    BPF_JUMP(BPF_JMP | BPF_JSET | BPF_K, O_ACCMODE | O_CREAT | O_EXCL | O_TRUNC | O_APPEND | 0x400000, 0, 1),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_openat, 0, 4),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[2])),
+    BPF_JUMP(BPF_JMP | BPF_JSET | BPF_K, O_ACCMODE | O_CREAT | O_EXCL | O_TRUNC | O_APPEND | 0x400000, 0, 1),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_write, 0, 6),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[0])),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, 1, 2, 0),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, 2, 1, 0),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, 3, 0, 1),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_close, 0, 4),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[0])),
+    BPF_JUMP(BPF_JMP | BPF_JGE | BPF_K, 4, 0, 1),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_mmap, 0, 4),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[3])),
+    BPF_JUMP(BPF_JMP | BPF_JSET | BPF_K, MAP_SHARED, 0, 1),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_prlimit64, 0, 8),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[0])),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, 0, 0, 5),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[2])),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, 0, 0, 3),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[2]) + 4),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, 0, 0, 1),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_execve, 0, 1),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRACE),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_fcntl, 0, 5),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[1])),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, F_GETFD, 2, 0),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, F_GETFL, 1, 0),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ALLOW),
+    /* Python probes regular script/import FDs too. Return ENOTTY without
+     * entering the kernel ioctl implementation, for any TCGETS descriptor. */
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, __NR_ioctl, 0, 5),
+    BPF_STMT(BPF_LD | BPF_W | BPF_ABS, offsetof(struct seccomp_data, args[1])),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, TCGETS, 1, 0),
+    BPF_JUMP(BPF_JMP | BPF_JEQ | BPF_K, TCGETS2, 0, 1),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_ERRNO | ENOTTY),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP),
+    M_ALLOW(read),
+    M_ALLOW(pread64),
+    M_ALLOW(readv),
+    M_ALLOW(lseek),
+    M_ALLOW(stat),
+    M_ALLOW(fstat),
+    M_ALLOW(lstat),
+    M_ALLOW(newfstatat),
+    M_ALLOW(statx),
+    M_ALLOW(access),
+    M_ALLOW(faccessat),
+    M_ALLOW(readlink),
+    M_ALLOW(readlinkat),
+    M_ALLOW(getdents64),
+    M_ALLOW(getcwd),
+    M_ALLOW(mprotect),
+    M_ALLOW(munmap),
+    M_ALLOW(mremap),
+    M_ALLOW(madvise),
+    M_ALLOW(brk),
+    M_ALLOW(rt_sigaction),
+    M_ALLOW(rt_sigprocmask),
+    M_ALLOW(rt_sigreturn),
+    M_ALLOW(sigaltstack),
+    M_ALLOW(arch_prctl),
+    M_ALLOW(set_tid_address),
+    M_ALLOW(set_robust_list),
+    M_ALLOW(rseq),
+    M_ALLOW(futex),
+    M_ALLOW(sched_yield),
+    M_ALLOW(clock_gettime),
+    M_ALLOW(clock_nanosleep),
+    M_ALLOW(nanosleep),
+    M_ALLOW(gettimeofday),
+    M_ALLOW(getrandom),
+    M_ALLOW(getpid),
+    M_ALLOW(getppid),
+    M_ALLOW(gettid),
+    M_ALLOW(getuid),
+    M_ALLOW(geteuid),
+    M_ALLOW(getgid),
+    M_ALLOW(getegid),
+    M_ALLOW(uname),
+    M_ALLOW(exit),
+    M_ALLOW(exit_group),
+    BPF_STMT(BPF_RET | BPF_K, SECCOMP_RET_TRAP)
+};
+#undef M_ALLOW
+#endif
+
+static int mediated_filter(void) {
+#if defined(__x86_64__)
+    struct sock_fprog program = {.len = (unsigned short)(sizeof(mediated_code) / sizeof(mediated_code[0])),
+                                .filter = (struct sock_filter *)mediated_code};
+    struct __user_cap_header_struct head = {.version = _LINUX_CAPABILITY_VERSION_3, .pid = 0};
+    struct __user_cap_data_struct caps[2] = {{0}};
+    if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) || syscall(SYS_capset, &head, caps) ||
+        prctl(PR_CAP_AMBIENT, PR_CAP_AMBIENT_CLEAR_ALL, 0, 0, 0)) return -1;
+    return prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &program);
+#else
+    return -1;
+#endif
+}
+
+static int readonly_runtime(int runtime) {
+    int tree = (int)syscall(SYS_open_tree, runtime, "", OPEN_TREE_CLONE | OPEN_TREE_CLOEXEC | AT_EMPTY_PATH | AT_RECURSIVE);
+    if (tree < 0) return -1;
+    struct mount_attr attributes = {.attr_set = MOUNT_ATTR_RDONLY | MOUNT_ATTR_NOSUID |
+        MOUNT_ATTR_NODEV | MOUNT_ATTR_NOSYMFOLLOW, .propagation = MS_PRIVATE};
+    if (syscall(SYS_mount_setattr, tree, "", AT_EMPTY_PATH | AT_RECURSIVE,
+                &attributes, sizeof(attributes)) || fchdir(tree) || chroot(".") || chdir("/")) {
+        close(tree); return -1;
+    }
+    close(tree);
+    return close(runtime);
+}
+
+/* recvmsg kernel credentials, never payload PID fields, identify the single
+ * live worker birth. No SCM_RIGHTS are accepted; truncated ancillary data also
+ * fails closed. All limits are transport limits, independent of JSON parsing. */
+static ssize_t worker_packet(int fd, pid_t pid, char *data, size_t capacity) {
+    char ancillary[CMSG_SPACE(sizeof(struct ucred))] = {0};
+    struct iovec iov = {.iov_base = data, .iov_len = capacity};
+    struct msghdr message = {.msg_iov = &iov, .msg_iovlen = 1,
+        .msg_control = ancillary, .msg_controllen = sizeof(ancillary)};
+    ssize_t n = recvmsg(fd, &message, MSG_DONTWAIT | MSG_CMSG_CLOEXEC);
+    if (n <= 0 || n >= (ssize_t)capacity || message.msg_flags & (MSG_TRUNC | MSG_CTRUNC)) return -1;
+    struct cmsghdr *header = CMSG_FIRSTHDR(&message);
+    if (!header || CMSG_NXTHDR(&message, header) || header->cmsg_level != SOL_SOCKET ||
+        header->cmsg_type != SCM_CREDENTIALS || header->cmsg_len != CMSG_LEN(sizeof(struct ucred))) return -1;
+    struct ucred credentials;
+    memcpy(&credentials, CMSG_DATA(header), sizeof(credentials));
+    if (credentials.pid != pid || credentials.uid != getuid() || credentials.gid != getgid() ||
+        memchr(data, 0, (size_t)n)) return -1;
+    data[n] = 0;
+    return n;
+}
+
+static int policy_packet(int gate, const char *session, unsigned long generation,
+                         pid_t pid, const struct stat *runtime, int64_t end) {
+    char data[192], ack[128];
+    int n = snprintf(data, sizeof(data), "POLICY %s %lu %ld %llu %llu broker-v1", session,
+        generation, (long)pid, (unsigned long long)runtime->st_dev, (unsigned long long)runtime->st_ino);
+    int m = snprintf(ack, sizeof(ack), "ACK %s 0", session);
+    return n > 0 && n < (int)sizeof(data) && m > 0 && m < (int)sizeof(ack) &&
+        !send_packet(gate, data) ? expect(gate, ack, end) : -1;
+}
+
+static int rpc_packet(int gate, int rpc, const char *session, unsigned long generation,
+                      pid_t pid, const char *json, int64_t end) {
+    char data[FRAME_BOUND], prefix[192];
+    int n = snprintf(data, sizeof(data), "RPC %s %lu %ld %s", session, generation, (long)pid, json);
+    int p = snprintf(prefix, sizeof(prefix), "RPC_REPLY %s %lu %ld ", session, generation, (long)pid);
+    if (n <= 0 || n >= (int)sizeof(data) || p <= 0 || p >= (int)sizeof(prefix) || send_packet(gate, data)) return -1;
+    ssize_t count = receive(gate, data, sizeof(data), end);
+    if (count <= p || count - p > RPC_BOUND || memcmp(data, prefix, (size_t)p) ||
+        memchr(data, 0, (size_t)count)) return -1;
+    data[count] = 0;
+    return send_packet(rpc, data + p);
+}
+
 struct task { pid_t pid; int alive; };
 static struct task tasks[LIMIT];
 static unsigned long sequence;
@@ -207,7 +404,8 @@ static int born(int gate, const char *session, pid_t pid, pid_t parent, int64_t 
     tasks[index] = (struct task){.pid = pid, .alive = 1}; ++active;
     return 0;
 }
-static void namespace_init(int gate, int ready, int root, const char *session, char **worker) {
+static void namespace_init(int gate, int ready, int root, int runtime, const struct stat *runtime_stat,
+                           const char *session, char **worker) {
     if (getpid() != 1 || prctl(PR_SET_PDEATHSIG, SIGKILL)) _exit(71);
     if (syscall(SYS_close_range, 3U, ~0U, CLOSE_RANGE_CLOEXEC)) _exit(72);
     if (write(ready, "R", 1) != 1) _exit(73);
@@ -216,10 +414,29 @@ static void namespace_init(int gate, int ready, int root, const char *session, c
     snprintf(start, sizeof(start), "START %s", session);
     if (expect(gate, start, deadline())) _exit(74);
     int64_t end = deadline(); /* single bounded entire worker run */
+    int mediated = runtime >= 0, rpc[2] = {-1, -1};
+    if (mediated) {
+        /* The fixture authority is closed before worker creation. */
+        if (close(root) || socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, rpc)) _exit(101);
+        int enabled = 1;
+        if (setsockopt(rpc[0], SOL_SOCKET, SO_PASSCRED, &enabled, sizeof(enabled))) _exit(102);
+    }
     pid_t worker_pid = fork();
     if (worker_pid < 0) _exit(75);
     if (!worker_pid) {
         close(gate);
+        if (mediated) {
+            close(rpc[0]);
+            if (readonly_runtime(runtime) || dup2(rpc[1], RPC_FD) < 0 || fcntl(RPC_FD, F_SETFD, 0) ||
+                syscall(SYS_close_range, 4U, ~0U, 0)) _exit(103);
+            if (clearenv() || setenv("PATH", "/usr/bin:/bin", 1) || setenv("LANG", "C", 1)) _exit(104);
+            if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) || raise(SIGSTOP)) _exit(85);
+            if (mediated_filter() || write(RPC_FD, "POLICY", 6) != 6) _exit(105);
+            char ack[4];
+            if (read(RPC_FD, ack, sizeof(ack)) != 3 || memcmp(ack, "ACK", 3)) _exit(106);
+            execv(worker[0], worker);
+            _exit(127);
+        }
         /* Retain just the approved directory capability across exec. */
         if (fcntl(root, F_SETFD, 0)) _exit(80);
         char paths[10][128];
@@ -237,24 +454,48 @@ static void namespace_init(int gate, int ready, int root, const char *session, c
         execv(worker[0], worker);
         _exit(127);
     }
+    if (mediated) { close(rpc[1]); close(runtime); }
     int status, root_status = -1;
     pid_t got;
     do { got = waitpid(worker_pid, &status, WUNTRACED | WNOHANG); }
     while (!got && remaining(end) > 0);
     if (got != worker_pid || !WIFSTOPPED(status) || WSTOPSIG(status) != SIGSTOP) _exit(87);
     unsigned long options = PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE |
-                            PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT | PTRACE_O_EXITKILL;
+                            PTRACE_O_TRACEEXEC | PTRACE_O_TRACEEXIT | PTRACE_O_EXITKILL |
+                            (mediated ? PTRACE_O_TRACESECCOMP : 0);
     if (ptrace(PTRACE_SETOPTIONS, worker_pid, NULL, (void *)options) ||
         born(gate, session, worker_pid, 1, end) || ptrace(PTRACE_CONT, worker_pid, NULL, NULL)) _exit(88);
+    unsigned long generation = sequence;
+    int policy = 0, exec_attempt = 0, executed = 0;
     while (active) {
         if (remaining(end) < 0) _exit(89);
         got = wait_known(&status);
         if (got < 0 && errno == EINTR) continue;
         if (got < 0) _exit(90);
-        if (!got) { struct timespec pause = {.tv_nsec = 1000000}; nanosleep(&pause, NULL); continue; }
+        if (!got) {
+            if (mediated) {
+                struct pollfd item = {.fd = rpc[0], .events = POLLIN};
+                int available = poll(&item, 1, 0);
+                if (available < 0 && errno != EINTR) _exit(107);
+                if (available > 0 && (item.revents & POLLIN)) {
+                    char data[RPC_BOUND + 1];
+                    ssize_t count = worker_packet(rpc[0], worker_pid, data, sizeof(data));
+                    if (count < 0) _exit(108);
+                    if (!policy) {
+                        if (count != 6 || memcmp(data, "POLICY", 6) ||
+                            policy_packet(gate, session, generation, worker_pid, runtime_stat, end) ||
+                            send_packet(rpc[0], "ACK")) _exit(109);
+                        policy = 1;
+                    } else if (!executed || rpc_packet(gate, rpc[0], session, generation, worker_pid, data, end)) _exit(110);
+                }
+            }
+            struct timespec pause = {.tv_nsec = 1000000}; nanosleep(&pause, NULL); continue;
+        }
         int index = known(got);
         if (index < 0) _exit(91); /* never adopt an unregistered descendant */
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
+            if (mediated && (WIFSIGNALED(status) && WTERMSIG(status) == SIGSYS)) _exit(111);
+            if (mediated && (!policy || !executed)) _exit(112);
             int result = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
             if (event(gate, session, "EXIT", got, result, end)) _exit(92);
             tasks[index].alive = 0; --active;
@@ -262,14 +503,24 @@ static void namespace_init(int gate, int ready, int root, const char *session, c
             continue;
         }
         if (!WIFSTOPPED(status)) _exit(93);
+        if (mediated && WSTOPSIG(status) == SIGSYS) _exit(111);
         unsigned int kind = (unsigned int)status >> 16;
         if (kind == PTRACE_EVENT_FORK || kind == PTRACE_EVENT_VFORK || kind == PTRACE_EVENT_CLONE) {
+            if (mediated) _exit(113);
             unsigned long child = 0;
             if (ptrace(PTRACE_GETEVENTMSG, got, NULL, &child) || child > INT_MAX ||
                 born(gate, session, (pid_t)child, got, end)) _exit(94);
+        } else if (mediated && kind == PTRACE_EVENT_SECCOMP) {
+            if (!policy || exec_attempt || executed || got != worker_pid) _exit(115);
+            exec_attempt = 1;
         } else if (kind == PTRACE_EVENT_EXEC) {
             unsigned long previous = 0;
             if (ptrace(PTRACE_GETEVENTMSG, got, NULL, &previous) || previous != (unsigned long)got) _exit(95);
+            if (mediated) {
+                if (!policy || !exec_attempt || executed || got != worker_pid || generation > INT_MAX ||
+                    event(gate, session, "EXEC", got, (int)generation, end)) _exit(114);
+                executed = 1;
+            }
             /* Nonleader exec/TID replacement requires a new reviewed transition. */
         } else if (kind != 0 && kind != PTRACE_EVENT_EXIT) _exit(96);
         int sig = kind || WSTOPSIG(status) == SIGSTOP ? 0 : WSTOPSIG(status);
@@ -281,6 +532,7 @@ static void namespace_init(int gate, int ready, int root, const char *session, c
     got = waitpid(-1, &status, __WALL | WNOHANG);
     if (got != -1 || errno != ECHILD) _exit(100);
     if (root_status < 0) _exit(98);
+    if (mediated) close(rpc[0]);
     char done[128];
     snprintf(done, sizeof(done), "DONE %s %d", session, root_status);
     if (send_packet(gate, done)) _exit(99);
@@ -290,7 +542,9 @@ static void namespace_init(int gate, int ready, int root, const char *session, c
 
 int main(int argc, char **argv) {
     if (argc < 8 || strcmp(argv[1], "--control-fd") || strcmp(argv[4], "--root-fd") ||
-        strcmp(argv[6], "--") || strlen(argv[3]) != 32 || argv[7][0] != '/') return 64;
+        strlen(argv[3]) != 32) return 64;
+    int mediated = !strcmp(argv[6], "--runtime-fd"), worker_at = mediated ? 9 : 7;
+    if (argc <= worker_at || strcmp(argv[worker_at - 1], "--") || argv[worker_at][0] != '/') return 64;
     for (size_t i = 0; i < 32; ++i) if (!((argv[3][i] >= '0' && argv[3][i] <= '9') ||
         (argv[3][i] >= 'a' && argv[3][i] <= 'f'))) return 64;
     char *tail;
@@ -300,6 +554,21 @@ int main(int argc, char **argv) {
     selected = strtol(argv[5], &tail, 10);
     if (*tail || selected < 3 || selected > 1048576 || selected == control) return 64;
     int root = (int)selected;
+    int runtime = -1;
+    struct stat runtime_stat = {0};
+    if (mediated) {
+        selected = strtol(argv[7], &tail, 10);
+        if (*tail || selected < 3 || selected > 1048576 || selected == control || selected == root) return 64;
+        runtime = (int)selected;
+        if (fstat(runtime, &runtime_stat) || !S_ISDIR(runtime_stat.st_mode) ||
+            fcntl(runtime, F_GETFD) != 0 || fcntl(runtime, F_SETFD, FD_CLOEXEC)) return 65;
+        struct stat input, output, error;
+        if (fstat(0, &input) || !S_ISCHR(input.st_mode) || input.st_rdev != makedev(1, 3) ||
+            fstat(1, &output) || !S_ISFIFO(output.st_mode) ||
+            fstat(2, &error) || !S_ISFIFO(error.st_mode) ||
+            (fcntl(1, F_GETFL) & O_ACCMODE) != O_WRONLY ||
+            (fcntl(2, F_GETFL) & O_ACCMODE) != O_WRONLY) return 65;
+    }
     struct stat root_stat;
     if (fstat(root, &root_stat) || !S_ISDIR(root_stat.st_mode) || root_stat.st_uid != getuid() ||
         (root_stat.st_mode & 0777) != 0700 || !getuid()) return 65;
@@ -308,13 +577,13 @@ int main(int argc, char **argv) {
     int gate[2], ready[2];
     if (socketpair(AF_UNIX, SOCK_SEQPACKET | SOCK_CLOEXEC, 0, gate) || pipe2(ready, O_CLOEXEC)) return 66;
     struct clone_args args = {0};
-    args.flags = CLONE_NEWPID | CLONE_PIDFD;
+    args.flags = CLONE_NEWPID | CLONE_PIDFD | (mediated ? CLONE_NEWNS : 0);
     args.pidfd = (uintptr_t)&child_pidfd; args.exit_signal = SIGCHLD;
     child_pid = (pid_t)syscall(SYS_clone3, &args, sizeof(args));
     if (child_pid < 0) return 67;
     if (!child_pid) {
         close(control); close(gate[1]); close(ready[0]);
-        namespace_init(gate[0], ready[1], root, argv[3], &argv[7]);
+        namespace_init(gate[0], ready[1], root, runtime, &runtime_stat, argv[3], &argv[worker_at]);
         _exit(78);
     }
     close(gate[0]); close(ready[1]);
@@ -346,13 +615,14 @@ int main(int argc, char **argv) {
     if (send_packet(gate[1], message)) preserve();
     end = deadline();
     for (;;) {
-        char data[192], ack[192];
+        char data[FRAME_BOUND], ack[FRAME_BOUND];
         ssize_t count = receive(gate[1], data, sizeof(data), end);
         if (count < 0) preserve();
         data[count] = 0;
         if (send_packet(control, data)) preserve();
         if (!strncmp(data, "DONE ", 5)) break;
-        if (strncmp(data, "TASK ", 5)) preserve();
+        if (strncmp(data, "TASK ", 5) && (!mediated ||
+            (strncmp(data, "POLICY ", 7) && strncmp(data, "RPC ", 4)))) preserve();
         count = receive(control, ack, sizeof(ack), end);
         if (count < 0) preserve();
         ack[count] = 0;

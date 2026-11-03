@@ -186,8 +186,9 @@ Before any fixture exists, the supervisor must also inject a prospective
 Teardown delegates to this captured capability; there is no `rmtree` fallback.
 Unknown descendants or changed/missing evidence require preservation. An env var
 alone, ambient XDG runtime, a reconstructed inventory or later stat is insufficient.
-OS-backed supervisor sources are now present, but their real adapters and
-broker/operator integration remain unaccepted and unexecuted. Do not improvise
+OS-backed supervisor sources and an explicit mediated engine/operator pilot are
+present, but their real adapters remain unaccepted and unexecuted. The pilot does
+not inject this legacy callback or enable any of the 79 tests. Do not improvise
 a wrapper to make discovery pass. Native Fish may create XDG data/cache children,
 so future supervision must witness them prospectively or prevent their creation by design.
 
@@ -226,5 +227,7 @@ unexecuted OS-backed adapters alongside the older injected-boundary model. The
 model itself provides no real allocator, lifecycle authority or cleanup adapter.
 Neither a model/mock pass nor implemented source establishes validated custody
 or accepted cleanup. Their scoped CI result is separate from the 79 blocked
-dynamic methods; the broad workflow remains unchanged. Broker/operator integration
-and fresh fixture execution still require independent review and explicit authorization.
+dynamic methods; the broad workflow remains unchanged. The implemented mediated
+pilot supports one worker lifetime and no arbitrary fault mutations. Kernel
+enforcement, fresh fixture execution and teardown still require explicit scoped
+authorization and runtime evidence; mocked integration is not validated custody.

@@ -24,6 +24,15 @@ jobs:
         run: /usr/bin/python3 -B -I -S tests/test_host_canary_runtime.py
       - name: Mock native lifecycle protocol checks
         run: /usr/bin/python3 -B -I -S tests/test_host_canary_lifecycle.py
+      - name: Fixed-role fake broker checks
+        run: /usr/bin/python3 -B -I -S tests/test_host_canary_broker.py
+      - name: In-memory worker protocol and engine integration
+        run: |
+          /usr/bin/python3 -B -I -S tests/test_host_canary_rpc.py
+          /usr/bin/python3 -B -I -S tests/test_host_canary_control.py
+          /usr/bin/python3 -B -I -S tests/test_host_canary_integration.py
+      - name: Interpret native syscall policy without executing it
+        run: /usr/bin/python3 -B -I -S tests/test_host_canary_native_policy.py
       - name: Native custodian syntax only (never executed)
         run: cc -std=c11 -Wall -Wextra -Werror -fsyntax-only tests/native/host_canary/custodian.c
       - name: Publish explicit NOT EXECUTED dynamic manifest

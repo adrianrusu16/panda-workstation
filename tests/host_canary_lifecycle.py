@@ -8,6 +8,8 @@ The original Host operator deliberately has no integration with these adapters.
 import array
 import fcntl
 import hashlib
+import importlib.util
+import json
 import os
 import re
 import select
@@ -17,10 +19,117 @@ import stat
 import struct
 import subprocess
 import time
+from pathlib import Path
 
 
 class LifecycleError(ValueError):
     """Retain all filesystem/process evidence. No teardown or retry grant."""
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False).encode('ascii')
+
+
+class RuntimeGrant:
+    """Original curated runtime FDs plus an externally reviewed manifest digest.
+
+    This does not allocate/adopt a fixture. The caller supplies its original,
+    private runtime root. Every regular file and directory is retained, without
+    links, special files, procfs, foreign mounts or writable group/other access.
+    Missing kernel support for the native read-only clone remains a hard gate.
+    No digest read from this tree is accepted as review authority.
+    """
+    def __init__(self, kernel, root_fd, reviewed_digest):
+        self.k, self.fd, self.objects, self.rows = kernel, root_fd, {}, []
+        self.bytes, self.failed = 0, False
+        if not isinstance(reviewed_digest, str) or not re.fullmatch('[0-9a-f]{64}', reviewed_digest):
+            raise LifecycleError('external runtime manifest digest required')
+        self.digest = reviewed_digest
+        try:
+            self.root_pin = kernel.snapshot(root_fd)
+            if self.root_pin['mode'] != stat.S_IFDIR | 0o700:
+                raise LifecycleError('original runtime root must be private')
+            self._capture('', root_fd, None, None)
+            if hashlib.sha256(canonical(self.rows)).hexdigest() != reviewed_digest:
+                raise LifecycleError('curated runtime manifest was not approved')
+            self.check()
+        except BaseException as exc:
+            self.failed = True
+            exc.runtime_grant = self  # retain partial descriptors, never reopen or delete
+            raise
+
+    def _capture(self, path, fd, parent, name):
+        if len(self.objects) >= 4096 or len(path) > 1024:
+            raise LifecycleError('runtime manifest budget exceeded')
+        pin = self.k.snapshot(fd)
+        uid, gid = self.k.identity()
+        directory = stat.S_ISDIR(pin['mode'])
+        if (not directory and not stat.S_ISREG(pin['mode']) or pin['uid'] != uid or pin['gid'] != gid
+                or pin['mode'] & 0o7022 or pin['xattrs'] or pin['fdflags'] != fcntl.FD_CLOEXEC
+                or pin['flags'] & os.O_ACCMODE or not pin['flags'] & os.O_NOATIME
+                or pin['filesystem'] not in (0xEF53, 0x9123683E)
+                or directory and pin['filesystem'] == 0x9123683E and pin['ino'] == 256
+                or (pin['dev'], pin['mount'], pin['namespace']) !=
+                   (self.root_pin['dev'], self.root_pin['mount'], self.root_pin['namespace'])
+                or not directory and pin['nlink'] != 1
+                or directory and (pin['nlink'] != 1 if pin['filesystem'] == 0x9123683E else pin['nlink'] < 2)
+                or any((o['pin']['dev'], o['pin']['ino']) == (pin['dev'], pin['ino']) for o in self.objects.values())):
+            raise LifecycleError('unsupported runtime descriptor/type/ownership/mount/link state')
+        obj = dict(fd=fd, pin=pin, parent=parent, name=name, directory=directory)
+        self.objects[path] = obj
+        row = dict(path=path, mode=stat.S_IMODE(pin['mode']), directory=directory)
+        if directory:
+            names = self.k.entries(fd)
+            if (type(names) is not list or names != sorted(set(names)) or len(names) > 4096
+                    or any(not isinstance(n, str) or not n or n in ('.','..') or '/' in n or '\\' in n
+                           or len(n) > 255 or any(ord(c) < 32 or ord(c) > 126 for c in n) for n in names)):
+                raise LifecycleError('unsupported runtime names')
+            obj['names'] = names
+            self.rows.append(row)
+            for child in names:
+                child_fd = self.k.runtime_open(fd, child)
+                # Store descriptor immediately, including failures before validation.
+                obj.setdefault('opened', []).append(child_fd)
+                self._capture(path + '/' + child if path else child, child_fd, fd, child)
+        else:
+            if not 0 <= pin['size'] <= 16 * 1024 * 1024:
+                raise LifecycleError('runtime file size budget exceeded')
+            self.bytes += pin['size']
+            if self.bytes > 128 * 1024 * 1024:
+                raise LifecycleError('runtime total size budget exceeded')
+            data = self.k.read(fd, pin['size'] + 1, 0)
+            if len(data) != pin['size']: raise LifecycleError('incomplete runtime read')
+            obj['data'] = data
+            row.update(sha256=hashlib.sha256(data).hexdigest(), bytes=len(data))
+            self.rows.append(row)
+        if self.k.snapshot(fd) != pin:
+            raise LifecycleError('runtime changed while recording original evidence')
+
+    def check(self):
+        if self.failed: raise LifecycleError('runtime grant revoked')
+        try:
+            for obj in self.objects.values():
+                if self.k.snapshot(obj['fd']) != obj['pin']:
+                    raise LifecycleError('original runtime descriptor changed')
+                if obj['parent'] is not None:
+                    observed = self.k.observe(obj['parent'], obj['name'])
+                    if {k:v for k,v in observed.items() if k != 'flags'} != {k:v for k,v in obj['pin'].items() if k != 'flags'}:
+                        raise LifecycleError('original runtime binding changed')
+                if obj['directory']:
+                    if self.k.entries(obj['fd']) != obj['names']: raise LifecycleError('runtime has unexpected children')
+                elif self.k.read(obj['fd'], len(obj['data']) + 1, 0) != obj['data']:
+                    raise LifecycleError('original runtime bytes changed')
+        except BaseException:
+            self.failed = True
+            raise
+
+    def file(self, path):
+        self.check()
+        if not isinstance(path, str) or not path.startswith('/') or path[1:] not in self.objects:
+            raise LifecycleError('runtime file is not in approved manifest')
+        obj = self.objects[path[1:]]
+        if obj['directory']: raise LifecycleError('runtime file required')
+        return obj['data']
 
 
 class LinuxTransport:
@@ -35,7 +144,7 @@ class LinuxTransport:
     CLONE_NEWPID = 0x20000000
 
     @classmethod
-    def spawn(cls, helper_fd, digest, argv, session, root_fd):
+    def spawn(cls, helper_fd, digest, argv, session, root_fd, runtime_fd=None):
         self = cls()
         self.helper_fd, self.digest, self.root_fd = helper_fd, digest, root_fd
         self.birth = None
@@ -50,10 +159,12 @@ class LinuxTransport:
         try:
             # Root/worker argument scope was checked by the prospective broker.
             # Keep helper itself a direct unreaped child until CLOSED is checked.
+            runtime_args = [] if runtime_fd is None else ['--runtime-fd', str(runtime_fd)]
+            inherited = (helper_fd, child.fileno(), root_fd) + (() if runtime_fd is None else (runtime_fd,))
             self.process = subprocess.Popen(
                 [f'/proc/self/fd/{helper_fd}', '--control-fd', str(child.fileno()),
-                 session, '--root-fd', str(root_fd), '--', *argv],
-                pass_fds=(helper_fd, child.fileno(), root_fd), close_fds=True,
+                 session, '--root-fd', str(root_fd), *runtime_args, '--', *argv],
+                pass_fds=inherited, close_fds=True,
                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 env={'PATH': '/usr/bin:/bin', 'LANG': 'C'})
             self.streams = {self.process.stdout: self.output, self.process.stderr: self.errors}
@@ -102,7 +213,7 @@ class LinuxTransport:
             # Per-message SCM_CREDENTIALS identifies the actual sender; initial
             # socketpair SO_PEERCRED would identify its creator, not exec'd peer.
             raw, ancillary, flags, _ = self.channel.recvmsg(
-                192, socket.CMSG_SPACE(8) + socket.CMSG_SPACE(12), socket.MSG_CMSG_CLOEXEC)
+                33280, socket.CMSG_SPACE(8) + socket.CMSG_SPACE(12), socket.MSG_CMSG_CLOEXEC)
             received, credentials, unexpected = [], [], False
             for level, kind, payload in ancillary:
                 if level == socket.SOL_SOCKET and kind == socket.SCM_RIGHTS:
@@ -118,7 +229,7 @@ class LinuxTransport:
                     unexpected = True
             if unexpected:
                 raise LifecycleError('unexpected helper ancillary data')
-            if (flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC) or not raw or len(raw) >= 192
+            if (flags & (socket.MSG_TRUNC | socket.MSG_CTRUNC) or not raw or len(raw) >= 33280
                     or credentials != [(self.process.pid, os.geteuid(), os.getegid())]
                     or self.process.returncode is not None):
                 raise LifecycleError('lost helper peer/truncated packet; preserve')
@@ -207,7 +318,7 @@ class LinuxTransport:
 class NativeLifecycle:
     """Session-bound protocol; no accepted boolean/callback closure interface."""
     @classmethod
-    def start(cls, kernel, ledger, helper_fd, digest, argv, session, root_fd, root_pin):
+    def start(cls, kernel, ledger, helper_fd, digest, argv, session, root_fd, root_pin, *, _mediation=None):
         if (not isinstance(session, str) or not re.fullmatch('[0-9a-f]{32}', session)
                 or not isinstance(digest, str) or not re.fullmatch('[0-9a-f]{64}', digest)
                 or not isinstance(argv, (list, tuple)) or not argv or len(argv) > 128
@@ -219,13 +330,18 @@ class NativeLifecycle:
         self.k, self.ledger, self.session = kernel, ledger, session
         self.root_fd, self.root_pin = root_fd, dict(root_pin)
         self.preserved = self.ran = self.closed = False
+        self._mediation = _mediation
+        self._policy_ready = self._exec_ready = False
         if kernel.snapshot(root_fd) != self.root_pin:
             raise LifecycleError('root differs before helper start')
-        ledger.append({'kind': 'namespace-intent', 'helper_sha256': digest, 'worker': list(argv)})
+        ledger.append({'kind': 'namespace-intent', 'helper_sha256': digest,
+                       'worker_sha256': hashlib.sha256(canonical(list(argv))).hexdigest(),
+                       'profile': 'broker-v1' if _mediation else 'legacy-unmediated'})
         factory = getattr(kernel, 'process_transport', LinuxTransport.spawn)
         try:
             try:
-                self.transport = factory(helper_fd, digest, list(argv), session, root_fd)
+                args = (helper_fd, digest, list(argv), session, root_fd)
+                self.transport = factory(*args, _mediation[0].fd) if _mediation else factory(*args)
             except BaseException as exc:
                 self.transport = getattr(exc, 'transport', None)
                 raise
@@ -243,6 +359,65 @@ class NativeLifecycle:
             exc.lifecycle = self
             raise
 
+    @classmethod
+    def start_mediated(cls, kernel, ledger, helper_fd, digest, session, root_fd, root_pin, *, runtime, store, plan):
+        """External-controller entry. Does not authorize execution on this host.
+
+        One epoch only; process-crash recovery/restart remains unsupported. The
+        worker uses the existing pure transaction engine through fixed-role RPC.
+        JSON or a callback never selects this profile or grants teardown.
+        """
+        if type(runtime) is not RuntimeGrant or runtime.k is not kernel:
+            raise LifecycleError('original typed runtime grant required')
+        runtime.check()
+        receipt = store.root_receipt()
+        if (receipt['fd'] != root_fd or receipt['pin'] != root_pin or receipt['session_id'] != session
+                or store.s.k is not kernel or runtime.file('/app/host_canary.py') != store.program.data):
+            raise LifecycleError('broker/runtime/session source authority differs')
+        for path in ('/app/host_canary_rpc.py','/app/host_canary_mediated.py'):
+            if not runtime.file(path): raise LifecycleError('approved worker module absent')
+        runtime.file('/bin/python3')
+        if not runtime.objects['bin/python3']['pin']['mode'] & 0o100:
+            raise LifecycleError('approved interpreter must be owner executable')
+        if type(plan) is not list or not 1 <= len(plan) <= 32:
+            raise LifecycleError('bounded explicit worker plan required')
+        encoded = canonical(plan).decode('ascii')
+        if len(encoded) > 4096: raise LifecycleError('worker plan exceeds argument bound')
+        store.restrict_plan(plan)  # controller-only, one-way; never worker RPC
+        path = Path(__file__).with_name('host_canary_rpc.py')
+        if not path.is_file(): path = Path(__file__).resolve().parents[1] / 'theme/panda/common/host_canary_rpc.py'
+        spec = importlib.util.spec_from_file_location('_panda_controller_rpc', path)
+        rpc_api = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(rpc_api)
+        rpc = rpc_api.Server(store, ledger, session, 1)
+        argv = ['/bin/python3','-B','-I','-S','/app/host_canary_mediated.py',
+                '--rpc-fd','3','--session',session,'--epoch','1','--plan',encoded]
+        return cls.start(kernel, ledger, helper_fd, digest, argv, session, root_fd, root_pin,
+                         _mediation=(runtime, store, rpc, receipt['birth']))
+
+    @property
+    def mediated_profile(self):
+        return bool(self._mediation and self._policy_ready and self._exec_ready and not self.preserved)
+
+    def _refresh_root(self):
+        runtime, store, rpc, birth = self._mediation
+        receipt = store.root_receipt()  # original broker HeldObject; complete graph checked
+        if receipt['fd'] != self.root_fd or receipt['birth'] != birth or receipt['session_id'] != self.session:
+            raise LifecycleError('broker root birth/descriptor changed')
+        if self.k.snapshot(self.root_fd) != receipt['pin']:
+            raise LifecycleError('broker root transition not current')
+        if receipt['pin'] != self.root_pin:
+            self.ledger.append({'kind':'broker-root-transition','birth':birth,'pin':receipt['pin']})
+            self.root_pin = dict(receipt['pin'])
+
+    def _quiescent(self):
+        if self._mediation:
+            runtime, store, rpc, birth = self._mediation
+            runtime.check()
+            if not rpc.quiescent or store.lease is not None or store.views or store.programs:
+                raise LifecycleError('incomplete RPC/view/program/lock evidence; preserve')
+            store.root_receipt()
+
     def check(self):
         if self.preserved or self.closed or self.k.snapshot(self.root_fd) != self.root_pin:
             raise LifecycleError('root/lifecycle custody lost; preserve')
@@ -257,20 +432,45 @@ class NativeLifecycle:
             self.transport.send('START ' + self.session)
             end = time.monotonic() + 30
             sequence, active, root, root_status = 0, set(), None, None
+            generation = None
             while True:
                 left = end - time.monotonic()
                 if left <= 0:
                     raise LifecycleError('worker deadline; preserve')
                 packet = self.transport.receive(left)
                 self.check()
+                if self._mediation and packet.startswith('POLICY '):
+                    runtime = self._mediation[0]
+                    expected = f'POLICY {self.session} {generation} {root} {runtime.root_pin["dev"]} {runtime.root_pin["ino"]} broker-v1'
+                    if packet != expected or self._policy_ready or root not in active:
+                        raise LifecycleError('unregistered or duplicate kernel policy receipt')
+                    runtime.check()
+                    self.ledger.append({'kind':'worker-policy','profile':'broker-v1','generation':generation,'pid':root,
+                                        'runtime_sha256':runtime.digest})
+                    self._policy_ready = True
+                    self.transport.send(f'ACK {self.session} 0')
+                    continue
+                if self._mediation and packet.startswith('RPC '):
+                    prefix = f'RPC {self.session} {generation} {root} '
+                    if not self.mediated_profile or root not in active or not packet.startswith(prefix):
+                        raise LifecycleError('RPC lacks acknowledged original worker/generation/policy/exec')
+                    raw = packet[len(prefix):].encode('ascii')
+                    reply = self._mediation[2].accept(raw)
+                    self._refresh_root()
+                    self.transport.send(f'RPC_REPLY {self.session} {generation} {root} ' + reply.decode('ascii'))
+                    continue
                 done = re.fullmatch(r'DONE ([0-9a-f]{32}) ([0-9]{1,3})', packet)
                 if done:
                     if done[1] != self.session or active or root is None or int(done[2]) != root_status:
                         raise LifecycleError('incomplete descendant registration/termination')
+                    if self._mediation:
+                        if not self.mediated_profile: raise LifecycleError('missing enforced worker policy/exec evidence')
+                        if root_status != 0: raise LifecycleError('worker failure or stopped plan; preserve transaction evidence')
+                        self._quiescent()
                     self.ledger.append({'kind': 'worker-complete', 'status': root_status, 'events': sequence})
                     self.ran = True
                     return root_status
-                event = re.fullmatch(r'TASK ([0-9a-f]{32}) ([1-9][0-9]{0,5}) (BIRTH|EXIT) ([1-9][0-9]{0,9}) ([0-9]{1,10})', packet)
+                event = re.fullmatch(r'TASK ([0-9a-f]{32}) ([1-9][0-9]{0,5}) (BIRTH|EXIT|EXEC) ([1-9][0-9]{0,9}) ([0-9]{1,10})', packet)
                 if not event or event[1] != self.session or int(event[2]) != sequence + 1 or sequence >= 100000:
                     raise LifecycleError('unknown/gapped lifecycle record')
                 sequence += 1
@@ -278,10 +478,18 @@ class NativeLifecycle:
                 if pid <= 1:
                     raise LifecycleError('namespace-init cannot be a worker task')
                 if kind == 'BIRTH':
+                    if self._mediation and root is not None:
+                        raise LifecycleError('unexpected descendant in no-fork mediated profile')
                     if pid in active or len(active) >= 4096 or (root is None and value != 1) or (root is not None and value not in active):
                         raise LifecycleError('unregistered creator/duplicate task')
                     active.add(pid)
-                    if root is None: root = pid
+                    if root is None:
+                        root, generation = pid, sequence
+                elif kind == 'EXEC':
+                    if (not self._mediation or not self._policy_ready or self._exec_ready
+                            or pid != root or pid not in active or value != generation):
+                        raise LifecycleError('unexpected exec/generation or missing kernel policy')
+                    self._exec_ready = True
                 else:
                     if pid not in active or value > 255:
                         raise LifecycleError('unknown task exit')
@@ -292,6 +500,7 @@ class NativeLifecycle:
                 self.transport.send(f'ACK {self.session} {sequence}')
         except BaseException:
             self.preserved = True
+            if self._mediation: self._mediation[2].abort('native worker custody lost')
             raise
 
     def finish(self):
@@ -299,6 +508,7 @@ class NativeLifecycle:
             raise LifecycleError('no completed registered descendant run')
         try:
             self.check()
+            self._quiescent()
             self.ledger.append({'kind': 'namespace-stop-intent'})
             self.transport.send('STOP ' + self.session)
             if self.transport.receive(30) != 'CLOSED ' + self.session:

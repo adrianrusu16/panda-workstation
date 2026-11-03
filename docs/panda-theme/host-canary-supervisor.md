@@ -8,8 +8,10 @@ from inspection, adoption and cleanup. All 79 original dynamic refusals remain.
 
 ## Authority and supported boundary
 
-The controller, interpreter, reviewed native helper and cooperative worker are
-trusted. External writers must be quiescent and descriptor ownership exclusive.
+The controller, interpreter and reviewed native helper are trusted. External
+writers must be quiescent and descriptor ownership exclusive. The mediated
+worker has a kernel-restricted view described below; the older generic worker
+profile remains cooperative and cannot authorize canonical fixture cleanup.
 This is prospective custody, not a hostile same-UID sandbox: `mkdir` and first
 `open` are separate syscalls, and an unknown close/reopen onto the same inode is
 not detectable from `fstat`. Losing original descriptors or restarting a
@@ -30,7 +32,7 @@ the external controller; the ledger does not certify its own birth or supply
 permission to delete itself. The ledger and its parent are retained indefinitely.
 The first fixture intent is durable there before any fixture allocation, avoiding
 a circular runner-registry bootstrap. No replay/import, path-adoption, environment
-bootstrap or untrusted-worker RPC exists. Calling the trusted Python constructor
+bootstrap exists. Calling the trusted Python constructor
 is itself a live operation; only import and bare `LinuxKernel()` are inert.
 
 The approved theme transaction, 24 roles, schema 2 baseline-last enrollment,
@@ -87,7 +89,7 @@ power-loss durability on the actual storage stack.
 
 ## Narrow filesystem mutations
 
-The broker exposes scoped creation, bounded append, fixed zero-timestamp freeze,
+The broker exposes scoped creation, bounded append, fixed-role timestamp freeze,
 paired stage-to-target publication and transient unlink. There is no arbitrary
 chmod, destination path, recursive deletion or general rename/unlink interface.
 Freeze verifies both atime and mtime; retained no-atime descriptors keep broker
@@ -104,8 +106,8 @@ grant. Partial rename/sync/registration preserves both original descriptors.
 Transient unlink is limited to the fixed staging roles and generated fragment.
 Support evidence, baseline files and directories cannot be removed through it.
 Removal during final teardown has the stricter lifecycle and graph conditions
-below. All operations are controller APIs; no direct worker filesystem mutation
-has been mediated merely by adding these sources.
+below. These are controller operations. The mediated engine reaches them only
+through the authenticated protocol described below.
 
 ## Linux process lifecycle and handoff
 
@@ -155,7 +157,83 @@ descriptor transport and failure cleanup still require a separately approved
 live trial. Native syntax and mocked protocol tests establish none of those
 runtime facts.
 
-## Teardown, interrupted states and unaccepted integration
+## Mediated engine and operator integration (implemented, unexecuted)
+
+The original engine now has an explicit storage seam. Its default native path,
+schema 2, frozen stdlib program and transaction ordering remain. The new
+[`host_canary_mediated.py`](../../theme/panda/common/host_canary_mediated.py)
+driver uses the same Provider, install, recovery and CleanupProvider algorithms
+over a fixed-role broker. It supports a bounded explicit plan of initialization,
+provisioning, status, preview, install, recovery and empty-output cleanup. It
+does not enable general unittest discovery or the old ambient operator callback.
+
+| Mutation | Controller authority and evidence | Failure boundary |
+|---|---|---|
+| Fresh root / fixed directories | Durable exclusive creation intent, original parent/root FDs, registered birth before dependent operation | Failed first open, foreign child or replaced binding preserves |
+| Baseline / support / paired stages | Approved baseline/source bytes; exact role, mode and timestamps; original FD; synchronized registration | No arbitrary path, content restoration authority, chmod or utime |
+| Stage publication / generated unlink | Paired endpoints and expected full images; retained replaced originals; intent, data/parent sync and result | Partial mutation or acknowledgement preserves both old and current identities |
+| LOCK | Registered empty file and exact expected object; broker-held non-reentrant lease | Lost/reentrant lease or closing its view preserves |
+| Empty output removal | Validated restored enrollment/journal, exact CLEANUP.pending, reverse order and original empty-directory FD | No general rmdir, recursive deletion or inferred ownership |
+| Final teardown | Original graph plus exact registered, completed mediated lifecycle | Unknown children, missing acknowledgement or incomplete namespace closure preserves |
+
+`CanonicalTmpGrant` is a separate explicit bootstrap for schema 2's actual `/tmp`
+meaning. It compares the supplied original allocation FD to fixed `/tmp`, requires
+root-owned sticky 1777, verifies retained namespaces and keeps the external ledger
+private. The root is `panda-theme-b3b1-<session>`. The default private-0700 parent
+constructor is unchanged. `/tmp` is never deleted; unexplained shared-parent
+metadata churn causes refusal. No environment or JSON record supplies authority.
+
+The external controller supplies a `RuntimeGrant` with retained original
+descriptors and an independently reviewed manifest digest for a curated runtime.
+The bounded manifest rejects symlinks, special files, foreign mounts, hardlinks,
+unexpected ownership/attributes and changed identities. Its engine bytes must
+match the separately approved program grant. Ordinary host `/usr` or a runtime's
+self-reported hash is not such a grant. No runtime is built or downloaded here.
+
+`start_mediated_worker` selects a distinct native mode. It clones the runtime
+mount tree into a new mount namespace, makes the detached clone recursively
+read-only, private, nosuid, nodev and nosymfollow, then chroots into it. The worker
+receives no fixture, ledger, parent or namespace custody FD. Only fixed RPC FD 3
+and validated stdio survive. A closed x86_64 seccomp policy prevents direct
+filesystem/metadata mutation, writable shared mappings, descriptor replacement
+or transfer, service delegation and new descendants. Tracing permits the initial
+exec only. A forbidden syscall or second exec prevents accepted completion.
+Missing privileges/APIs refuse; there is no host-policy or user-namespace fallback.
+
+The native init checks kernel SCM_CREDENTIALS against the original acknowledged
+inner-namespace worker PID and birth generation. Outer helper credentials are
+checked independently by the controller. JSON IDs are comparison fields only.
+Policy installation and initial exec require durable controller acknowledgement
+before engine RPC is accepted. Requests/results use bounded fragments, full
+message digests and durable intent/result/ack records. Complete request/result
+bytes are retained as bounded compressed ledger fragments before dispatch or
+response. Identical payloads are retained once; later durable references bind
+their original sequence, direction, digest and length after an exact bounded
+byte comparison. Existing record/count/size ceilings refuse without truncation.
+Partial input never mutates;
+lost replies are never retried. Failed broker results permanently revoke grants.
+Root metadata advances only from the same broker-held birth after a complete
+graph check, never from worker-submitted metadata or a late pathname inventory.
+
+The controller validates and binds the explicit plan before helper launch.
+Status/preview-only plans latch the broker read-only: creation, publication,
+unlink, synchronization, leases and directory mutation are refused before kernel
+calls. Mixed plans authorize only the fixed legal state transitions; the reviewed
+worker still selects the requested actions and their order within that scope.
+The broker does not independently interpret a mixed plan as a command-by-command
+authorization schedule. This is an explicit worker trust requirement, not a
+general hostile-program transaction service.
+
+This first integration supports **one worker lifetime per prospective session**.
+Recovery within that lifetime uses the existing transaction protocol. Starting a
+replacement worker after process death, controller restart, or reconstructing
+custody from the journal is unsupported. The original negative suite's deliberate
+hardlinks, symlinks, FIFOs, foreign entries and metadata edits are not normal broker
+capabilities. They need a separately reviewed prospective fault-injection design.
+No Fish process or application launch is added. All 79 original methods remain
+unchanged and blocked before fixture creation.
+
+## Teardown and interrupted states
 
 Teardown accepts only the exact birth-bound native lifecycle registered by that
 session. It verifies the entire graph before lifecycle closure and before the
@@ -172,18 +250,26 @@ partial teardown failure stops remaining deletion; surviving entries and all
 original/superseded descriptors remain preserved. There is no compensation,
 restart cleanup, expiry, historical cleanup or `rmtree` fallback.
 
-The old operator and frozen engine still perform direct filesystem operations;
-they are **not integrated** with this broker. Their 79 tests retain the original
-pre-allocation refusal. The new process adapter is a synchronous, bounded worker
-pilot primitive, not a full unittest harness or accepted mutation-broker RPC.
-Direct writes, interpreter atime changes or Fish-created cache/data descendants
-can therefore cause preservation rather than accepted cleanup. Closing this
-integration gap requires reviewed mediation and separate fresh-fixture authority.
+The native default engine and old test operator retain direct operations for
+their legacy contract. They cannot be substituted for the mediated worker or
+used to remove its gates. The new integration is a bounded transaction pilot,
+not acceptance of the full adversarial test harness.
+
+The full six-action in-memory RPC/broker cycle with the actual engine source and
+real ledger algorithm took 77.312 seconds after removing redundant last-record
+scans and duplicate compression (125.155 seconds before those corrections).
+It stayed within the unchanged evidence ceilings: 2,966 requests, 16,736 records,
+8,598,478 bytes and a largest record of 2,417 bytes. These synthetic timings exceed
+the fixed 30-second worker deadline. **A full transaction trial is blocked**;
+source tests do not establish viable target-runtime performance. The deadline,
+full-history checks and synchronization remain intact. Further batching or
+replacement-worker support needs a separately reviewed engineering change.
 
 Unsupported environments include hostile/concurrent same-UID writers, external
 reapers, unknown FD duplication/close, nonlocal/overlay/tmpfs storage, missing
 procfs/kernel APIs, unexpected ACL/xattrs, unavailable existing PID-namespace
-privilege, non-x86_64/aarch64 ABIs, unsupported tracing/exec behavior and any
+and mount-namespace privilege, non-x86_64 mediated workers, unsupported runtime
+layouts or tracing/exec behavior and any
 unregistered mutation. The adapter does not obtain privilege, create a user
 namespace, install capabilities or change host policy to work around a refusal.
 Physical power-loss behavior remains unvalidated on every filesystem.
@@ -205,10 +291,23 @@ all 79 as `NOT EXECUTED / BLOCKED`; this is neither a pass nor a skip. Broad hos
 discovery continues to expose the79 expected supervisor refusals. A green scoped
 source check must never replace that general custody gate.
 
-Remaining acceptance requires independent source review, an exact supported
-kernel/storage/privilege decision, helper binary review, broker/worker integration
-review, and separately authorized isolated fresh trials covering creation,
+Remaining acceptance requires an exact supported kernel/storage/privilege
+decision, reviewed helper binary and curated runtime manifests, and separately
+authorized isolated fresh trials covering creation,
 transport, trace ordering, descendant completion, interrupted registration and
 partial teardown. Historical resources are permanently outside that trial.
 Host/native theme activation is a later independent authorization gate. Keep the
 PR draft until complete runtime custody and operator acceptance are recorded.
+
+The first proposed trial must identify the exact helper/runtime digests, owner,
+kernel, filesystem/mount identities, supplied external descriptors, privilege
+source, plan and evidence destination before allocation. Runtime/interpreter
+compatibility and timing must be reviewed first. The narrow initial request is
+one new canonical fixture and external ledger, a restricted worker with only
+the `initialize` action, its registered creation receipts and complete termination.
+Full provisioning/install/rollback is deferred by the timing gate above. Stop
+and preserve on any identity,
+durability, syscall-policy, output, lifecycle or timeout failure. Teardown is not
+implied by a successful mock or worker exit: it needs complete original custody
+and the explicit trial's removal scope. Historical roots, full hostile fault
+tests, replacement-worker recovery and host/native theme activation stay deferred.

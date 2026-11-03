@@ -1,5 +1,6 @@
 """OS-adapter regression tests using fake descriptors only; no fixture allocation."""
 import dataclasses
+import hashlib
 from contextlib import ExitStack
 import importlib.util
 import json
@@ -165,6 +166,52 @@ class RuntimeTests(unittest.TestCase):
         guards.enter_context(patch.object(self.api.fcntl, 'fcntl', forbidden))
         guards.enter_context(patch.object(self.api.fcntl, 'flock', forbidden))
         guards.enter_context(patch.object(self.api.ctypes, 'CDLL', forbidden))
+
+
+    def test_ledger_chain_uses_committed_digest_without_splitting_full_prefix(self):
+        ledger = self.authority.ledger
+        ledger.append({'kind': 'first'})
+        class NoSplit(bytes):
+            def splitlines(inner, *args, **kwargs):
+                raise AssertionError('append rescanned complete history for previous digest')
+        ledger.history = NoSplit(ledger.history)
+        ledger.append({'kind': 'second'})
+        ledger.append({'kind': 'third'})
+        lines = bytes(ledger.history).splitlines(keepends=True)
+        previous = '0' * 64
+        for index, raw in enumerate(lines, 1):
+            record = json.loads(raw)
+            self.assertEqual(record['seq'], index)
+            self.assertEqual(record['previous'], previous)
+            previous = hashlib.sha256(raw).hexdigest()
+        self.assertEqual(ledger._last_digest, previous)
+        self.assertEqual(ledger.sequence, 3)
+
+    def test_interrupted_ledger_append_never_advances_committed_digest(self):
+        for failure in ('sync', 'final-read'):
+            with self.subTest(failure=failure):
+                kernel = FakeKernel()
+                boot = self.api.TrustedBootstrap(kernel, kernel.parent, kernel.anchor, 'b' * 32)
+                ledger = boot.ledger
+                ledger.append({'kind': 'committed'})
+                previous, sequence = ledger._last_digest, ledger.sequence
+                if failure == 'sync':
+                    kernel.fail_at = 'sync'
+                else:
+                    original_read = kernel.read
+                    committed_size = len(ledger.history)
+                    def read(fd, count, offset):
+                        if fd == ledger.fd and kernel.offset(fd) > committed_size:
+                            raise OSError('injected final full-prefix read failure')
+                        return original_read(fd, count, offset)
+                    kernel.read = read
+                with self.assertRaises(OSError): ledger.append({'kind': 'interrupted'})
+                self.assertTrue(ledger.poisoned)
+                self.assertEqual(ledger._last_digest, previous)
+                self.assertEqual(ledger.sequence, sequence)
+                before = len(kernel.calls)
+                with self.assertRaises(self.api.CustodyError): ledger.append({'kind': 'retry'})
+                self.assertEqual(len(kernel.calls), before)
 
     def test_external_bootstrap_ledger_precedes_first_fixture_allocation(self):
         self.assertEqual(self.k.entries(self.k.parent), [])

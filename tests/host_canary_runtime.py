@@ -161,6 +161,41 @@ class LinuxKernel:
     def timestamps(self, fd):
         os.utime(fd, ns=(0, 0))
 
+    def timestamps_exact(self, fd, atime, mtime):
+        os.utime(fd, ns=(atime, mtime))
+
+    def unlock(self, fd):
+        fcntl.flock(fd, fcntl.LOCK_UN)
+
+    def fixed_tmp(self, fd):
+        """Compare an explicitly supplied original FD to the fixed real /tmp."""
+        actual = os.open('/tmp', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            pin, observed = self.snapshot(fd), self.snapshot(actual)
+            if ({k: v for k, v in pin.items() if k != 'flags'} !=
+                    {k: v for k, v in observed.items() if k != 'flags'}
+                    or pin['uid'] != 0 or pin['gid'] != 0 or pin['mode'] != stat.S_IFDIR | 0o1777
+                    or pin['xattrs'] or pin['fdflags'] != fcntl.FD_CLOEXEC):
+                raise CustodyError('canonical /tmp descriptor/binding/policy differs')
+            return pin
+        finally:
+            os.close(actual)
+
+    def runtime_open(self, parent, name):
+        return os.open(safe_name(name), os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW |
+                       os.O_NOATIME | os.O_NONBLOCK, dir_fd=parent)
+
+    def approved_source_binding(self, fd):
+        path = Path(__file__).resolve().parents[1] / 'theme/panda/common/host_canary.py'
+        expected = self.snapshot(fd)
+        info = os.stat(path, follow_symlinks=False)
+        fields = {'dev': 'st_dev', 'ino': 'st_ino', 'mode': 'st_mode', 'uid': 'st_uid', 'gid': 'st_gid',
+                  'nlink': 'st_nlink', 'size': 'st_size', 'atime': 'st_atime_ns',
+                  'mtime': 'st_mtime_ns', 'ctime': 'st_ctime_ns'}
+        if any(expected[key] != getattr(info, field) for key, field in fields.items()):
+            raise CustodyError('reviewed fixed source path no longer binds original descriptor')
+        return expected
+
     def replace(self, source_parent, source_name, target_parent, target_name):
         safe_name(source_name)
         safe_name(target_name)
@@ -173,6 +208,7 @@ class DurableLedger:
         self.k, self.parent, self.name, self.session = kernel, parent, safe_name(name), session
         self.uid, self.gid = uid, gid
         self.poisoned, self.history, self.sequence = False, b'', 0
+        self._last_digest = '0' * 64
         self.parent_pin = kernel.snapshot(parent)
         self.fd = kernel.create(parent, name, False, 0o600)
         self.pin = kernel.snapshot(self.fd)
@@ -214,7 +250,7 @@ class DurableLedger:
             self.check()
             if type(event) is not dict or not event:
                 raise CustodyError('invalid journal event')
-            previous = hashlib.sha256(self.history.splitlines(keepends=True)[-1]).hexdigest() if self.history else '0' * 64
+            previous = self._last_digest
             raw = canonical(dict(schema=1, session=self.session, seq=self.sequence + 1,
                                  previous=previous, event=event)) + b'\n'
             if len(raw) > MAX_RECORD or self.sequence >= MAX_EVENTS or len(self.history) + len(raw) > MAX_BYTES:
@@ -232,6 +268,7 @@ class DurableLedger:
             self.pin = after
             self.check()
             self.sequence += 1
+            self._last_digest = hashlib.sha256(raw).hexdigest()
             return self.sequence
         except BaseException:
             self.poisoned = True
@@ -270,6 +307,18 @@ PUBLISH = {path: path.rsplit('/', 1)[0] + '/.' + path.rsplit('/', 1)[1] + '.pand
                         SUPPORT + '/journal.json', SUPPORT + '/provisioning.json', SUPPORT + '/cleanup.json')}
 
 
+class CanonicalTmpGrant:
+    """Explicit trusted-controller selection of actual /tmp; never a worker claim."""
+    def __init__(self, kernel, fd):
+        kernel.bind_context()
+        self.kernel, self.fd = kernel, fd
+        self.pin = kernel.fixed_tmp(fd)
+
+    def verify(self, expected):
+        if self.kernel.fixed_tmp(self.fd) != expected:
+            raise CustodyError('shared canonical parent changed; preserve')
+
+
 class TrustedBootstrap:
     """Root-of-trust entry point, called by an independently approved controller.
 
@@ -304,15 +353,37 @@ class TrustedBootstrap:
         self._session = ProspectiveSession(self)
         return self._session
 
+    @classmethod
+    def canonical(cls, kernel, grant, evidence_parent_fd, session_id):
+        if (type(grant) is not CanonicalTmpGrant or grant.kernel is not kernel
+                or not isinstance(session_id, str) or not re.fullmatch('[0-9a-f]{32}', session_id)):
+            raise CustodyError('explicit original canonical allocation-parent grant required')
+        grant.verify(grant.pin)
+        self = cls.__new__(cls)
+        self.k, self.parent, self.session_id, self.canonical_grant = kernel, grant.fd, session_id, grant
+        self.uid, self.gid = kernel.identity()
+        if self.uid == 0 or evidence_parent_fd == grant.fd:
+            raise CustodyError('nonroot controller and separate private evidence required')
+        self.parent_pin = dict(grant.pin)
+        anchor = kernel.snapshot(evidence_parent_fd)
+        valid(anchor, True, 0o700, self.uid, self.gid)
+        if anchor['namespace'] != self.parent_pin['namespace']:
+            raise CustodyError('canonical/private kernel context differs')
+        self.ledger = DurableLedger(kernel, evidence_parent_fd, 'ledger-' + session_id,
+                                    session_id, self.uid, self.gid)
+        self._session = None
+        return self
+
 
 class ProspectiveSession:
     """Fixed-role descriptor broker; direct worker filesystem writes unsupported."""
     def __init__(self, bootstrap):
         self.bootstrap, self.k, self.ledger = bootstrap, bootstrap.k, bootstrap.ledger
-        self.root_name = 'panda-canary-' + bootstrap.session_id
+        self.root_name = ('panda-theme-b3b1-' if hasattr(bootstrap, 'canonical_grant') else 'panda-canary-') + bootstrap.session_id
         self.parent_pin = dict(bootstrap.parent_pin)
         self.objects, self.retired, self._birth_fds = {}, [], []
         self.preserved, self.closed, self._lifecycle = False, False, None
+        self.requires_mediation = hasattr(bootstrap, 'canonical_grant')
 
     def ready(self):
         if self.preserved or self.closed or self.ledger.poisoned:
@@ -338,6 +409,8 @@ class ProspectiveSession:
                 raise CustodyError('controller identity changed')
             if self.k.snapshot(self.bootstrap.parent) != self.parent_pin:
                 raise CustodyError('external allocation parent changed')
+            if hasattr(self.bootstrap, 'canonical_grant'):
+                self.bootstrap.canonical_grant.verify(self.parent_pin)
             for path, obj in self.objects.items():
                 self._verify(obj)
                 if obj.directory:
@@ -461,7 +534,7 @@ class ProspectiveSession:
             self.preserved = True
             raise
 
-    def freeze_metadata(self, obj):
+    def freeze_metadata(self, obj, image_times=None):
         """Exact authorized metadata transition to zero timestamps, never chmod-any."""
         self.ready()
         try:
@@ -469,13 +542,23 @@ class ProspectiveSession:
             if self.objects.get(obj.path) is not obj or obj.directory or obj.state not in ('created', 'appended'):
                 raise CustodyError('invalid metadata-freeze transition')
             before = self._verify(obj)
-            self.ledger.append(dict(kind='freeze-intent', role=obj.path, atime=0, mtime=0))
-            self.k.timestamps(obj.fd)
+            times = (0, 0) if image_times is None else tuple(image_times)
+            allowed = (0, 0)
+            for index, path in enumerate((SOURCE, DEPLOYED)):
+                if obj.path in (path, PUBLISH[path]):
+                    allowed = (1700000000000000000 + index, 1700000001000000000 + index)
+            if times != (0, 0) and times != allowed:
+                raise CustodyError('unapproved exact image timestamps')
+            self.ledger.append(dict(kind='freeze-intent', role=obj.path, atime=times[0], mtime=times[1]))
+            if times == (0, 0):
+                self.k.timestamps(obj.fd)
+            else:
+                self.k.timestamps_exact(obj.fd, *times)
             self.k.sync(obj.fd)
             self.k.sync(obj.parent)
             after = self.k.snapshot(obj.fd)
-            expected = dict(invariant(before), atime=0)
-            if (invariant(after) != expected or after['nlink'] != 1 or after['mtime'] != 0
+            expected = dict(invariant(before), atime=times[0])
+            if (invariant(after) != expected or after['nlink'] != 1 or after['mtime'] != times[1]
                     or after['size'] != before['size'] or after['flags'] != before['flags']):
                 raise CustodyError('unsupported metadata-freeze transition')
             obj.pin, obj.state = after, 'frozen'
@@ -571,6 +654,8 @@ class ProspectiveSession:
         synchronously before teardown. Helper source/binary execution stays gated.
         """
         self.ready()
+        if self.requires_mediation:
+            raise CustodyError('canonical session requires enforced mediated lifecycle')
         try:
             self.check()
             required = ('', 'home', 'config', 'data', 'cache', 'state', 'runtime', 'tmp',
@@ -591,12 +676,53 @@ class ProspectiveSession:
             self.preserved = True
             raise
 
+    @staticmethod
+    def lifecycle_module():
+        name = '_panda_host_native_lifecycle'
+        if name not in sys.modules:
+            path = Path(__file__).with_name('host_canary_lifecycle.py')
+            spec = importlib.util.spec_from_file_location(name, path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[name] = module
+            try:
+                spec.loader.exec_module(module)
+            except BaseException:
+                del sys.modules[name]
+                raise
+        return sys.modules[name]
+
+    def start_mediated_worker(self, helper_fd, digest, runtime, store, plan):
+        """One explicit canonical epoch; never resume/reconstruct lost custody."""
+        self.ready()
+        if not self.requires_mediation or self._lifecycle is not None or getattr(store, 's', None) is not self:
+            raise CustodyError('one canonical mediated lifecycle bound to original store required')
+        try:
+            self.check()
+            root = self.objects['']
+            receipt = store.root_receipt()
+            if receipt != dict(fd=root.fd, birth=dict(root.birth), pin=dict(root.pin),
+                               session_id=self.bootstrap.session_id):
+                raise CustodyError('broker root receipt differs from original registration')
+            module = self.lifecycle_module()
+            self._lifecycle = module.NativeLifecycle.start_mediated(
+                self.k, self.ledger, helper_fd, digest, self.bootstrap.session_id,
+                root.fd, root.pin, runtime=runtime, store=store, plan=plan)
+            self.check()
+            return self._lifecycle
+        except BaseException as exc:
+            # Keep partially born native custody even when start has no result.
+            self._lifecycle = getattr(exc, 'lifecycle', self._lifecycle)
+            self.preserved = True
+            raise
+
     def teardown(self, lifecycle):
         self.ready()
         # A bool, JSON, arbitrary callback or another session's helper is not
         # lifecycle authority. Only this broker's registered native session is.
         if lifecycle is not self._lifecycle or lifecycle is None:
             raise CustodyError('no birth-bound lifecycle registered for this session')
+        if self.requires_mediation and not getattr(lifecycle, 'mediated_profile', False):
+            raise CustodyError('generic lifecycle cannot authorize canonical teardown')
         try:
             self.check()  # Full graph BEFORE first deletion, not late tree learning.
             lifecycle.finish()

@@ -447,6 +447,58 @@ class FS:
             if p not in removed:
                 os.fsync(self.directory(p))
 
+    def check_context(self):
+        require(namespace() == self.ns, "namespace binding differs")
+
+    def directory_pin(self, path):
+        return self.pin(self.directory(path))
+
+    def absent(self, path):
+        require(path in (*FIXED_DIRS, *OUTPUT_DIRS, *FILES), "absence role not allowlisted")
+        parent, _, name = path.rpartition("/")
+        fd = self.directory(parent)
+        try:
+            os.stat(name, dir_fd=fd, follow_symlinks=False)
+        except FileNotFoundError:
+            self.bind(parent, fd)
+            return True
+        self.bind(parent, fd)
+        return False
+
+    def sync_directory(self, path, *, parent=False):
+        os.fsync(self.directory(path))
+        if parent and path:
+            os.fsync(self.directory(path.rpartition("/")[0]))
+
+    @contextmanager
+    def lease(self, expected):
+        parent, fd, name = self.parent(LOCK)
+        handle = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NOATIME, dir_fd=fd)
+        try:
+            require(self.pin(handle, file=True) == expected["pin"], "stale lock descriptor")
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.bind(parent, fd)
+            yield
+        finally:
+            os.close(handle)
+
+    def unlink(self, path, expected):
+        require(path in (TARGET, *STAGES.values()), "unlink role not allowlisted")
+        parent, fd, name = self.parent(path)
+        self.expect(path, expected)
+        _checkpoint("before-unlink:" + path)
+        self.bind(parent, fd)
+        self.expect(path, expected)
+        os.unlink(name, dir_fd=fd)
+        os.fsync(fd)
+        self.expect(path, None)
+        _checkpoint("unlinked:" + path)
+
+    @contextmanager
+    def program(self):
+        with approved_program() as value:
+            yield value
+
 
 @contextmanager
 def approved_program():
@@ -498,6 +550,11 @@ def approved_program():
         os.close(handle)
 
 
+def _storage(root, pins=None, *, storage=None):
+    """Explicit backend selection; ambient state never selects mediated storage."""
+    return FS(root, pins) if storage is None else storage.open(root, pins)
+
+
 class Provider:
     """Record explicitly operator-witnessed identities; never provision directories.
 
@@ -505,11 +562,11 @@ class Provider:
     Witnesses are trusted operator attestations, not defense against forged same-UID input.
     """
 
-    def __init__(self, root, witnesses):
+    def __init__(self, root, witnesses, *, storage=None):
         require(set(witnesses) == {"", *FIXED_DIRS}, "incomplete operator witnesses")
         for pin in witnesses.values():
             validate_pin(pin, 0o700)
-        self.fs = FS(root, witnesses)
+        self.fs = _storage(root, witnesses, storage=storage)
         try:
             require(self.fs.directory_witnesses(FIXED_DIRS) == witnesses, "unattested root")
             self.p = None
@@ -540,12 +597,12 @@ class Provider:
             if path == STAGES[TARGET]:
                 continue
             fs.expect(path, None)
-        require(not os.path.lexists(fs.root + "/" + OUTPUT_DIRS[0]), "output already exists")
+        require(fs.absent(OUTPUT_DIRS[0]), "output already exists")
         before = {p: fs.read(p) for p in (SOURCE, DEPLOYED)}
         for value in before.values():
             require(value is not None and value["image"]["mode"] == 0o644 and
                     value["image"]["sha256"] == BASE_HASH, "baseline bytes/mode differ")
-        with approved_program() as (program, bound):
+        with fs.program() as (program, bound):
             bound()
             frozen = fs.create(PROGRAM, image(program))
             fs.expect(PROGRAM, frozen)  # exact complete bytes/digest and support metadata
@@ -574,7 +631,7 @@ class Provider:
                 len(self.p["done"]) < 2 and path == OUTPUT_DIRS[len(self.p["done"])],
                 "invalid provisioning transition")
         self.checkpoint_matches()
-        require(not os.path.lexists(self.fs.root + "/" + path), "foreign output")
+        require(self.fs.absent(path), "foreign output")
         self.p["pending"] = path
         self.record = self.published_checkpoint(self.fs.record(PROVISION, self.p, self.record))
         _checkpoint("provision:intent:" + path)
@@ -583,13 +640,11 @@ class Provider:
         require(self.p is not None and self.p["pending"] == path, "no directory intent")
         self.checkpoint_matches()
         validate_pin(witness, 0o700)
-        actual = self.fs.pin(self.fs.directory(path))
+        actual = self.fs.directory_pin(path)
         require(actual == witness, "operator witness mismatch")
         self.fs.pins[path] = witness
-        fd = self.fs.directory(path)
-        require(not os.listdir(fd), "foreign provisioned contents")
-        os.fsync(fd)
-        os.fsync(self.fs.directory(path.rpartition("/")[0]))
+        self.fs.entries(path, ())
+        self.fs.sync_directory(path, parent=True)
         self.p["dirs"][path] = witness
         self.p["done"].append(path)
         self.p["pending"] = None
@@ -662,7 +717,7 @@ def load(fs):
     for pin in e["dirs"].values():
         validate_pin(pin, 0o700)
     fs.pins = dict(e["dirs"])
-    fs.directory("")
+    fs.directory_pin("")
     keys(e["before"], {SOURCE, DEPLOYED})
     keys(e["support"], {PROGRAM, SOURCE_BEFORE, DEPLOYED_BEFORE, LOCK})
     for obj in e["before"].values():
@@ -818,7 +873,8 @@ def cleanup_record(fs, e, baseline, j, journal):
 
 
 def verify(fs, e, baseline, j=None, journal=None, *, operator_absence=None):
-    require(fs.ns == e["ns"] and namespace() == e["ns"], "namespace binding differs")
+    require(fs.ns == e["ns"], "namespace binding differs")
+    fs.check_context()
     removed = []
     cleanup = None
     if j is not None:
@@ -837,15 +893,9 @@ def verify(fs, e, baseline, j=None, journal=None, *, operator_absence=None):
         if p in removed:
             parent, _, name = p.rpartition("/")
             if parent not in removed:
-                fd = fs.directory(parent)
-                try:
-                    os.stat(name, dir_fd=fd, follow_symlinks=False)
-                except FileNotFoundError:
-                    pass
-                else:
-                    raise ValueError("removed directory still present")
+                require(fs.absent(p), "removed directory still present")
         else:
-            require(fs.pin(fs.directory(p)) == e["dirs"][p], "pinned provenance differs")
+            require(fs.directory_pin(p) == e["dirs"][p], "pinned provenance differs")
     for p, obj in {**e["support"], PROVISION: e["completed_provisioning"], BASELINE: baseline}.items():
         fs.expect(p, obj)
     fs.expect(JOURNAL, journal)
@@ -888,18 +938,11 @@ def observe(fs):
 @contextmanager
 def locked(fs, e):
     fs.expect(LOCK, e["support"][LOCK])
-    parent, fd, name = fs.parent(LOCK)
-    handle = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NOATIME, dir_fd=fd)
-    try:
-        require(fs.pin(handle, file=True) == e["support"][LOCK]["pin"], "stale lock descriptor")
-        fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        fs.bind(parent, fd)
+    with fs.lease(e["support"][LOCK]):
         fs.expect(LOCK, e["support"][LOCK])
         yield
         _checkpoint("before-unlock")
         fs.expect(LOCK, e["support"][LOCK])
-    finally:
-        os.close(handle)
 
 
 def result(status, reason=None):
@@ -917,9 +960,9 @@ def failure(error):
     return result("incomplete" if transient else "manual-inspection-required", error)
 
 
-def status(root):
+def status(root, *, storage=None):
     try:
-        with FS(root) as fs:
+        with _storage(root, storage=storage) as fs:
             e, baseline, j, journal = observe(fs)
             state = "not-started" if j is None else {
                 "applying": "incomplete", "installed": "installed", "recovering": "incomplete",
@@ -945,8 +988,8 @@ def status(root):
         return failure(error)
 
 
-def preview(root):
-    return status(root)
+def preview(root, *, storage=None):
+    return status(root, storage=storage)
 
 
 def commit(fs, j, journal):
@@ -984,15 +1027,7 @@ def step(fs, e, baseline, j, journal):
         elif kind == "publish":
             fs.publish(path, stages[path], expected[path])
         else:
-            parent, fd, name = fs.parent(path)
-            fs.expect(path, expected[path])
-            _checkpoint("before-unlink:" + path)
-            fs.bind(parent, fd)
-            fs.expect(path, expected[path])
-            os.unlink(name, dir_fd=fd)
-            os.fsync(fd)
-            fs.expect(path, None)
-            _checkpoint("unlinked:" + path)
+            fs.unlink(path, expected[path])
     history.append(dict(op=kind, path=path, stage=stage_pin, skip=skip))
     j["intent"] = None
     journal = commit(fs, j, journal)
@@ -1000,9 +1035,9 @@ def step(fs, e, baseline, j, journal):
     return journal
 
 
-def install_minimal(root):
+def install_minimal(root, *, storage=None):
     try:
-        with FS(root) as fs:
+        with _storage(root, storage=storage) as fs:
             e, baseline, j, journal = observe(fs)
             require(j is None, "fixture is single use; recover existing transaction")
             with locked(fs, e):
@@ -1062,9 +1097,9 @@ def reconcile(fs, e, baseline, j, journal):
     return commit(fs, j, journal)
 
 
-def recover(root):
+def recover(root, *, storage=None):
     try:
-        with FS(root) as fs:
+        with _storage(root, storage=storage) as fs:
             # A persisted publication intent may have its one allowed after-state.
             e, baseline = load(fs)
             journal = fs.read(JOURNAL)
@@ -1127,9 +1162,10 @@ class CleanupProvider:
     Cannot automatically resume a gap between an operator removal and attestation.
     """
 
-    def __init__(self, root):
+    def __init__(self, root, *, storage=None):
         self.root = root
-        with FS(root) as fs:
+        self.storage = storage
+        with _storage(root, storage=storage) as fs:
             e, baseline, j, journal = observe(fs)
             require(j is not None and j["phase"] == "restored", "files not restored")
             require(fs.read(CLEANUP) is None, "cleanup already started; inspect retained evidence")
@@ -1144,7 +1180,7 @@ class CleanupProvider:
 
     def start(self):
         require(self.c is None, "cleanup single use")
-        with FS(self.root, self.enrollment["dirs"]) as fs, locked(fs, self.enrollment):
+        with _storage(self.root, self.enrollment["dirs"], storage=self.storage) as fs, locked(fs, self.enrollment):
             verify(fs, self.enrollment, self.baseline, self.j, self.journal)
             removed = verify(fs, self.enrollment, self.baseline, self.j, self.journal)
             fs.sync(removed)
@@ -1157,32 +1193,25 @@ class CleanupProvider:
     def directory_intent(self, path):
         require(self.c is not None and self.c["pending"] is None and len(self.c["done"]) < 2 and
                 path == list(reversed(OUTPUT_DIRS))[len(self.c["done"])], "invalid cleanup transition")
-        with FS(self.root, self.enrollment["dirs"]) as fs, locked(fs, self.enrollment):
+        with _storage(self.root, self.enrollment["dirs"], storage=self.storage) as fs, locked(fs, self.enrollment):
             self.checkpoint_matches(fs)
             verify(fs, self.enrollment, self.baseline, self.j, self.journal)
-            fd = fs.directory(path)
-            require(fs.pin(fd) == self.enrollment["dirs"][path] and not os.listdir(fd),
-                    "operator directory not owned/empty")
+            require(fs.directory_pin(path) == self.enrollment["dirs"][path], "operator directory not owned")
+            fs.entries(path, ())
             self.c["pending"] = path
             self.record = fs.record(CLEANUP, self.c, self.record)
 
     def attest_absence(self, path):
         require(self.c is not None and self.c["pending"] == path, "no cleanup intent")
-        with FS(self.root, self.enrollment["dirs"]) as fs, locked(fs, self.enrollment):
+        with _storage(self.root, self.enrollment["dirs"], storage=self.storage) as fs, locked(fs, self.enrollment):
             self.checkpoint_matches(fs)
             # Validate all other objects before certifying the operator's one
             # durably requested removal; a foreign edit must leave receipts intact.
             verify(fs, self.enrollment, self.baseline, self.j, self.journal,
                    operator_absence=path)
             parent, _, name = path.rpartition("/")
-            fd = fs.directory(parent)
-            try:
-                os.stat(name, dir_fd=fd, follow_symlinks=False)
-            except FileNotFoundError:
-                pass
-            else:
-                raise ValueError("operator removal not witnessed")
-            os.fsync(fd)
+            require(fs.absent(path), "operator removal not witnessed")
+            fs.sync_directory(parent)
             self.c["done"].append(path)
             self.c["pending"] = None
             self.record = fs.record(CLEANUP, self.c, self.record)
