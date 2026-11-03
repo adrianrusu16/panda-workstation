@@ -255,7 +255,7 @@ their legacy contract. They cannot be substituted for the mediated worker or
 used to remove its gates. The new integration is a bounded transaction pilot,
 not acceptance of the full adversarial test harness.
 
-The full six-action in-memory RPC/broker cycle with the actual engine source and
+The earlier six-action in-memory RPC/broker cycle with the actual engine source and
 real ledger algorithm took 77.312 seconds after removing redundant last-record
 scans and duplicate compression (125.155 seconds before those corrections).
 It stayed within the unchanged evidence ceilings: 2,966 requests, 16,736 records,
@@ -264,6 +264,106 @@ the fixed 30-second worker deadline. **A full transaction trial is blocked**;
 source tests do not establish viable target-runtime performance. The deadline,
 full-history checks and synchronization remain intact. Further batching or
 replacement-worker support needs a separately reviewed engineering change.
+
+## Performance and absolute deadline audit
+
+The earlier **77.312 s** receipt is retained as historical evidence. Its execution
+environment was not fully recorded; it is not an equivalent control for the new
+measurements below. Fresh controls fix the synthetic enrollment ID, hash seed,
+interpreter flags, fake kernel and measurement harness. Three runs of the original
+implementation and three of the optimized implementation use identical conditions:
+
+| Complete plan wall time | Three runs | Median |
+|---|---|---|
+| Original immutable expected-history buffer | 70.837, 72.728, 72.674 s | 72.674 s |
+| In-place expected-history buffer | 51.815, 61.599, 53.392 s | 53.392 s |
+
+The median reduction is **26.5%**. The observed optimized range matters: every run
+still exceeds 30 seconds. CPU frequency/thermal state is not pinned; these are
+synthetic observations, not a native performance guarantee. Recorded environment:
+CPython 3.14.9, Linux 6.18.55-2-cachyos-lts x86_64/glibc 2.44, eight available CPUs,
+unchanged affinity, GC enabled, `PYTHONHASHSEED=0`, no isolated/ignore-environment
+flag, and fixed synthetic enrollment ID. Evidence keeps the individual runs.
+
+| Action | Original median | Optimized median |
+|---|---:|---:|
+| initialize | 0.058 s | 0.062 s |
+| provision | 5.213 s | 3.782 s |
+| install | 20.298 s | 15.569 s |
+| first recover | 23.391 s | 17.316 s |
+| cleanup_outputs | 13.431 s | 9.953 s |
+| final recover | 8.454 s | 6.542 s |
+
+These are independent per-action medians, not an additive decomposition of the
+overall median. Final view closure and plan/setup/counter residuals are recorded
+separately. Action CPU counters include post-wall-timer bookkeeping; performance
+comparisons use wall time. Profile timings are separate, inclusive and overlapping.
+
+All six runs have identical requests, frames, kernel/check counts, evidence kinds
+and budgets: **2,966 requests**, **15,312 frames each direction**, **42,026 complete
+ledger comparisons** examining **227,161,434,315 bytes**, **8,564 complete session
+checks**, **212,664 original-object checks**, **772,711 metadata snapshots** and
+**34,116 simulated sync calls**. The journal has **16,733 records**, **8,592,690 bytes**
+and a largest record of **2,417 bytes**. Kernel totals include synthetic setup;
+wrapped check counters start after setup, and per-action counters delimit the plan.
+No count or ceiling was reduced. Historical receipts used different unfixed inputs
+and setup; their counts are not paired controls for this series.
+
+Deterministic profiling attributes roughly 19.6 seconds to repeatedly copying the
+controller's expected prefix, 21.7 seconds to full-history equality, and 19.7 seconds
+to the fake kernel's separate immutable-buffer writes. Only the first was removed:
+each controller now owns an in-place `bytearray`. Every original full-prefix
+reread/comparison, descriptor/binding/offset/size check, write, file/parent sync,
+post-check and acknowledgement remains. Sequence/digest advance only after final
+validation. Retained snapshots must use `bytes(ledger.history)`; do not export the
+live buffer or retain a memoryview. Failed growth poisons the ledger even after a
+synchronized write. The fake kernel was not made faster to improve claimed gains.
+
+Serialization, hashing, compression, decompression, graph scans and engine checks
+were measured but not speculatively cached. The clean reference path does not
+enter interrupted-state reconciliation; no new recovery authority is inferred.
+The profiler combines raw entries for engine source loaded under two module names;
+ordinary pstats labels can otherwise lose one module's calls. The retained older
+v2 receipts lack journal/harness digests; equal counts are not claimed equal hashes.
+The reproduction tool now records those hashes and the fake-kernel source hash.
+
+The **30 seconds applies to the complete worker run**, not each action. Python,
+native parent relay and namespace init each establish an overlapping absolute end
+once around START→DONE. Native setup, policy/exec/task acknowledgement and all RPC
+work consume that window. Bootstrap BIRTH and STOP/closure have separate existing
+bounds; none grants another transaction-action window. Synchronous Python handlers
+are not preempted by its own clock, but independent native deadlines still expire.
+
+Reproduce using the fake-only tool; use a new output name for every run:
+
+```fish
+mkdir -p .local-ai/host-canary-performance
+env -u PYTHONPATH -u PYTHONHOME PYTHONHASHSEED=0 python3 -B -S tests/host_canary_performance.py --out .local-ai/host-canary-performance/counts-1.json
+env -u PYTHONPATH -u PYTHONHOME PYTHONHASHSEED=0 python3 -B -S tests/host_canary_performance.py --mode profile --out .local-ai/host-canary-performance/profile-1.json
+```
+
+The tool calls the existing full fake transaction, blocks Linux adapter and
+lifecycle entry points, and creates only profiling output. It does not invoke a
+worker/custodian or allocate a real fixture. Do not use profiler-inflated totals
+as deadline acceptance measurements or convert fake sync costs into real I/O costs.
+
+**Full transaction readiness remains blocked.** The next smallest protocol proposal
+is bounded ordered aggregation of independent observations, with complete failure
+evidence and unchanged per-occurrence checks. It is not implemented. The separately
+reviewable [bounded handoff proposal](host-canary-worker-handoff.md) also specifies
+successful phase boundaries, complete old closure, uninterrupted controller/FD
+custody, new epoch/birth/RPC identity, cumulative budgets and fail-closed partial
+handoff. It does not implement or accept replacement-worker recovery.
+
+An **initialize-only** trial can be proposed separately: the measured action is
+about 0.06 seconds, but native startup, actual synchronization and runtime
+compatibility remain unvalidated. Exact helper/runtime digests, original external
+descriptors, kernel/filesystem/privilege preflight, new-root/ledger effects and
+explicit eligible teardown scope must be approved first. Use the existing
+teardown path to prove closure before any authorized removal; a standalone
+`finish()` is not an automatic later cleanup capability. Stop/preserve after any
+failure. Nothing in this audit authorizes that trial, full transactions or the 79
+original dynamic tests.
 
 Unsupported environments include hostile/concurrent same-UID writers, external
 reapers, unknown FD duplication/close, nonlocal/overlay/tmpfs storage, missing

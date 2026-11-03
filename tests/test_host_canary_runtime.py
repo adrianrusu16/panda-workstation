@@ -187,6 +187,78 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(ledger._last_digest, previous)
         self.assertEqual(ledger.sequence, 3)
 
+    def test_expected_history_grows_in_place_without_changing_explicit_snapshots(self):
+        ledger=self.authority.ledger
+        ledger.append({'kind':'first'})
+        buffer=ledger.history
+        snapshot=bytes(buffer)
+        ledger.append({'kind':'second'})
+        self.assertIs(ledger.history,buffer,'append recopied the complete expected prefix')
+        self.assertTrue(ledger.history.startswith(snapshot))
+        self.assertGreater(len(ledger.history),len(snapshot))
+        self.assertEqual(snapshot,self.k.journals[ledger.fd][:len(snapshot)])
+        self.assertIsNot(ledger.history,self.k.journals[ledger.fd])
+        ledger.check()
+
+    def test_expected_history_buffers_are_owned_by_individual_ledgers(self):
+        other=FakeKernel()
+        second=self.api.TrustedBootstrap(other,other.parent,other.anchor,'b'*32).ledger
+        self.assertIsNot(self.authority.ledger.history,second.history)
+        self.authority.ledger.append({'kind':'first'})
+        self.assertEqual(second.history,b'')
+        second.check()
+
+    def test_full_history_edits_and_short_reads_poison_before_dependent_mutation(self):
+        for fault in ('beginning','middle','end','duplicate','reordered','truncated','mirror'):
+            with self.subTest(fault=fault):
+                kernel=FakeKernel()
+                boot=self.api.TrustedBootstrap(kernel,kernel.parent,kernel.anchor,'b'*32)
+                ledger=boot.ledger
+                for name in ('aa','bb','cc'):ledger.append({'kind':name})
+                raw=bytes(ledger.history);lines=raw.splitlines(keepends=True)
+                if fault in ('beginning','middle','end'):
+                    index={'beginning':0,'middle':len(raw)//2,'end':len(raw)-1}[fault]
+                    changed=bytearray(raw);changed[index]^=1;kernel.journals[ledger.fd]=bytes(changed)
+                elif fault=='duplicate':kernel.journals[ledger.fd]=lines[0]+lines[0]+lines[2]
+                elif fault=='reordered':kernel.journals[ledger.fd]=lines[1]+lines[0]+lines[2]
+                elif fault=='mirror':
+                    ledger.history=bytearray(raw);ledger.history[len(raw)//2]^=1
+                else:
+                    read=kernel.read
+                    kernel.read=lambda fd,count,offset:read(fd,count,offset)[:-1] if fd==ledger.fd else read(fd,count,offset)
+                before=len(kernel.calls)
+                with self.assertRaises(self.api.CustodyError):ledger.check()
+                self.assertTrue(ledger.poisoned)
+                with self.assertRaises(self.api.CustodyError):boot.session().create('')
+                self.assertFalse(any(c[0] in ('create','write','sync','remove') for c in kernel.calls[before:]))
+
+    def test_expected_buffer_growth_failure_preserves_synced_record_without_grant(self):
+        for fault in ('exported-view','memory'):
+            with self.subTest(fault=fault):
+                kernel=FakeKernel()
+                boot=self.api.TrustedBootstrap(kernel,kernel.parent,kernel.anchor,'b'*32)
+                ledger=boot.ledger;ledger.append({'kind':'committed'})
+                digest,sequence,snapshot=ledger._last_digest,ledger.sequence,bytes(ledger.history)
+                held=None
+                if fault=='exported-view':held=memoryview(ledger.history)
+                else:
+                    class NoGrowth(bytearray):
+                        def __iadd__(inner,value):raise MemoryError('injected expected-buffer allocation failure')
+                    ledger.history=NoGrowth(ledger.history)
+                before=len(kernel.calls)
+                try:
+                    with self.assertRaises(BufferError if held is not None else MemoryError):
+                        ledger.append({'kind':'unacknowledged'})
+                finally:
+                    if held is not None:held.release()
+                self.assertTrue(ledger.poisoned)
+                self.assertEqual((ledger.sequence,ledger._last_digest),(sequence,digest))
+                self.assertEqual(bytes(ledger.history),snapshot)
+                self.assertTrue(kernel.journals[ledger.fd].startswith(snapshot))
+                self.assertGreater(len(kernel.journals[ledger.fd]),len(snapshot))
+                self.assertGreaterEqual(sum(c[0]=='sync' for c in kernel.calls[before:]),2)
+                with self.assertRaises(self.api.CustodyError):boot.session().create('')
+
     def test_interrupted_ledger_append_never_advances_committed_digest(self):
         for failure in ('sync', 'final-read'):
             with self.subTest(failure=failure):

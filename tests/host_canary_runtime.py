@@ -207,7 +207,10 @@ class DurableLedger:
     def __init__(self, kernel, parent, name, session, uid, gid):
         self.k, self.parent, self.name, self.session = kernel, parent, safe_name(name), session
         self.uid, self.gid = uid, gid
-        self.poisoned, self.history, self.sequence = False, b'', 0
+        # Controller-owned expected bytes; append in place, but still reread and
+        # compare the entire durable prefix on every check. Export bytes(history)
+        # for a retained snapshot; never share this buffer or hold a memoryview.
+        self.poisoned, self.history, self.sequence = False, bytearray(), 0
         self._last_digest = '0' * 64
         self.parent_pin = kernel.snapshot(parent)
         self.fd = kernel.create(parent, name, False, 0o600)
