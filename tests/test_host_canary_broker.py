@@ -6,6 +6,8 @@ from pathlib import Path
 import stat
 import sys
 import unittest
+import os
+from unittest.mock import patch
 
 HERE = Path(__file__).parent
 
@@ -39,6 +41,10 @@ class BrokerTests(unittest.TestCase):
                 self.nodes[fd].update(atime=atime, mtime=mtime)
             def unlock(self, fd): self.call('unlock', fd)
         self.k = Fake()
+        # Engine images/pins use the executor identity. Keep the synthetic
+        # kernel consistent on CI runners whose account is not UID/GID 1000.
+        self.k.uid, self.k.gid = os.getuid(), os.getgid()
+        for pin in self.k.nodes.values(): pin.update(uid=self.k.uid,gid=self.k.gid)
         self.k.nodes[self.k.parent].update(uid=0, gid=0, mode=stat.S_IFDIR | 0o1777)
         grant = runtime.CanonicalTmpGrant(self.k, self.k.parent)
         self.boot = runtime.TrustedBootstrap.canonical(self.k, grant, self.k.anchor, 'd' * 32)
@@ -60,6 +66,25 @@ class BrokerTests(unittest.TestCase):
     def scaffold(self):
         for role in self.engine.FIXED_DIRS:
             self.call('operator_mkdir', path=role)
+
+    def test_non_default_executor_identity_matches_images_and_remains_strict(self):
+        with patch.object(os,'getuid',return_value=1001), patch.object(os,'getgid',return_value=118):
+            self.setUp()
+            self.scaffold()
+            expected=self.call('create',path=self.engine.LOCK,image=self.engine.image(b''))
+            self.assertEqual((expected['pin']['uid'],expected['pin']['gid']),(1001,118))
+            mediated=load('host_canary_mediated',HERE.parent/'theme/panda/common/host_canary_mediated.py')
+            store=self.store
+            class Endpoint:
+                def call(inner,op,args): return store.dispatch(op,args)
+            view=mediated.BrokerStorage(Endpoint()).open(self.root)
+            view.close()
+            baseline=(HERE.parent/'home/dot_config/ghostty/config.ghostty').read_bytes()
+            wrong=self.engine.image(baseline);wrong['uid']=1000
+            before=len(self.k.calls)
+            with self.assertRaisesRegex(ValueError,'unsupported file metadata'):
+                self.call('create',path=self.engine.SOURCE_BEFORE,image=wrong)
+            self.assertFalse(any(call[0]=='create' for call in self.k.calls[before:]))
 
     def test_default_private_parent_policy_not_relaxed(self):
         with self.assertRaises(self.api.runtime.CustodyError):
