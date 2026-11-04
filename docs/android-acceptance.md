@@ -48,7 +48,12 @@ An update recommendation in moving vendor documentation does not authorize
 
 ## Dependencies, resources and command context
 
-Source checks need Git, Fish and Python 3.11+. Live stages additionally need a
+Source checks need Git, Fish and Python 3.11+. Automation uses the reviewed
+system interpreter at `/usr/bin/python3`; PATH's Python must resolve to that
+interpreter, and dispatch always uses the fixed system path. It runs with
+`-B -E -s -S`, suppressing bytecode writes,
+Python environment overrides and user/site startup hooks while retaining the
+reviewed helper directory for local imports. Live stages additionally need a
 reviewed Linux JDK and, as applicable, the selected SDK-local tools, a real
 terminal, permitted Google HTTPS access and sufficient private staging/SDK/cache
 space. Record a storage budget before acquisition; package sizes, extracted
@@ -74,20 +79,31 @@ compatibility result. No boot, GPU, virtualization, kernel or system-package
 change is authorized by this guide. Devices and emulators are excluded.
 
 All commands below are **future operator commands**, from the reviewed repository
-root in Fish. Replace the two example paths with independently reviewed absolute
-paths as part of the approved metadata inventory gate A; these are process-local
-selections:
+root in Fish. Record its absolute working directory, source commit, reviewed diff
+and relevant script/configuration hashes privately. A matching commit alone does
+not identify modified working files. Stop for review if that identity changes.
+
+For A, replace the placeholders below with the approved absolute roots. The
+selections apply only to the disposable child; missing filesystem entries remain
+reported gaps and do not authorize installation or another root. The plan skips
+the interactive Android profile entirely, requires explicit absolute selections
+and performs no PATH/default JDK or SDK discovery:
 
 ```fish
-set -gx JAVA_HOME /absolute/reviewed/jdk-21
-fish_add_path --global --path --move "$JAVA_HOME/bin"
-set -gx ANDROID_HOME /absolute/private/Android/Sdk
+env JAVA_HOME=/absolute/reviewed/jdk-21 ANDROID_HOME=/absolute/private/Android/Sdk \
+    fish --no-config bootstrap/setup-android.fish --plan
+set -l android_plan_status $status
 ```
 
-Quote replacement paths containing spaces. `fish_add_path --global --path`
-changes this process PATH only; it does not persist universal paths, edit
-configuration or change system Java defaults. Before B, `command -s java`
-and `command -s javac` must name the reviewed JDK bin paths.
+Quote each `NAME=value` argument if its replacement contains spaces. Capture the
+direct status before another command or pipeline; retain bounded stdout/stderr in
+new private 0600 files under an approved 0700 evidence directory. Do not overwrite
+earlier evidence or publish raw paths, inventory or environment dumps. Gate B needs
+its own disposable child with the approved JDK bin directory first on PATH;
+confirm `command -s java` and `command -s javac` there before approving execution.
+Do not persist these selections or change the system Java default.
+Pass the separately reviewed roots into each later stage's child again; A does
+not export them into its parent shell.
 
 Inspect any inherited `ANDROID_SDK_ROOT` separately. A conflict must stop rather
 than be silently unset or redirected. Do not publish environment dumps. Do not
@@ -96,15 +112,13 @@ Java switches or a vendor command copied from documentation to bypass approvals.
 
 ## Ordered acceptance matrix
 
-The first operator request is **A only**: authorize read-only metadata inventory
-of the reviewed checkout, selected JDK/SDK and Studio metadata candidates described
-above. Provide the exact absolute JDK/SDK selections and record the source commit
-before running `git diff --check` and
-`fish --no-config bootstrap/setup-android.fish --plan` in a fresh Fish child.
-The profile can inspect existing PATH/default JDK and HOME/Studio candidates as
-part of discovery; its environment selections last only in that child. Expected
-effects are filesystem reads, launcher hashing and terminal output, which may
-contain private paths and must remain private. No Java/vendor code, network,
+The first operator request is **A only**: authorize reads of the reviewed checkout
+and selected JDK/SDK. Inspect source identity and `git diff --check` before using
+the explicit child selections above. Reads cover the JDK release/layout, SDK path
+components, package metadata/layout, candidate ownership/modes and launcher bytes
+for hashing; PATH shadow reporting only locates a name. Studio metadata inventory
+is deferred to the separate manual IDE gate, with no automatic HOME, `/opt` or
+`/usr/share` candidate search. Output may contain private paths. No Java/vendor code, network,
 download, installation, licenses or persistent profile write is authorized.
 Stop on nonzero status, mismatched selections, unsafe ownership/links, conflicting
 roots or any unexplained candidate; a zero-status plan can still report gaps.
@@ -114,7 +128,7 @@ and every device/emulator operation remain deferred.
 
 | Gate | Separate authorization and prerequisites | Exact future command or controlled step | Success evidence; failure stop |
 |---|---|---|---|
-| A — source and metadata inventory | Read the chosen JDK/SDK metadata and paths; approve the checkout and quiescent private root first. No vendor execution. | `git rev-parse HEAD`, `git diff --check`, then `fish --no-config bootstrap/setup-android.fish --plan` | Record source SHA and sanitized plan. All four baseline IDs, selected root, candidate path/hash and gaps must be understood. Exit 0 is a plan, not healthy/runtime acceptance. Stop on conflicting roots, unsafe paths, malformed metadata or an unexplained selected tool. |
+| A — source and metadata inventory | Read the chosen JDK/SDK metadata and paths; approve the checkout, explicit absolute selections and quiescent private root first. No vendor execution or Studio discovery. | `git rev-parse HEAD`, `git diff --check`, then the disposable-child `--plan` block above | Record source identity, direct status and sanitized plan. All four baseline IDs, selected root, candidate path/hash and gaps must be understood. Exit 0 is a plan, not healthy/runtime acceptance. Stop on conflicting roots, unsafe paths, malformed metadata or an unexplained selected tool. |
 | B — JDK execution | Independently review the selected JDK and authorize its code to run with this account. No JDK installation or global default change. | `"$JAVA_HOME/bin/java" -version` and `"$JAVA_HOME/bin/javac" -version`; then `fish --no-config bootstrap/setup-android.fish --check` | Both report major 21 and match the selected process PATH. `--check` also requires SDK presence, so an incomplete SDK may still exit 1 after successful JDK checks; retain those as separate results. Stop on unexpected code, version, path or startup behavior. |
 | C — archive acquisition/publication, only if absent | Review exact Google URL/digest, applicable terms, network destination, staging/cache budget and target slot. JDK and SDK selection must already be approved. | `fish --no-config bootstrap/setup-android.fish --install`; authorize **only** the download and publication prompts at this gate, then decline any further runtime/package prompts. | Archive digest and validated member layout match; revision 22.0 slot publishes without replacing an occupied entry. If no other baseline gaps remain, the helper returns after bootstrap without runtime checks. Declining later prompts is an intentional stopped run, not full install success. A digest/member mismatch or occupied/corrupt tool slot stops for manual review; never overwrite it. If tools already exist, skip acquisition and review their identity instead. |
 | D — preferred launcher, capabilities and inventory | Approve the exact SDK-local launcher/hash, reviewed JDK and disclosed network/application/cache effects for this invocation. Existing supporting code still requires review; a launcher hash is not whole-tree authentication. | `fish --no-config bootstrap/setup-android.fish --cli-check` on a complete baseline. For an incomplete baseline, `--install` performs the same runtime verification and additionally lists available versions; decline package/terms prompts until E/F. | Capture actual application version, exact SDK root, supported commands/options and installed/available revisions separately. A full `--cli-check` needs healthy local baseline metadata. Stop on unsupported output/options, root mismatch, unknown required revisions outside the documented pinned 22.0 exception, or unexpected network/config effects; do not convert an arrow target into installed evidence. |

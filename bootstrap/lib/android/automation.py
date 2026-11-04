@@ -172,7 +172,7 @@ def inspect(data, env):
               and executable(jdk / "bin/java") and executable(jdk / "bin/javac")
               and re.search(r'^JAVA_VERSION="21([.+"-]|$)', (jdk / "release").read_text(), re.M) is not None)
     return {"sdk": sdk, "jdk": jdk, "jdk_ok": jdk_ok, "packages": inventory(sdk),
-            "studio": studio_info(data, env), "env": dict(env)}
+            "studio": "Studio metadata inventory deferred to the separately approved manual IDE gate", "env": dict(env)}
 
 
 def archive_metadata(data):

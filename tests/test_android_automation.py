@@ -111,6 +111,20 @@ class AutomationContracts(unittest.TestCase):
         self.assertIn("UNCONFIGURED", self.output.getvalue())
         self.assertIn("platforms;android-36.1", self.output.getvalue())
 
+    def test_plan_defers_studio_inventory_and_never_reaches_vendor_or_mutation(self):
+        with patch.object(self.api, "studio_info", side_effect=self.api.Error(
+                "Studio metadata is outside the selected JDK/SDK roots")), \
+                patch.object(self.api, "run_vendor", side_effect=AssertionError("vendor execution")), \
+                patch.object(self.api, "download", side_effect=AssertionError("download")), \
+                patch.object(self.api, "publish", side_effect=AssertionError("SDK publication")), \
+                patch.dict(os.environ, self.env, clear=True), \
+                contextlib.redirect_stdout(self.output), contextlib.redirect_stderr(self.output):
+            result = self.api.main(["--plan"])
+        self.assertEqual(result, 0, self.output.getvalue())
+        self.assertIn("Studio metadata inventory deferred", self.output.getvalue())
+        self.assertFalse(self.sdk.exists())
+        self.assertEqual((self.jdk / "release").read_text(), 'JAVA_VERSION="21.0.8"\n')
+
     def test_production_pin_matches_authenticated_archive_metadata(self):
         pinned = self.api.archive_metadata(self.api.load_manifest(ROOT / "config/android/toolchain.toml"))
         observed = json.loads(RELEASE_FIXTURE.read_text())
@@ -570,7 +584,8 @@ class AutomationContracts(unittest.TestCase):
         prefs.write_text("preserve private preferences")
         with contextlib.redirect_stdout(self.output):
             self.api.plan(self.manifest, self.state())
-        self.assertIn("AI-fixture", self.output.getvalue())
+        self.assertNotIn("AI-fixture", self.output.getvalue())
+        self.assertIn("Studio metadata inventory deferred", self.output.getvalue())
         self.assertIn("manual", self.output.getvalue().lower())
         self.assertEqual(prefs.read_text(), "preserve private preferences")
 
@@ -748,9 +763,65 @@ class ArchiveContracts(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which("fish"), "Fish required")
 class CommandContracts(unittest.TestCase):
+    def test_plan_never_sources_profile_or_redirects_missing_explicit_roots(self):
+        with tempfile.TemporaryDirectory(prefix="panda-android-plan-selection-") as home:
+            root = Path(home)
+            repo = root / "repo"
+            bootstrap = repo / "bootstrap"
+            (bootstrap / "lib/android").mkdir(parents=True)
+            shutil.copy2(ROOT / "bootstrap/setup-android.fish", bootstrap)
+            shutil.copy2(ROOT / "bootstrap/lib/ui.fish", bootstrap / "lib")
+            profile = repo / "home/dot_config/fish/conf.d/panda-android.fish"
+            profile.parent.mkdir(parents=True)
+            marker = root / "profile-sourced"
+            profile.write_text('printf unsafe > "$PROFILE_MARKER"\nexit 97\n')
+            (bootstrap / "lib/android/automation.py").write_text(
+                "import os\nprint(os.environ['JAVA_HOME'])\nprint(os.environ['ANDROID_HOME'])\n")
+            jdk, sdk = root / "absent selected jdk", root / "absent selected sdk"
+            env = {"HOME": home, "XDG_CONFIG_HOME": home + "/config", "PATH": "/usr/bin:/bin",
+                   "JAVA_HOME": str(jdk), "ANDROID_HOME": str(sdk), "PROFILE_MARKER": str(marker)}
+            result = subprocess.run([shutil.which("fish"), "--no-config",
+                str(bootstrap / "setup-android.fish"), "--plan"], cwd=repo,
+                env=env, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(result.stdout.splitlines(), [str(jdk), str(sdk)])
+            self.assertFalse(marker.exists(), "plan sourced the profile before inspecting selected roots")
+            self.assertFalse(jdk.exists())
+            self.assertFalse(sdk.exists())
+
+    def test_plan_requires_explicit_absolute_root_selections(self):
+        with tempfile.TemporaryDirectory(prefix="panda-android-plan-selection-") as home:
+            root = Path(home)
+            bootstrap = root / "repo/bootstrap"
+            (bootstrap / "lib/android").mkdir(parents=True)
+            shutil.copy2(ROOT / "bootstrap/setup-android.fish", bootstrap)
+            shutil.copy2(ROOT / "bootstrap/lib/ui.fish", bootstrap / "lib")
+            profile = root / "repo/home/dot_config/fish/conf.d/panda-android.fish"
+            profile.parent.mkdir(parents=True)
+            marker = root / "out-of-scope-read"
+            profile.write_text('printf unsafe > "$PROFILE_MARKER"\n')
+            (bootstrap / "lib/android/automation.py").write_text(
+                "import os\nfrom pathlib import Path\n"
+                "Path(os.environ['PROFILE_MARKER']).write_text('unexpected automation')\n")
+            env = {"HOME": home, "XDG_CONFIG_HOME": home + "/config", "PATH": "/usr/bin:/bin",
+                   "JAVA_HOME": home + "/jdk", "ANDROID_HOME": home + "/sdk",
+                   "PROFILE_MARKER": str(marker)}
+            for key in ("JAVA_HOME", "ANDROID_HOME"):
+                for value in ("", "relative-root"):
+                    with self.subTest(key=key, value=value):
+                        selected = dict(env, **{key: value})
+                        result = subprocess.run([shutil.which("fish"), "--no-config",
+                            str(bootstrap / "setup-android.fish"), "--plan"],
+                            env=selected, capture_output=True, text=True, timeout=10)
+                        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                        self.assertIn("explicit absolute", result.stdout + result.stderr)
+                        self.assertFalse(marker.exists())
+            self.assertFalse((Path(home) / "Android").exists())
+
     def test_new_plan_and_help_modes_are_readonly(self):
         with tempfile.TemporaryDirectory(prefix="panda-android-command-") as home:
-            env = {"HOME": home, "PATH": "/usr/bin:/bin", "XDG_CONFIG_HOME": home + "/config"}
+            env = {"HOME": home, "PATH": "/usr/bin:/bin", "XDG_CONFIG_HOME": home + "/config",
+                   "JAVA_HOME": home + "/selected jdk", "ANDROID_HOME": home + "/selected sdk"}
             for mode in ("--plan", "--help"):
                 result = subprocess.run(["fish", "--no-config", str(ROOT / "bootstrap/setup-android.fish"), mode],
                                         env=env, capture_output=True, text=True, timeout=10)
@@ -760,12 +831,59 @@ class CommandContracts(unittest.TestCase):
 
     def test_noninteractive_install_fails_safely(self):
         with tempfile.TemporaryDirectory(prefix="panda-android-command-") as home:
-            env = {"HOME": home, "PATH": "/usr/bin:/bin", "ANDROID_HOME": home + "/selected sdk"}
+            jdk = Path(home) / "jdk"
+            (jdk / "bin").mkdir(parents=True)
+            (jdk / "release").write_text('JAVA_VERSION="21.0.8"\n')
+            for name in ("java", "javac"):
+                executable = jdk / "bin" / name
+                executable.write_text("#!/bin/sh\nexit 99\n")
+                executable.chmod(0o755)
+            env = {"HOME": home, "PATH": "/usr/bin:/bin", "JAVA_HOME": str(jdk),
+                   "ANDROID_HOME": home + "/selected sdk", "XDG_CONFIG_HOME": home + "/config"}
             script = ROOT / "bootstrap/setup-android.fish"
             result = subprocess.run(["fish", "--no-config", str(script), "--install"],
                                     env=env, capture_output=True, text=True, timeout=10)
             self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertFalse((Path(home) / "selected sdk").exists())
+
+    def test_plan_refuses_shadow_python_before_any_startup_code(self):
+        with tempfile.TemporaryDirectory(prefix="panda-android-python-") as home:
+            root = Path(home)
+            binary = root / "bin"
+            binary.mkdir()
+            marker = root / "shadow-python-started"
+            python = binary / "python3"
+            python.write_text("#!/bin/sh\nprintf unsafe > '" + str(marker) + "'\nexit 97\n")
+            python.chmod(0o755)
+            env = {"HOME": home, "XDG_CONFIG_HOME": home + "/config",
+                   "PATH": str(binary) + ":/usr/bin:/bin",
+                   "JAVA_HOME": home + "/selected jdk", "ANDROID_HOME": home + "/selected sdk"}
+            result = subprocess.run([shutil.which("fish"), "--no-config",
+                str(ROOT / "bootstrap/setup-android.fish"), "--plan"],
+                env=env, capture_output=True, text=True, timeout=10)
+            self.assertFalse(marker.exists(), "metadata plan executed a PATH-selected Python")
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("/usr/bin/python3", result.stdout + result.stderr)
+
+    def test_plan_ignores_python_home_path_and_site_startup(self):
+        with tempfile.TemporaryDirectory(prefix="panda-android-python-") as home:
+            root = Path(home)
+            hooks = root / "hooks"
+            hooks.mkdir()
+            marker = root / "startup-code"
+            (hooks / "sitecustomize.py").write_text(
+                "from pathlib import Path\nPath(" + repr(str(marker)) + ").write_text('unsafe')\n")
+            env = {"HOME": home, "XDG_CONFIG_HOME": home + "/config", "PATH": "/usr/bin:/bin",
+                   "JAVA_HOME": home + "/selected jdk", "ANDROID_HOME": home + "/selected sdk",
+                   "PYTHONPATH": str(hooks), "PYTHONHOME": str(root / "absent-python-home")}
+            result = subprocess.run([shutil.which("fish"), "--no-config",
+                str(ROOT / "bootstrap/setup-android.fish"), "--plan"],
+                env=env, capture_output=True, text=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("Pinned CLI revision=22.0", result.stdout)
+            self.assertFalse(marker.exists())
+            self.assertFalse((root / "Android").exists())
+            self.assertFalse(list(root.rglob("*.pyc")))
 
     def test_missing_python_is_reported_without_installing_it(self):
         with tempfile.TemporaryDirectory(prefix="panda-android-command-") as home:
@@ -773,7 +891,8 @@ class CommandContracts(unittest.TestCase):
             empty_bin.mkdir()
             result = subprocess.run([shutil.which("fish"), "--no-config",
                                      str(ROOT / "bootstrap/setup-android.fish"), "--plan"],
-                                    env={"HOME": home, "PATH": str(empty_bin)},
+                                    env={"HOME": home, "PATH": str(empty_bin),
+                                         "JAVA_HOME": home + "/jdk", "ANDROID_HOME": home + "/sdk"},
                                     capture_output=True, text=True, timeout=10)
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
             self.assertIn("Python 3.11+", result.stdout + result.stderr)

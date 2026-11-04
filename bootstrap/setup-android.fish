@@ -32,20 +32,34 @@ switch "$mode"
         exit 2
 end
 
-# Enable only this child process, including when the deployed profile is disabled.
-set -gx PANDA_ANDROID 1
-set -l requested_sdk "$ANDROID_HOME"
-source "$repo_root/home/dot_config/fish/conf.d/panda-android.fish"
-if contains -- "$mode" --plan --cli-check --install --repair
-    # New installs may select an empty/nonexistent custom SDK; do not switch roots.
-    if test -n "$requested_sdk"
-        set -gx ANDROID_HOME "$requested_sdk"
-    end
-    if not command -q python3
-        ui_error 'Python 3.11+ is required for Android automation; no installation attempted.'
+# A metadata plan must preserve explicit selections even when nothing is installed.
+# Sourcing the interactive profile here would inspect fallback JDK/SDK roots.
+if test "$mode" = --plan
+    if not string match -q '/*' -- "$JAVA_HOME"; or not string match -q '/*' -- "$ANDROID_HOME"
+        ui_error '--plan requires explicit absolute JAVA_HOME and ANDROID_HOME selections; no discovery attempted.'
         exit 1
     end
-    python3 -B "$script_dir/lib/android/automation.py" "$mode"
+else
+    # Enable only this child process, including when the deployed profile is disabled.
+    set -gx PANDA_ANDROID 1
+    set -l requested_sdk "$ANDROID_HOME"
+    source "$repo_root/home/dot_config/fish/conf.d/panda-android.fish"
+    # New installs may select an empty/nonexistent custom SDK; do not switch roots.
+    if contains -- "$mode" --cli-check --install --repair; and test -n "$requested_sdk"
+        set -gx ANDROID_HOME "$requested_sdk"
+    end
+end
+if contains -- "$mode" --plan --cli-check --install --repair
+    set -l selected_python (command -s python3)
+    if test -z "$selected_python"; or not test -x /usr/bin/python3; or \
+            test (path resolve -- "$selected_python") != (path resolve -- /usr/bin/python3)
+        ui_error 'Python 3.11+ at reviewed /usr/bin/python3 is required; PATH overrides are refused.'
+        exit 1
+    end
+    # Ignore Python environment/user/site startup; preserve only the reviewed
+    # script directory for its stdlib-only local module imports. Never use an
+    # SDK/JDK/venv-provided Python selected by the child profile PATH.
+    command /usr/bin/python3 -B -E -s -S "$script_dir/lib/android/automation.py" "$mode"
     exit $status
 end
 set -g android_problems 0
