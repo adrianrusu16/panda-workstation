@@ -418,6 +418,54 @@ fi
 exec "$@"
 ''')
 
+    def test_virtualization_check_never_launches_configured_fish(self):
+        self.configure_mock_helios()
+        shutil.copy2(ROOT / 'bootstrap/setup-virtualization.fish',
+                     self.repo / 'bootstrap/setup-virtualization.fish')
+        real_fish = shutil.which('fish')
+        self.assertIsNotNone(real_fish)
+        env = dict(self.env)
+        for key, name in (
+                ('HOME', 'home'), ('XDG_CONFIG_HOME', 'config'),
+                ('XDG_DATA_HOME', 'data'), ('XDG_CACHE_HOME', 'cache'),
+                ('XDG_STATE_HOME', 'state'), ('XDG_RUNTIME_DIR', 'runtime'),
+                ('XDG_CONFIG_DIRS', 'system-config'),
+                ('XDG_DATA_DIRS', 'system-data')):
+            directory = self.root / name
+            directory.mkdir(mode=0o700)
+            env[key] = str(directory)
+        config = Path(env['XDG_CONFIG_HOME']) / 'fish'
+        (config / 'conf.d').mkdir(parents=True)
+        marker = self.root / 'configured-startup'
+        env['MOCK_CONFIG_MARKER'] = str(marker)
+        hook = 'printf "sourced\\n" >> "$MOCK_CONFIG_MARKER"\n'
+        (config / 'config.fish').write_text(hook)
+        (config / 'conf.d/fixture.fish').write_text(hook)
+        # Refuse an unsafe child before it can start any configured Fish.
+        # All package/policy commands and the validator remain fixture doubles.
+        self.make_exe('fish', """#!/usr/bin/env python3
+import os, sys
+if sys.argv[1:2] != ['--no-config']:
+    with open(os.environ['MOCK_EVENTS'], 'a') as stream:
+        stream.write('configured-fish-refused\\n')
+    raise SystemExit(97)
+real_fish = """ + repr(real_fish) + """
+os.execv(real_fish, [real_fish, *sys.argv[1:]])
+""")
+        result = subprocess.run(
+            [real_fish, '--no-config',
+             str(self.repo / 'bootstrap/setup-virtualization.fish'), '--check'],
+            cwd=self.repo, env=env, stdin=subprocess.DEVNULL,
+            capture_output=True, text=True, timeout=30)
+        events = self.events.read_text().splitlines()
+        self.assertNotIn('configured-fish-refused', events,
+                         'read-only shortcut attempted configured Fish startup')
+        self.assertFalse(marker.exists(), 'Fish startup configuration executed')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('READINESS CHECK PASSED', result.stdout)
+        self.assertEqual(events.count('helios-validate'), 1, events)
+        self.assert_no_apply()
+
     def test_failed_pacman_still_validates_helios_and_keeps_exit_code(self):
         self.configure_mock_helios()
         env=dict(self.env,MOCK_PACMAN_FAIL='1',MOCK_LIMINE_HASH_CHANGED='1')

@@ -106,16 +106,67 @@ metadata. The second installs missing packages using sudo/pacman and may run
 system package hooks; it needs explicit transaction authorization. No VM/media
 action is part of this stage.
 
-Run each command separately, inspecting its status before continuing:
+Choose the exact reviewed checkout; record its absolute working directory, Git HEAD,
+tracked diff and relevant source hashes privately before running anything. A matching
+HEAD alone does not establish unchanged working files. The reviewed call chain is
+bootstrap/setup-virtualization.fish → bootstrap/panda-setup.fish →
+bootstrap/lib/{ui,packages,panda-setup}.fish, the
+setup/manifests/virtualization-base.txt manifest, and, on panda-helios,
+machines/panda-helios/validate.fish. Read AGENTS.md and CONTRIBUTING.md at that revision.
+If any reviewed source differs, stop for review before executing the changed source.
+
+This is a host-policy and cached-package query, not a KVM/libvirt/media preflight.
+Both nested Fish invocations use --no-config, selecting only virtualization.
+Use a reviewed Fish executable and utility PATH. This does not make inherited
+universal variables, autoload paths or command provenance hermetic; unexpected
+startup behavior or resolution is a stop.
+Its strict preflight reads the package manifest; installed names through pacman -Qq;
+cached repository metadata through pacman -Si for missing targets; cached upgrades
+through pacman -Qu; resolved configuration through pacman-conf; and a missing-target
+dependency transaction through pacman -Sp --needed --print-format '%n %v'.
+The transaction query does not install, download or refresh databases. It also checks
+that pacman, sudo and pacman-conf can be found; it does not invoke sudo in --check.
+No disk-space threshold is checked by this virtualization-only Setup Manager route.
+
+On panda-helios the shared helper also runs the machine validator. That validator
+reads hostname/kernel, /etc/default/limine, /etc/modprobe.d/*.conf, suspend target
+enablement via systemctl is-enabled, root mount source via findmnt, NVMe mount
+metadata via lsblk, /proc/cmdline, loaded modules via lsmod, PCI driver bindings via
+lspci and current-boot kernel journal entries via journalctl. It does not modify these
+resources. The source check therefore needs authorization for these metadata reads
+and diagnostic output as well as pacman metadata; it is not only a package inventory.
+
+After explicit authorization for these reads and private evidence creation, run this one command, retaining stdout,
+stderr and its immediate exit status in a new private record:
 
 ```fish
 fish --no-config bootstrap/setup-virtualization.fish --check
+set -l lab_check_status $status
 ```
 
-Expected `READINESS CHECK PASSED`. Cached repository state must be usable and
-package policy must accept the complete transaction. If it requests unrelated
-kernel/GPU/boot changes, pending upgrades or recovery-critical dependencies,
-stop for the owner. Do not refresh only sync databases or bypass the guard.
+Capture the command's status directly, before printf, tee or any other command.
+Do not pipe the command through a formatter and report the formatter's success.
+Use a preselected private 0700 evidence directory with 0600 output files and a unique
+run identifier; do not overwrite earlier evidence. Avoid environment dumps. Record
+authorization scope, source identity, command, status, warnings/refusals and which
+effects were actually observed. Publish only a sanitized result, with no local
+inventory, mount paths, package configuration or journal excerpts.
+
+Success requires status 0, the final READINESS CHECK PASSED marker, the intended
+virtualization-only selection, and no unresolved warnings or unexpected query results.
+This accepts only that snapshot of cached package eligibility and reviewed policy
+queries; it does not prove fresh repositories, package installation, KVM, libvirt,
+firmware, media, trusted VM storage, free-space budget or guest readiness. The helper
+can report certain host-policy conditions as warnings while returning zero; review
+and stop on a non-LTS profile, unexpected root storage or any safety ambiguity.
+
+A nonzero status, missing marker, malformed/empty inventory, unavailable package,
+pending cached upgrades, IgnorePkg/IgnoreGroup, failed query, transaction containing
+an already installed package, unexpected source/host selection or unexpected effect
+is a stop. Preserve diagnostics; do not refresh databases, install packages, run the
+master bootstrap, start services, connect libvirt or proceed to any later stage.
+A refusal is a recorded blocked/refused result, not acceptance and not permission
+to repair host policy. A later --apply or --verify still needs its own authorization.
 
 After separate package-application approval, inspect the transaction and type
 the literal `APPLY` only if it matches that approval:

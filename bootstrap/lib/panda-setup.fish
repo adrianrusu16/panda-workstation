@@ -519,7 +519,7 @@ function panda_setup_helios_validate --argument-names repo_root
         return 1
     end
     ui_section '🔒' 'Helios machine safety validation'
-    fish "$validator"
+    fish --no-config "$validator"
     or begin
         ui_error 'Helios safety validator failed.'
         return 1
