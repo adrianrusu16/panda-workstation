@@ -34,6 +34,11 @@ jobs:
           /usr/bin/python3 -B -I -S tests/test_host_canary_integration.py
       - name: Injected bounded phase transitions (no live adapters)
         run: /usr/bin/python3 -B -I -S tests/test_host_canary_phases.py
+      - name: Concrete Linux methods over fake OS boundaries only
+        run: |
+          /usr/bin/python3 -B -I -S tests/test_host_canary_linux.py
+          /usr/bin/python3 -B -I -S tests/test_host_canary_native_grant.py
+          /usr/bin/python3 -B -I -S tests/test_host_canary_native_integration.py
       - name: Interpret native syscall policy without executing it
         run: /usr/bin/python3 -B -I -S tests/test_host_canary_native_policy.py
       - name: Native custodian syntax only (never executed)

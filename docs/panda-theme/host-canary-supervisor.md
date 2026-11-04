@@ -353,7 +353,8 @@ reviewed [bounded handoff contract](host-canary-worker-handoff.md) now has an op
 controller over injected boundaries: fixed A/B/C/D checkpoints, complete prior
 closure, uninterrupted controller/FD custody, independent native invocation nonce
 and RPC epoch, cumulative budgets and permanent preservation after ambiguity.
-The default single-worker path is unchanged. Linux handoff is explicitly refused;
+The default single-worker path is unchanged. Explicit Linux phase capabilities
+now connect the existing adapters; host handoff execution remains unaccepted;
 mocked lifetimes do not establish real custody, durability or deadline acceptance.
 
 An **initialize-only** trial can be proposed separately: the measured action is
@@ -412,3 +413,5 @@ durability, syscall-policy, output, lifecycle or timeout failure. Teardown is no
 implied by a successful mock or worker exit: it needs complete original custody
 and the explicit trial's removal scope. Historical roots, full hostile fault
 tests, replacement-worker recovery and host/native theme activation stay deferred.
+
+The [phase contract](host-canary-worker-handoff.md) covers explicit Linux integration and component budgets. The [initialize-only preflight](host-canary-initialize-preflight.md) defines the narrower first owner gate.

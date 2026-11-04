@@ -6,6 +6,7 @@ Native code must be independently built/reviewed and its exact binary approved.
 The original Host operator deliberately has no integration with these adapters.
 """
 import array
+import ctypes
 import fcntl
 import hashlib
 import importlib.util
@@ -18,6 +19,7 @@ import socket
 import stat
 import struct
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -135,7 +137,7 @@ class RuntimeGrant:
 class LinuxTransport:
     """Owns authenticated helper socket, original pidfd/nsfd and helper child.
 
-    This concrete path is never invoked by the offline test suite. The helper
+    Offline tests exercise these methods only with fake OS boundaries. The helper
     requires existing PID-namespace privilege; no privilege/userns/policy setup
     or alternate backend is attempted. Descriptor ownership is exclusive and
     external writers/reapers are unsupported. All errors retain the transport.
@@ -144,21 +146,26 @@ class LinuxTransport:
     CLONE_NEWPID = 0x20000000
 
     @classmethod
-    def spawn(cls, helper_fd, digest, argv, session, root_fd, runtime_fd=None):
+    def spawn(cls, helper_fd, digest, argv, session, root_fd, runtime_fd=None, *, output_budget=None):
         self = cls()
-        self.helper_fd, self.digest, self.root_fd = helper_fd, digest, root_fd
-        self.birth = None
-        self.rights = []
+        self.helper_fd, self.digest, self.root_fd, self.runtime_fd = helper_fd, digest, root_fd, runtime_fd
+        self.birth, self.closed_proof = None, None
+        self.rights, self.streams, self.stream_roles = [], {}, {}
+        self.channel = self.launch_child = self.process = None
         self.stopping = False
         self.output, self.errors = bytearray(), bytearray()
-        self.helper_pin = self.helper_identity()
-        parent, child = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET | socket.SOCK_CLOEXEC)
-        self.channel = parent
-        parent.setsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED, 1)
-        parent.setblocking(False)
+        self.output_budget = output_budget
         try:
-            # Root/worker argument scope was checked by the prospective broker.
-            # Keep helper itself a direct unreaped child until CLOSED is checked.
+            if output_budget is not None:
+                phases = sys.modules.get('_panda_host_phases')
+                if phases is None or type(output_budget) is not phases.Capture:
+                    raise LifecycleError('original phase capture required')
+                output_budget.remaining('stdout'); output_budget.remaining('stderr')
+            self.helper_pin = self.helper_identity()
+            parent, child = socket.socketpair(socket.AF_UNIX, socket.SOCK_SEQPACKET | socket.SOCK_CLOEXEC)
+            self.channel, self.launch_child = parent, child  # retain before configuration
+            parent.setsockopt(socket.SOL_SOCKET, socket.SO_PASSCRED, 1)
+            parent.setblocking(False)
             runtime_args = [] if runtime_fd is None else ['--runtime-fd', str(runtime_fd)]
             inherited = (helper_fd, child.fileno(), root_fd) + (() if runtime_fd is None else (runtime_fd,))
             self.process = subprocess.Popen(
@@ -168,14 +175,83 @@ class LinuxTransport:
                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 env={'PATH': '/usr/bin:/bin', 'LANG': 'C'})
             self.streams = {self.process.stdout: self.output, self.process.stderr: self.errors}
+            self.stream_roles = {self.process.stdout: 'stdout', self.process.stderr: 'stderr'}
+            self.launch_pin = dict(helper_fd=helper_fd, root_fd=root_fd, runtime_fd=runtime_fd,
+                channel=parent, channel_fd=parent.fileno(), process=self.process, pid=self.process.pid,
+                stdout=self.process.stdout, stderr=self.process.stderr, output=self.output, errors=self.errors,
+                capture=output_budget)
+            self.channel_pin = self.socket_identity()
+            self.stream_pins = {stream: self.pipe_identity(stream) for stream in self.streams}
+            self.stream_eof = set()
             if self.helper_identity() != self.helper_pin:
                 raise LifecycleError('helper identity changed across launch; preserve')
+            child.close()
             return self
         except BaseException as exc:
-            exc.transport = self  # retain partial launch evidence; never signal a guessed PID
-            raise
-        finally:
-            child.close()
+            exc.transport = self  # even identity/socket/configuration/close failures
+            raise  # no guessed PID cleanup, signalling, retry, or handle disposal
+
+    def socket_identity(self):
+        fd = self.channel.fileno()
+        info = os.fstat(fd)
+        if (not stat.S_ISSOCK(info.st_mode)
+                or self.channel.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) != socket.SOCK_SEQPACKET
+                or fcntl.fcntl(fd, fcntl.F_GETFD) != fcntl.FD_CLOEXEC):
+            raise LifecycleError('original helper channel differs')
+        return fd, info.st_dev, info.st_ino, info.st_mode
+
+    def pipe_identity(self, stream):
+        fd = stream.fileno()
+        info = os.fstat(fd)
+        if not stat.S_ISFIFO(info.st_mode) or fcntl.fcntl(fd, fcntl.F_GETFD) != fcntl.FD_CLOEXEC:
+            raise LifecycleError("original output pipe descriptor required")
+        return fd, info.st_dev, info.st_ino, info.st_mode
+
+    def _retained_streams(self):
+        if (self.output is not self.launch_pin["output"] or self.errors is not self.launch_pin["errors"]
+                or self.output_budget is not self.launch_pin["capture"]):
+            raise LifecycleError("original output buffers/capture lost")
+        expected = {self.launch_pin["stdout"]: (self.launch_pin["output"], "stdout"),
+                    self.launch_pin["stderr"]: (self.launch_pin["errors"], "stderr")}
+        if (set(self.stream_pins) != set(expected) or not self.stream_eof <= set(expected)
+                or set(self.streams) != set(expected) - self.stream_eof
+                or self.stream_roles != {stream: role for stream, (_, role) in expected.items()}):
+            raise LifecycleError("original output pipe collection lost")
+        for stream, (buffer, role) in expected.items():
+            if (stream.fileno() != self.stream_pins[stream][0]
+                    or self.pipe_identity(stream) != self.stream_pins[stream]
+                    or stream in self.streams and self.streams[stream] is not buffer):
+                raise LifecycleError("original output pipe identity lost")
+
+    def _retained_launch(self):
+        self._retained_streams()
+        p = self.launch_pin
+        if (self.helper_fd != p['helper_fd'] or self.root_fd != p['root_fd'] or self.runtime_fd != p['runtime_fd']
+                or self.channel is not p['channel'] or self.channel.fileno() != p['channel_fd']
+                or self.process is not p['process'] or self.process.pid != p['pid']
+                or self.process.stdout is not p['stdout'] or self.process.stderr is not p['stderr']
+                or self.output is not p['output'] or self.errors is not p['errors']
+                or self.output_budget is not p['capture'] or self.socket_identity() != self.channel_pin):
+            raise LifecycleError('original transport/process/channel/capture custody lost')
+
+    def pidfs_type(self):
+        if struct.calcsize('P') != 8:
+            raise LifecycleError('64-bit pidfs identity required')
+        buffer = ctypes.create_string_buffer(256)
+        libc = ctypes.CDLL(None, use_errno=True)
+        if libc.fstatfs(self.pidfd, ctypes.byref(buffer)) != 0:
+            raise OSError(ctypes.get_errno(), 'pidfd fstatfs')
+        return ctypes.c_long.from_buffer(buffer).value & 0xFFFFFFFF
+
+    def pidfd_identity(self):
+        before = os.fstat(self.pidfd)
+        if self.pidfs_type() != 0x50494446 or before.st_ino <= 0:
+            raise LifecycleError('original pidfd requires distinct pidfs inode identity')
+        after = os.fstat(self.pidfd)
+        identity = lambda info: (info.st_dev, info.st_ino, info.st_mode)
+        if identity(before) != identity(after):
+            raise LifecycleError('pidfd changed during identity observation')
+        return identity(after)
 
     def helper_identity(self):
         info = os.fstat(self.helper_fd)
@@ -241,34 +317,52 @@ class LinuxTransport:
             return raw.decode('ascii', errors='strict')
 
     def capture(self, readable):
+        self._retained_streams()
         for stream in list(self.streams):
             if stream not in readable:
                 continue
             buffer = self.streams[stream]
-            raw = os.read(stream.fileno(), min(65536, 1048577 - len(buffer)))
-            buffer.extend(raw)
+            bound = min(65536, 1048577 - len(buffer))
+            budget = getattr(self, 'output_budget', None)
+            if budget is not None:
+                role = self.stream_roles[stream]
+                bound = min(bound, budget.remaining(role) + 1)
+            raw = os.read(stream.fileno(), bound)
+            buffer.extend(raw)  # retain overflow evidence before charging/refusing
+            if budget is not None:
+                budget.charge(role, raw)
             if len(buffer) > 1048576:
                 raise LifecycleError('bounded helper/worker output exceeded; preserve')
             if not raw:
+                self.stream_eof.add(stream)
                 del self.streams[stream]
 
     def bind_birth(self, pid, namespace):
         if self.birth is not None or len(self.rights) != 2:
             raise LifecycleError('birth descriptor transfer missing/duplicate')
         self.pidfd, self.nsfd = self.rights
+        if type(self.pidfd) is not int or type(self.nsfd) is not int or self.pidfd == self.nsfd:
+            raise LifecycleError('distinct original birth descriptors required')
+        self.birth_handles = (self.pidfd, self.nsfd)
+        self.pid_pin = self.pidfd_identity()
         info = os.fstat(self.nsfd)
         if info.st_ino != namespace or fcntl.ioctl(self.nsfd, self.NS_GET_NSTYPE) != self.CLONE_NEWPID:
             raise LifecycleError('namespace descriptor differs from atomic birth')
         self.ns_pin = (info.st_dev, info.st_ino)
         self.birth = {'pid': pid, 'namespace': namespace, 'pidfd': self.pidfd, 'nsfd': self.nsfd}
+        self.birth_pin = dict(self.birth)
         self.check()
         return dict(self.birth)
 
     def check(self):
+        self._retained_launch()
         if self.helper_identity() != self.helper_pin:
             raise LifecycleError('retained helper changed')
         if self.birth is None:
             raise LifecycleError('no bound birth')
+        if ((self.pidfd, self.nsfd) != self.birth_handles or self.rights != list(self.birth_handles)
+                or self.birth != self.birth_pin or self.pidfd_identity() != self.pid_pin):
+            raise LifecycleError('original pidfd/birth descriptor identity differs')
         info = os.fstat(self.nsfd)
         if (info.st_dev, info.st_ino) != self.ns_pin or fcntl.ioctl(self.nsfd, self.NS_GET_NSTYPE) != self.CLONE_NEWPID:
             raise LifecycleError('retained namespace lost/replaced')
@@ -289,10 +383,26 @@ class LinuxTransport:
         if text.startswith('STOP '):
             self.stopping = True
 
+    def _pidfd_exited(self):
+        poller = select.poll()
+        poller.register(self.pidfd, select.POLLIN)
+        observed = poller.poll(0)
+        if (len(observed) != 1 or observed[0][0] != self.pidfd
+                or not observed[0][1] & select.POLLIN
+                or observed[0][1] & (select.POLLNVAL | select.POLLERR)):
+            raise LifecycleError('original init pidfd not verifiably exited')
+
+    def _output_witness(self):
+        return {'helper_status': self.process.returncode, 'init_pidfd_exited': True, 'namespace_retained': True,
+                'stdout_bytes': len(self.output), 'stderr_bytes': len(self.errors),
+                'stdout_sha256': hashlib.sha256(self.output).hexdigest(),
+                'stderr_sha256': hashlib.sha256(self.errors).hexdigest()}
+
     def wait_closed(self):
+        if self.closed_proof is not None or not self.stopping:
+            raise LifecycleError('missing STOP or repeated namespace closure')
         self.check()
-        # Authenticated CLOSED is emitted only after helper's real P_PIDFD wait
-        # on its namespace-init child; require the helper's own clean exit too.
+        # Native CLOSED follows P_PIDFD wait; require own helper clean exit+EOF.
         if self.process.wait(timeout=2) != 0:
             raise LifecycleError('helper failed after alleged closure')
         end = time.monotonic() + 2
@@ -303,22 +413,29 @@ class LinuxTransport:
             ready, _, _ = select.select(list(self.streams), [], [], left)
             self.capture(ready)
         self.check()
-        poller = select.poll()
-        poller.register(self.pidfd, select.POLLIN)
-        observed = poller.poll(0)
-        if not observed or any(fd != self.pidfd or not events & select.POLLIN or
-                               events & (select.POLLNVAL | select.POLLERR) for fd, events in observed):
-            raise LifecycleError('init pidfd not exited after closure witness')
-        return {'helper_status': 0, 'init_pidfd_exited': True, 'namespace_retained': True,
-                'stdout_bytes': len(self.output), 'stderr_bytes': len(self.errors),
-                'stdout_sha256': hashlib.sha256(self.output).hexdigest(),
-                'stderr_sha256': hashlib.sha256(self.errors).hexdigest()}
+        self._pidfd_exited()
+        witness = self._output_witness()
+        if witness['helper_status'] != 0:
+            raise LifecycleError('helper exit status not retained')
+        self.closed_proof = dict(witness)
+        return dict(witness)
+
+    def check_closed(self):
+        # No wait/signal/STOP/root metadata observation or historical PID lookup.
+        self.check()
+        if (self.closed_proof is None or not self.stopping or self.streams
+                or self._output_witness() != self.closed_proof or self.process.returncode != 0):
+            raise LifecycleError('original closed transport/output proof changed')
+        self._pidfd_exited()
+        if self.output_budget is not None and self.output_budget.witness() != {
+                key: self.closed_proof[key] for key in ('stdout_bytes', 'stderr_bytes', 'stdout_sha256', 'stderr_sha256')}:
+            raise LifecycleError('closed output/capture identity differs')
 
 
 class NativeLifecycle:
     """Session-bound protocol; no accepted boolean/callback closure interface."""
     @classmethod
-    def start(cls, kernel, ledger, helper_fd, digest, argv, session, root_fd, root_pin, *, _mediation=None, _capture=None):
+    def start(cls, kernel, ledger, helper_fd, digest, argv, session, root_fd, root_pin, *, _mediation=None, _capture=None, _factory=None):
         if (not isinstance(session, str) or not re.fullmatch('[0-9a-f]{32}', session)
                 or not isinstance(digest, str) or not re.fullmatch('[0-9a-f]{64}', digest)
                 or not isinstance(argv, (list, tuple)) or not argv or len(argv) > 128
@@ -338,7 +455,7 @@ class NativeLifecycle:
         ledger.append({'kind': 'namespace-intent', 'helper_sha256': digest,
                        'worker_sha256': hashlib.sha256(canonical(list(argv))).hexdigest(),
                        'profile': 'broker-v1' if _mediation else 'legacy-unmediated'})
-        factory = getattr(kernel, 'process_transport', LinuxTransport.spawn)
+        factory = getattr(kernel, 'process_transport', LinuxTransport.spawn) if _factory is None else _factory
         try:
             try:
                 args = (helper_fd, digest, list(argv), session, root_fd)

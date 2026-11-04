@@ -191,6 +191,32 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(self.server.contents,contents)
         self.assertTrue(self.store.preserved)
 
+    def test_retired_epoch_cache_remains_charged_in_one_aggregate_budget(self):
+        budget=self.api.RequestBudget(self.store,self.ledger,'a'*32)
+        servers=[]
+        for epoch in (1,2):
+            budget.open_epoch(epoch)
+            server=self.api.Server(self.store,self.ledger,'a'*32,epoch,budget=budget)
+            self.api.Client(9,'a'*32,epoch,io=Wire(server)).call('read',{'value':epoch})
+            server.retire();budget.close_epoch(epoch);servers.append(server)
+        self.assertEqual(budget.cache_bytes,sum(len(v[0]) for s in servers for v in s.contents.values()))
+        self.assertEqual(budget.cache_entries,sum(len(s.contents) for s in servers))
+        self.assertEqual(budget.cache_entries,4)
+
+    def test_cache_byte_and_entry_ceiling_refuses_before_dispatch(self):
+        for limit in ('MAX_CACHE_BYTES','MAX_CACHE_ENTRIES'):
+            with self.subTest(limit=limit):
+                self.setUp()
+                budget=self.api.RequestBudget(self.store,self.ledger,'a'*32)
+                budget.open_epoch(1)
+                server=self.api.Server(self.store,self.ledger,'a'*32,1,budget=budget)
+                client=self.api.Client(9,'a'*32,1,io=Wire(server))
+                with patch.object(self.api,limit,0,create=True):
+                    with self.assertRaises(ValueError):client.call('create',{'value':1})
+                self.assertFalse(self.store.calls)
+                self.assertTrue(self.store.preserved)
+                self.assertTrue(server.revoked)
+
     def test_per_worker_exhaustion_preserves_even_when_called_outside_lifecycle(self):
         self.server.seq = self.api.MAX_REQUESTS + 1
         with self.assertRaises(ValueError): self.server.accept(b'{}')

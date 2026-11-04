@@ -387,6 +387,7 @@ class ProspectiveSession:
         self.objects, self.retired, self._birth_fds = {}, [], []
         self.preserved, self.closed, self._lifecycle = False, False, None
         self._phase_controller = None
+        self._linux_phase_grant = None
         self._completed_lifecycle = None
         self.requires_mediation = hasattr(bootstrap, 'canonical_grant')
 
@@ -700,7 +701,7 @@ class ProspectiveSession:
         """One explicit canonical epoch; never resume/reconstruct lost custody."""
         self.ready()
         if (not self.requires_mediation or self._lifecycle is not None or self._phase_controller is not None
-                or getattr(store, 's', None) is not self):
+                or self._linux_phase_grant is not None or getattr(store, 's', None) is not self):
             raise CustodyError('one canonical mediated lifecycle bound to original store required')
         try:
             self.check()
@@ -755,6 +756,29 @@ class ProspectiveSession:
                 del sys.modules[name]
                 raise
         return sys.modules[name]
+
+    @staticmethod
+    def linux_module():
+        name = '_panda_host_linux'
+        if name not in sys.modules:
+            path = Path(__file__).with_name('host_canary_linux.py')
+            spec = importlib.util.spec_from_file_location(name, path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[name] = module
+            try: spec.loader.exec_module(module)
+            except BaseException:
+                del sys.modules[name]
+                raise
+        return sys.modules[name]
+
+    def linux_phases(self, grant):
+        """Explicit trusted controller only; no discovery/CLI/environment enable."""
+        if type(grant) is not self.linux_module().LinuxPhaseGrant or grant.s is not self:
+            raise CustodyError('original one-use Linux phase grant required')
+        if grant.claimed:
+            grant._refuse('Linux phase grant already consumed')
+        return self.phases_module().PhaseController(self, grant.helper_fd, grant.digest,
+                                                     grant.runtime, grant.store, _native=grant)
 
     def offline_phases(self, helper_fd, digest, runtime, store):
         """Injected-boundary experiment only; no real Linux/native execution."""

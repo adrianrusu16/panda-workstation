@@ -18,11 +18,14 @@ import time
 from unittest.mock import patch
 
 
-def run(repo, out):
-    path = repo / 'tests/host_canary_phase_fixture.py'
+def run(repo, out, *, linux_methods=False):
+    path = repo / ('tests/host_canary_native_fixture.py' if linux_methods else 'tests/host_canary_phase_fixture.py')
     spec = importlib.util.spec_from_file_location('phase_performance_fixture', path)
     api = importlib.util.module_from_spec(spec); sys.modules[spec.name] = api; spec.loader.exec_module(api)
-    fixture = api.Fixture(real_program=True)
+    bridge = api.Bridge(real_program=True) if linux_methods else None
+    fixture = bridge.f if bridge is not None else api.Fixture(real_program=True)
+    if bridge is not None:
+        fixture.controller = bridge.controller
     phases, counts = [], Counter()
     ledger, kernel = fixture.s.ledger, fixture.k
     check = ledger.check
@@ -73,19 +76,20 @@ def run(repo, out):
         execution_peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         history = bytes(ledger.history)
         kinds = Counter(json.loads(line)['event']['kind'] for line in history.splitlines())
-        names = ('tests/host_canary_phases.py', 'tests/host_canary_phase_fixture.py',
+        names = ('tests/host_canary_linux.py', 'tests/host_canary_native_fixture.py', 'tests/host_canary_phases.py', 'tests/host_canary_phase_fixture.py',
                  'tests/host_canary_runtime.py', 'tests/host_canary_broker.py', 'tests/host_canary_lifecycle.py',
                  'theme/panda/common/host_canary.py', 'theme/panda/common/host_canary_rpc.py',
                  'theme/panda/common/host_canary_mediated.py')
         result = dict(version=1, synthetic_only=True, native_custody_validated=False,
-            success=success, failure=failure, phases=phases, seconds=elapsed, cpu_seconds=cpu_elapsed,
+            success=success, failure=failure, concrete_linux_methods=linux_methods,
+            native_transport_counts=None if bridge is None else dict(launches=bridge.launches, waits=bridge.waits, polls=bridge.polls), phases=phases, seconds=elapsed, cpu_seconds=cpu_elapsed,
             execution_process_peak_rss_kib=execution_peak_rss,
             harness_process_peak_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
             records=ledger.sequence, ledger_bytes=len(history), ledger_sha256=hashlib.sha256(history).hexdigest(),
             evidence_kinds=dict(kinds), counts=dict(counts),
             source_sha256={name: hashlib.sha256((repo/name).read_bytes()).hexdigest() for name in names},
             harness_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-            environment=dict(python=sys.version, executable=sys.executable, platform=platform.platform(),
+            environment=dict(python=sys.version, executable=sys.executable, platform=sys.platform,
                 cpu_count=os.cpu_count(), affinity=sorted(os.sched_getaffinity(0)),
                 hash_seed=os.environ.get('PYTHONHASHSEED'), rss_units='Linux ru_maxrss KiB',
                 rss_scope='cumulative process high-water; phase endpoints are not independent phase peaks; harness peak includes evidence export/reporting'),
@@ -94,13 +98,14 @@ def run(repo, out):
         out.write_text(json.dumps(result, indent=2) + '\n')
         return success
     finally:
-        fixture.close()
+        bridge.close() if bridge is not None else fixture.close()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--repo', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--linux-methods', action='store_true', help='Concrete Linux methods over fake OS boundaries; never live adapters')
     args = parser.parse_args()
     if args.out.exists(): parser.error('existing measurements must be preserved; choose a new output path')
-    raise SystemExit(0 if run(args.repo, args.out) else 1)
+    raise SystemExit(0 if run(args.repo, args.out, linux_methods=args.linux_methods) else 1)

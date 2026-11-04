@@ -137,6 +137,7 @@ class LifecycleTests(unittest.TestCase):
         for fault in ('none', 'peer', 'one-fd', 'truncated', 'duplicate-credential', 'unexpected-before-rights'):
             with self.subTest(fault=fault):
                 transport = api.LinuxTransport()
+                transport._retained_streams = lambda: None  # isolate protocol/overflow; pipe custody has its own suite
                 transport.process = SimpleNamespace(pid=900, returncode=None)
                 transport.channel = Mock()
                 transport.streams, transport.rights, transport.birth = {}, [], None
@@ -159,10 +160,18 @@ class LifecycleTests(unittest.TestCase):
     def test_concrete_retained_namespace_pidfd_and_lifetime_flags_are_rechecked(self):
         api = self.api
         transport = api.LinuxTransport()
+        transport._retained_streams = lambda: None  # isolate protocol/overflow; pipe custody has its own suite
         transport.helper_pin, transport.helper_identity = 'held', lambda: 'held'
         transport.nsfd, transport.pidfd = 11, 10
         transport.ns_pin = (2, 200)
         transport.birth, transport.stopping = {'pid': 100}, False
+        # This unit isolates namespace/Pid/flag checks. Concrete retained-launch
+        # and pidfs identity are separately tested under fully mocked syscalls.
+        transport._retained_launch = lambda: None
+        transport.pidfd_identity = lambda: (3, 300, 0)
+        transport.pid_pin = (3, 300, 0)
+        transport.birth_handles, transport.rights = (10, 11), [10, 11]
+        transport.birth_pin = dict(transport.birth)
         with patch.object(api.os, 'fstat', return_value=SimpleNamespace(st_dev=2, st_ino=200)), \
              patch.object(api.fcntl, 'ioctl', return_value=api.LinuxTransport.CLONE_NEWPID), \
              patch.object(api.fcntl, 'fcntl', return_value=api.fcntl.FD_CLOEXEC), \
@@ -181,6 +190,7 @@ class LifecycleTests(unittest.TestCase):
     def test_concrete_timeout_eintr_and_output_overflow_keep_evidence(self):
         api = self.api
         transport = api.LinuxTransport()
+        transport._retained_streams = lambda: None  # isolate protocol/overflow; pipe custody has its own suite
         transport.channel, transport.streams = Mock(), {}
         with patch.object(api.time, 'monotonic', side_effect=[0, 0, 31]), \
              patch.object(api.select, 'select', side_effect=InterruptedError) as select_call:

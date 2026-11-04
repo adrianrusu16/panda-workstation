@@ -1,10 +1,11 @@
 # Host Canary bounded worker handoff contract
 
-**Offline mechanism implemented; Linux handoff unsupported and unexecuted.**
+**Explicit Linux integration implemented; all live custody acceptance remains blocked.**
 The default PR #26 entry still grants one worker lifetime. The opt-in
 `ProspectiveSession.offline_phases()` controller accepts only explicit injected
 boundaries and refuses the real Linux kernel adapter or implicit native spawn.
-It grants no host trial, restart, adoption, historical-fixture or cleanup authority.
+The separate explicit typed native entry described below connects Linux adapters.
+Importing source grants no host trial, restart, adoption or cleanup authority.
 
 ## Decision and alternatives
 
@@ -44,7 +45,7 @@ Initialization and provisioning cannot be split: the current Provider is not an
 interrupted-provisioning resumption capability. Cleanup uses a new operator view
 but obtains all authority from the continuously held broker and validated records.
 Each phase must close every view/source grant/lease and pending record stage.
-These are enforced offline boundaries, not accepted native worker lifetimes.
+These are enforced controller boundaries, not accepted native worker lifetimes.
 Native startup, runtime validation, real sync costs and extra evidence remain
 unmeasured and require separate implementation review and authorization.
 
@@ -209,13 +210,92 @@ sample is the process cumulative high-water mark, not an independent phase peak.
 Total timing includes controller initialization; teardown is tested separately.
 No measured fake sync or closure counts constitute actual durability or custody.
 
+## Explicit Linux adapter integration
+
+| Controller boundary | Concrete implementation and retained evidence |
+| --- | --- |
+| Allocation and mutation | Original TrustedBootstrap, LinuxKernel, external DurableLedger and BrokerStore; unchanged descriptor-relative fixed roles and intent/sync/registration ordering |
+| Authorization | One-use LinuxPhaseGrant, original session/runtime/source/helper descriptors and reviewed fixed-plan digest; consumed before launch; no instance-injected transport factory |
+| Birth | Existing NativeLifecycle.start and LinuxTransport.spawn; C clone3 with PIDFD/PID namespace, authenticated SCM_RIGHTS, policy/exec acknowledgements and independent invocation nonce |
+| Capture | Original phase Capture; read at most 64 KiB and remaining worker/aggregate stream allowance plus one; retain overflow before refusal, including final drain |
+| Closure | Original helper process/channel, stdout/stderr FD and FIFO identities, pidfd/nsfd and hashes; native P_PIDFD termination, clean helper exit, pipe EOF and original pidfd readiness |
+| Handoff | Durable checkpoints, retired RPC grants and complete retained closure collection before a new generation |
+| Final removal | Distinct one-use LinuxRemovalGrant bound to the reviewed final graph, then existing narrow role teardown; execution approval alone never authorizes fixture deletion |
+
+ProspectiveSession.linux_phases(LinuxPhaseGrant(...)) requires the original typed
+Linux session and internally selects the concrete transport. It has no CLI,
+environment switch or ordinary-discovery activation. Capability construction
+is a live action requiring separate owner authorization.
+
+Each acquisition failure retains known partial handles. Failed post-birth binding
+retains the full lifecycle/server/capture. Controller loss, replaced pipes, missing
+closure, identity drift, failed durable records and grant replay preserve the
+session. Closed verification never waits, reaps, signals or checks obsolete
+fixture-root metadata again.
+
+The pidfd must have a distinct retained **pidfs** inode on a 64-bit platform;
+anonymous-inode pidfds and unsupported filesystem identities refuse. Pid=-1 is
+only a dead-process observation, never original identity. Linux documents pidfs
+inode uniqueness and the older anonymous-inode limitation in
+[pidfs.c](https://raw.githubusercontent.com/torvalds/linux/v6.18/fs/pidfs.c);
+the required magic is in
+[linux/magic.h](https://raw.githubusercontent.com/torvalds/linux/v6.18/include/uapi/linux/magic.h).
+This requirement has not been checked against the host.
+
+Across all four phases the original request budget remains 4096; stdout and
+stderr each remain 1 MiB aggregate, evidence remains 64 MiB/100,000 records,
+and compressed RPC retention is explicitly capped at 64 MiB/8192 entries.
+Complete ledger history comparisons and synchronization remain unchanged.
+Source (1 MiB), helper (4 MiB), runtime (128 MiB), frame and message caps remain.
+These are component bounds, **not a hard total RSS or worker address-space
+limit**. Byte copies, Python objects, native buffers and benchmark instrumentation
+add overhead. Observed RSS must be reported separately.
+
+The Linux, native-grant and native-integration test suites exercise concrete
+methods over fake kernel, libc, transport and filesystem boundaries. No real
+custodian, socketpair, subprocess, namespace, procfs observation or fixture is
+used by these paths. Cooperative engine threads are never custody witnesses.
+
+Original native parent, namespace-init and Python absolute deadlines remain
+30 seconds per worker. No budget, timer, full-history check or sync is reset.
+Phase D's previously measured 2.62-second synthetic margin does not establish
+native margin. Removing repeated observations or fsyncs is not safe reduction.
+A possible separately reviewed five-phase contract could split D after
+cleanup_outputs: exact output absences, durable cleanup receipt, restored journal
+without pending transitions, original retired-directory custody, quiescence and
+complete closure before a final recover. That needs a new plan digest,
+checkpoints, guards and final-count rules; it is **not implemented or authorized**
+by the current four-phase grant.
+
+## Current synthetic concrete-method measurement
+
+A reviewed complete full-source sample through the concrete Linux methods with fake OS
+boundaries measured worker A/B/C/D at 4.393/18.782/19.889/21.965 seconds, cumulative
+66.102 seconds (65.703 CPU seconds). Per-phase controller overhead was
+0.097/0.184/0.252/0.266 seconds. Phase D's synthetic remaining margin was 8.035
+seconds. This is a different harness/run from the earlier 2.620-second minimum;
+it is not evidence of a production improvement or an accepted native margin.
+
+The sample retained 17,537 records / 10,439,169 ledger bytes, 2,970 requests,
+3,493,179 compressed cache bytes / 718 entries, 1000 stdout bytes and zero stderr.
+It performed four synthetic launches, four helper waits and 26 pidfd readiness
+checks. Process execution peak RSS was 338,324 KiB; phase endpoint high-waters
+were cumulative, not independent phase peaks. Fake syscall, synchronization and
+closure costs do not model kernel latency. No durability/integrity work was removed.
+An earlier sample completed phases but failed in report formatting; its incomplete
+log is retained privately and is not counted as a successful benchmark.
+
+Reproduce using the existing benchmark with the explicit --linux-methods option;
+it selects only the fake OS bridge and never runs real Linux adapters. Preserve
+each output path. Exact source hashes, phase counts and timings are in the private
+measurement record. No host acceptance follows from these numbers.
+
 ## Remaining live acceptance gates
 
-The phase mechanism cannot run with `LinuxKernel`: the existing real transport
-has no reviewed cumulative capture interface or accepted multi-invocation closure
-collection. A later source change must implement and independently review that
-path before a four-phase host trial can even be requested. Do not replace this
-gate with a callback, environment flag, serialized proof or adapter-name disguise.
+The concrete Linux path is implemented and tested only over fake OS boundaries.
+Its source integration does not establish an accepted multi-invocation closure
+collection on a real kernel. No callback, environment flag, serialized proof or
+adapter-name disguise can establish that acceptance.
 Real storage latency, kernel namespace/pidfd continuity, process descendants,
 resource use and deadline margin remain unvalidated. Mock success cannot accept
 any of them.
@@ -234,3 +314,5 @@ phase plan is considered. Any deletion requires its own explicit scoped approval
 and complete original custody; ambiguity preserves all resources. No historical
 fixture interaction, host policy change, provision/install/recover/output cleanup
 or four-phase live acceptance follows from an initialize-only authorization.
+
+See the [initialize-only preflight](host-canary-initialize-preflight.md) for the remaining owner decisions.

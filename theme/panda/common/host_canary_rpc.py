@@ -17,6 +17,8 @@ CHUNK = 12288
 MAX_MESSAGE = 2 * 1024 * 1024
 MAX_PARTS = (MAX_MESSAGE + CHUNK - 1) // CHUNK
 MAX_REQUESTS = 4096
+MAX_CACHE_BYTES = 64 * 1024 * 1024
+MAX_CACHE_ENTRIES = 2 * MAX_REQUESTS
 
 
 class ProtocolError(ValueError):
@@ -159,10 +161,26 @@ class RequestBudget:
         scope(session, 1)
         self.store, self.ledger, self.session = store, ledger, session
         self.epoch, self.active, self.last, self._total = 0, False, 0, 0
+        self._cache_bytes = self._cache_entries = 0
 
     @property
     def total(self):
         return self._total
+
+    @property
+    def cache_bytes(self):
+        return self._cache_bytes
+
+    @property
+    def cache_entries(self):
+        return self._cache_entries
+
+    def reserve_cache(self, size):
+        if (not self.active or type(size) is not int or size < 0
+                or self._cache_bytes + size > MAX_CACHE_BYTES or self._cache_entries >= MAX_CACHE_ENTRIES):
+            self._refuse()
+        self._cache_bytes += size
+        self._cache_entries += 1
 
     def _refuse(self):
         self.store.preserve('cumulative RPC budget/epoch lost')
@@ -236,6 +254,8 @@ class Server:
                 'source_seq':source_seq,'source_direction':source_direction})
             return
         encoded = zlib.compress(raw, 9)
+        if self.budget is not None:
+            self.budget.reserve_cache(len(encoded))
         chunks = [encoded[n:n+1536] for n in range(0,len(encoded),1536)]
         for part, data in enumerate(chunks):
             self.ledger.append({'kind':'rpc-content','epoch':self.epoch,'seq':self.seq,
