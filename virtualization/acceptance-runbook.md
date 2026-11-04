@@ -182,6 +182,17 @@ have effects even if pacman fails. A failure leaves prior changes in place;
 preserve diagnostics, stop later stages and investigate before reboot/retry.
 Do not enable libvirt services as a fallback.
 
+The manifest selects concrete Arch package names, matching the installed-name
+inventory used by preview, transaction checks, application and verification.
+For the `xorriso` command it selects `libisoburn`, whose
+[Arch file list](https://archlinux.org/packages/extra/x86_64/libisoburn/files/)
+contains `usr/bin/xorriso`. A command name or an unreviewed virtual provider is
+not an interchangeable manifest entry. These helpers do not discover or adopt
+alternative providers. Missing concrete packages must have an unambiguous
+cached transaction; an empty preview remains a refusal, never an inferred
+installed-provider success. This package mapping does not establish the
+current host's installed package or cached repository state.
+
 The reviewed manifest and binary prerequisites are:
 
 | Package layer | Commands/resources checked later |
@@ -191,7 +202,7 @@ The reviewed manifest and binary prerequisites are:
 | virt-install / virt-manager | local installer and console UI |
 | edk2-ovmf | readable packaged UEFI loader/template |
 | gnupg / openssl / python | gpg, gpgv, password hashing, Python 3 |
-| xorriso / cpio / gzip / findutils | local DVD extraction/initrd injection |
+| libisoburn (`xorriso`) / cpio / gzip / findutils | local DVD extraction/initrd injection |
 | Existing Arch base utilities | findmnt and the normal user filesystem tools |
 
 This table is a source dependency map, not proof that a particular host's

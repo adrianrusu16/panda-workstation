@@ -8,7 +8,7 @@ edk2-ovmf
 gnupg
 openssl
 python
-xorriso
+libisoburn
 cpio
 gzip
 findutils

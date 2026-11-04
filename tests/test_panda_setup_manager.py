@@ -67,10 +67,30 @@ class SetupManagerContracts(unittest.TestCase):
 
 @unittest.skipUnless(shutil.which('fish'), 'Requires Fish; GitHub CI installs Fish')
 class FishSmokeTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='panda-smoke-')
+        self.addCleanup(self.tmp.cleanup)
+        root = Path(self.tmp.name)
+        tools = root / 'bin'
+        tools.mkdir()
+        # Even --dry-run reads inventories, and --apply's Android refusal follows
+        # the host-policy hook. Keep smoke tests entirely off the real host.
+        for name, source in {
+                'hostname': '#!/bin/sh\necho panda-test-host\n',
+                'pacman': '#!/bin/sh\nif [ "$1" = "-Qq" ]; then echo fish; exit 0; fi\nexit 98\n',
+                'flatpak': '#!/bin/sh\nexit 1\n',
+                'sudo': '#!/bin/sh\nexit 98\n'}.items():
+            path = tools / name
+            path.write_text(source)
+            path.chmod(0o755)
+        self.env = dict(os.environ, HOME=str(root),
+                        XDG_CONFIG_HOME=str(root / 'config'),
+                        PATH=str(tools) + os.pathsep + os.environ.get('PATH', ''))
+
     def run_fish(self, *args):
-        return subprocess.run(['fish', str(MAIN), *args],
-                              cwd=ROOT, capture_output=True, text=True,
-                              timeout=20)
+        return subprocess.run(['fish', '--no-config', str(MAIN), *args],
+                              cwd=ROOT, env=self.env, stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, timeout=20)
 
     def test_syntax(self):
         proc = subprocess.run(['fish', '-n', str(MAIN), str(HELPERS), str(GAMING)],
@@ -275,8 +295,15 @@ if args[:1]==['-Sp']:
     if os.getenv('MOCK_TRANSACTION_FAIL')=='1':
         print('error: unresolved dependency',file=sys.stderr);sys.exit(46)
     targets=args[args.index('--')+1:] if '--' in args else []
+    with events.open('a') as f:f.write('pacman-preview '+','.join(targets)+'\n')
+    if os.getenv('MOCK_TRANSACTION_EMPTY')=='1':sys.exit(0)
+    if os.getenv('MOCK_TRANSACTION_AMBIGUOUS')=='1':
+        print(':: There are 2 providers available for xorriso:');sys.exit(0)
     for target in targets:
-        print(target+' 1.0')
+        # Model the missing-name/installed-provider mismatch without invoking
+        # libalpm: -Qq contains concrete names; --needed may omit their alias.
+        concrete='libisoburn' if target=='xorriso' else target
+        if concrete not in entries:print(concrete+' 1.0')
     if os.getenv('MOCK_TRANSACTION_EXISTING')=='1':print('glibc 2.1')
     if os.getenv('MOCK_TRANSACTION_GARBLED')=='1':print('unexpected output!')
     sys.exit(0)
@@ -353,6 +380,8 @@ sys.exit(89)
             'MOCK_EVENTS': str(self.events),
             'MOCK_FLAT_STATE': str(self.flat_state),
             'MOCK_STAGE_LOG': str(self.stage_log),
+            'HOME': str(self.root / 'default-home'),
+            'XDG_CONFIG_HOME': str(self.root / 'default-config'),
         })
 
     def make_exe(self, name, source):
@@ -364,7 +393,7 @@ sys.exit(89)
         # Keep the fake apply invocation noninteractive even when the test runner
         # itself was started from a terminal. subprocess.run() otherwise inherits
         # the terminal on stdin and Fish correctly prompts for APPLY indefinitely.
-        p = subprocess.run(['fish', str(self.repo / 'bootstrap/panda-setup.fish'),
+        p = subprocess.run(['fish', '--no-config', str(self.repo / 'bootstrap/panda-setup.fish'),
                             *args], cwd=self.repo, env=(env or self.env),
                            stdin=subprocess.DEVNULL, capture_output=True,
                            text=True, timeout=30)
@@ -714,6 +743,57 @@ os.execv(real_fish, [real_fish, *sys.argv[1:]])
         self.assertEqual(r.returncode,2)
         self.assert_no_apply()
 
+
+
+    def virtualization_packages_installed(self, *, provider=True, other_provider=False):
+        # Hand-selected concrete Arch package set; xorriso is the command, not
+        # the selected package. The real manifest is consumed by run_manager.
+        names = ['fish', 'qemu-base', 'libvirt', 'virt-manager', 'virt-install',
+                 'edk2-ovmf', 'gnupg', 'openssl', 'python', 'cpio', 'gzip', 'findutils']
+        if provider:
+            names.append('libisoburn')
+        if other_provider:
+            names.append('unreviewed-iso-provider')
+        self.installed.write_text('\n'.join(names) + '\n')
+
+    def test_virtualization_reuses_installed_concrete_xorriso_package(self):
+        self.virtualization_packages_installed()
+        result = self.run_manager('--modules', 'virtualization', '--check')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('No new pacman packages needed', result.stdout)
+        self.assertNotIn('pacman-preview', self.events.read_text())
+        self.assert_no_apply()
+
+    def test_virtualization_selects_missing_concrete_xorriso_package(self):
+        self.virtualization_packages_installed(provider=False)
+        result = self.run_manager('--modules', 'virtualization', '--check')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('pacman-preview libisoburn\n', self.events.read_text())
+        self.assert_no_apply()
+
+    def test_virtualization_does_not_adopt_unknown_installed_provider(self):
+        self.virtualization_packages_installed(provider=False, other_provider=True)
+        result = self.run_manager('--modules', 'virtualization', '--check')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('pacman-preview libisoburn\n', self.events.read_text())
+        self.assertIn('Would install: libisoburn', result.stdout)
+        self.assert_no_apply()
+
+    def test_virtualization_missing_package_empty_transaction_still_refuses(self):
+        self.virtualization_packages_installed(provider=False)
+        env = dict(self.env, MOCK_TRANSACTION_EMPTY='1')
+        result = self.run_manager('--modules', 'virtualization', '--check', env=env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('No package transaction returned despite missing targets', result.stdout + result.stderr)
+        self.assert_no_apply()
+
+    def test_virtualization_ambiguous_provider_output_still_refuses(self):
+        self.virtualization_packages_installed(provider=False)
+        env = dict(self.env, MOCK_TRANSACTION_AMBIGUOUS='1')
+        result = self.run_manager('--modules', 'virtualization', '--check', env=env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Unexpected package transaction output', result.stdout + result.stderr)
+        self.assert_no_apply()
 
     def test_pending_upgrades_block_check_and_apply(self):
         env=dict(self.env, MOCK_PENDING_UPGRADES='1')
