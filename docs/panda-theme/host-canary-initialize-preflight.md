@@ -52,14 +52,29 @@ Review the actual controller call sequence before approval:
 3. Start one mediated worker through the original helper FD. Preserve authenticated
    birth pidfd/nsfd, kernel namespace relationship, policy/exec/START acknowledgements,
    complete ordered task trace and broker RPC request/result/ack evidence.
-4. Accept initialize only after exact baseline-last enrollment, complete role and
-   source/baseline identities, no pending mutation/lease/view, status zero and
-   within-budget output. Demonstrate enforced direct-mutation denial using only a
-   separately reviewed harmless negative case; a cooperative callback is not proof.
+4. Accept initialize only after the controller verifies the original registered
+   graph: the allowed runner scaffolding, `FIXED_DIRS` and the two approved
+   `SOURCE`/`DEPLOYED` baseline images, including their birth bindings, bytes,
+   modes and timestamps. Require the `initialized` result, no pending RPC,
+   mutation, lease, view or program grant, status zero and within-budget output;
+   the worker result alone supplies no custody authority. The support directory
+   remains empty: no frozen program, backups, lock, provisioning/enrollment
+   records, journal, cleanup record or staging files exist. Output directories
+   and the generated target remain absent. Demonstrate enforced direct-mutation
+   denial using only a separately reviewed harmless negative case; a cooperative
+   callback is not proof.
 5. Record durable STOP intent, original pidfd termination, complete descendant
    closure, native P_PIDFD wait, authenticated CLOSED, helper status zero, output
    EOF/hashes and retained original namespace/process/pipe identities. A saved PID,
    process group or worker exit alone is insufficient.
+
+The `initialize` action stops after constructing the provider over those
+creation witnesses; it does not call `Provider.start()` or `Provider.seal()`.
+Baseline-last enrollment belongs to the separate `provision` action and remains
+required for its later acceptance. Do not add that action to this trial or
+invent an initialization receipt. The external custody ledger and its durable
+creation/RPC/closure records are still required; absence of an enrollment file
+does not replace any original-descriptor or lifecycle evidence.
 
 This list is an evidence requirement, not a claim that these events have occurred.
 Retain private mode-0600 output in a new mode-0700 evidence directory, immediate
@@ -84,6 +99,6 @@ teardown; retain survivors and evidence. No recursive deletion, ledger/parent re
 or historical cleanup is authorized. A native multi-phase final removal would also
 require the separate LinuxRemovalGrant; that is outside this initialize-only trial.
 
-Success accepts only the observed initialize boundary. It cannot accept the six-action
-transaction, four-phase handoff, real durability under failures, performance margin,
+Success accepts only the observed initialize boundary. It cannot accept enrollment,
+the six-action transaction, four-phase handoff, real durability under failures, performance margin,
 the 79 dynamic cases or host theme activation. Each remains a separate later gate.
