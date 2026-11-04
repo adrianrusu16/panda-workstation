@@ -26,7 +26,7 @@ fish --no-config bootstrap/setup-workstation.fish --android --plan
 |---|---|
 | No argument / `--dry-run` | Read paths and metadata; report gaps; exit 0; execute no Java/SDK tools |
 | `--plan` | Strict manifest, package/layout/revision inventory, candidate identity and manual IDE checklist; no vendor execution |
-| `--check` | Execute selected Java/javac and check SDK presence; no Android/SDK/Studio execution; gaps return 1 |
+| `--check` | Require explicit absolute JDK/SDK roots and matching process PATH; execute selected Java/javac and check SDK presence; no Android/SDK/Studio execution; gaps return 1 |
 | `--cli-check` | Interactive approval before Android version/help/root/inventory calls; possible network/cache/launcher writes |
 | `--install` | Interactive approvals for missing baseline packages, archive acquisition/publication and terms; no healthy package reinstall |
 | `--repair` | Same approvals, plus retain/restore specifically approved corrupt package directories |
@@ -53,13 +53,20 @@ missing, malformed and conflicting forms refuse. A regular `android.jar`,
 numeric package revision and non-symlink paths are required. Revision 2 is not a
 substitute for approved platform revision 1.
 
-The Fish selector is disabled until `PANDA_ANDROID=1`. It preserves valid explicit
-JDK/SDK choices, including a different JDK major that `--check` then diagnoses.
+The interactive Fish selector is disabled until `PANDA_ANDROID=1`. It preserves
+valid explicit JDK/SDK choices.
 It can select a coherent PATH JDK or the existing system JDK 21 and defaults to
 `$HOME/Android/Sdk` when appropriate. New automation modes preserve an explicit
 empty SDK choice rather than switching roots. Conflicting `ANDROID_SDK_ROOT`
 and `ANDROID_HOME` refuse. Repeated sourcing changes process PATH only; it does
 not persist universal paths or change the machine's Java default.
+
+The `--plan` and `--check` gates skip that interactive selector. Both require
+explicit absolute `JAVA_HOME` and `ANDROID_HOME`; neither discovers fallback
+roots or changes PATH. For `--check`, put the selected JDK's `bin` first on the
+disposable child's reviewed PATH. Both Java resolutions and any inherited
+`ANDROID_SDK_ROOT` conflict are checked before either JDK process starts.
+A non-21 selected JDK is diagnosed without replacement.
 
 Studio remains manually installed. Metadata detection considers
 `ANDROID_STUDIO_HOME`, an explicitly configured preferred path,

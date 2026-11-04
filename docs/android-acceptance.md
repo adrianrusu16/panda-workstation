@@ -101,9 +101,25 @@ new private 0600 files under an approved 0700 evidence directory. Do not overwri
 earlier evidence or publish raw paths, inventory or environment dumps. Gate B needs
 its own disposable child with the approved JDK bin directory first on PATH;
 confirm `command -s java` and `command -s javac` there before approving execution.
+The `--check` route, like `--plan`, requires explicit absolute roots and skips
+the interactive profile entirely. It preserves the child's PATH and checks both
+Java resolutions and inherited SDK-root conflicts before either JDK invocation.
+It neither invokes `fish_add_path` nor requires a populated `fish_function_path`.
 Do not persist these selections or change the system Java default.
 Pass the separately reviewed roots into each later stage's child again; A does
 not export them into its parent shell.
+
+Fish 4.9.3 embeds internal configuration and functions. Its
+[`--no-config` option](https://fishshell.com/docs/current/cmds/fish.html) skips
+initialization, including the default function-path assignment; its
+[embedded autoloader](https://github.com/fish-shell/fish-shell/blob/4.9.3/src/autoload.rs)
+can still find shipped functions. An unset function path or absent
+`/usr/share/fish/config.fish` does not establish a broken installation.
+The [Arch 4.9.3 file list](https://archlinux.org/packages/extra/x86_64/fish/files/)
+does not include that internal file. Do not inject function directories or
+enable user configuration to make an acceptance guard pass. Review any actual
+inherited function entries and executable provenance separately; matching
+metadata does not authenticate code.
 
 Inspect any inherited `ANDROID_SDK_ROOT` separately. A conflict must stop rather
 than be silently unset or redirected. Do not publish environment dumps. Do not

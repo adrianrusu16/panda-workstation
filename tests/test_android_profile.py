@@ -71,7 +71,103 @@ class AndroidProfileContracts(unittest.TestCase):
 
     def setup(self, *args):
         self.assertTrue(SCRIPT.is_file(), "Android review/check command is missing")
+        if args == ("--check",) and self.env.get("JAVA_HOME"):
+            self.env["PATH"] = f"{self.env['JAVA_HOME']}/bin:{self.env['PATH']}"
         return self.run_fish('fish --no-config "$argv[1]" $argv[2..]', SCRIPT, *args)
+
+    def isolated_check_script(self):
+        """A poisoned interactive profile makes any check-time sourcing visible."""
+        repo = self.home / "repo"
+        bootstrap = repo / "bootstrap"
+        (bootstrap / "lib").mkdir(parents=True)
+        shutil.copy2(SCRIPT, bootstrap)
+        shutil.copy2(ROOT / "bootstrap/lib/ui.fish", bootstrap / "lib")
+        profile = repo / "home/dot_config/fish/conf.d/panda-android.fish"
+        profile.parent.mkdir(parents=True)
+        profile.write_text('printf sourced > "$HOME/profile-sourced"\nexit 97\n')
+        return bootstrap / "setup-android.fish"
+
+    def record_jdk_calls(self, jdk):
+        self.env["PATH"] = f"{jdk / 'bin'}:{self.env['PATH']}"
+        self.executable(jdk / "bin/java",
+                        'echo java >> "$HOME/jdk-calls"; echo \'openjdk version "21.0.8"\' >&2')
+        self.executable(jdk / "bin/javac",
+                        'echo javac >> "$HOME/jdk-calls"; echo "javac 21.0.8"')
+
+    def check_without_function_path(self, script):
+        return self.run_fish(
+            'set -e fish_function_path; source "$argv[1]" --check', script)
+
+    def test_check_without_function_path_never_sources_profile_or_changes_selections(self):
+        jdk, sdk = self.jdk(), self.sdk()
+        self.record_jdk_calls(jdk)
+        result = self.check_without_function_path(self.isolated_check_script())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stderr, "")
+        self.assertIn(str(jdk), result.stdout)
+        self.assertIn(str(sdk), result.stdout)
+        self.assertEqual((self.home / "jdk-calls").read_text().splitlines(), ["java", "javac"])
+        self.assertFalse((self.home / "profile-sourced").exists())
+        self.assertFalse((self.home / "config/fish/fish_variables").exists())
+
+    def test_check_requires_explicit_absolute_roots_before_profile_or_jdk(self):
+        jdk = self.jdk()
+        self.sdk()
+        self.record_jdk_calls(jdk)
+        script = self.isolated_check_script()
+        for key in ("JAVA_HOME", "ANDROID_HOME"):
+            previous = self.env[key]
+            for value in (None, "", "relative-root"):
+                with self.subTest(key=key, value=value):
+                    if value is None:
+                        self.env.pop(key, None)
+                    else:
+                        self.env[key] = value
+                    result = self.check_without_function_path(script)
+                    self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                    self.assertIn("explicit absolute", result.stdout)
+                    self.assertFalse((self.home / "jdk-calls").exists())
+                    self.assertFalse((self.home / "profile-sourced").exists())
+            self.env[key] = previous
+
+    def test_check_conflicting_legacy_root_stops_before_profile_or_jdk(self):
+        jdk = self.jdk()
+        self.sdk()
+        self.record_jdk_calls(jdk)
+        self.env["ANDROID_SDK_ROOT"] = str(self.home / "other sdk")
+        result = self.check_without_function_path(self.isolated_check_script())
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("ANDROID_SDK_ROOT", result.stdout)
+        self.assertFalse((self.home / "jdk-calls").exists())
+        self.assertFalse((self.home / "profile-sourced").exists())
+
+    def test_check_rejects_either_path_shadow_before_any_jdk_execution(self):
+        jdk = self.jdk()
+        self.sdk()
+        self.record_jdk_calls(jdk)
+        script = self.isolated_check_script()
+        for tool in ("java", "javac"):
+            with self.subTest(tool=tool):
+                shadow = self.executable(self.bin / tool,
+                    'echo forbidden >> "$HOME/forbidden"; exit 98')
+                self.env["PATH"] = f"{self.bin}:{jdk / 'bin'}:/usr/bin"
+                result = self.check_without_function_path(script)
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn(f"{tool} on PATH does not match JAVA_HOME", result.stdout)
+                self.assertFalse((self.home / "jdk-calls").exists())
+                self.assertFalse((self.home / "profile-sourced").exists())
+                shadow.unlink()
+
+    def test_check_does_not_replace_missing_explicit_jdk_with_path_jdk(self):
+        jdk = self.jdk()
+        self.sdk()
+        self.record_jdk_calls(jdk)
+        self.env["JAVA_HOME"] = str(self.home / "absent selected jdk")
+        result = self.check_without_function_path(self.isolated_check_script())
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("JDK missing", result.stdout)
+        self.assertFalse((self.home / "jdk-calls").exists())
+        self.assertFalse((self.home / "profile-sourced").exists())
 
     def test_disabled_profile_leaves_environment_unchanged(self):
         self.jdk()

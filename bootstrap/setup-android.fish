@@ -16,7 +16,7 @@ switch "$mode"
     case --help -h
         echo 'Usage: fish bootstrap/setup-android.fish [--dry-run | --check | --plan | --cli-check | --install | --repair | --help]'
         echo 'Default/--dry-run: review paths and gaps without executing vendor tools.'
-        echo '--check: also execute selected java/javac versions; never install or apply.'
+        echo '--check: explicit absolute roots and matching PATH required; execute selected java/javac only.'
         echo '--plan: read-only manifest, metadata inventory, exact actions and manual IDE checklist.'
         echo '--cli-check: separately approved vendor version/help/root/inventory; may download launcher payload and write caches.'
         echo '--install: interactive approvals for missing SDK components, downloads and Google terms.'
@@ -32,12 +32,19 @@ switch "$mode"
         exit 2
 end
 
-# A metadata plan must preserve explicit selections even when nothing is installed.
-# Sourcing the interactive profile here would inspect fallback JDK/SDK roots.
-if test "$mode" = --plan
+# Plan/check use only explicit selections. The interactive profile can discover
+# fallback roots and autoload fish_add_path; neither is needed for these gates.
+if contains -- "$mode" --plan --check
     if not string match -q '/*' -- "$JAVA_HOME"; or not string match -q '/*' -- "$ANDROID_HOME"
-        ui_error '--plan requires explicit absolute JAVA_HOME and ANDROID_HOME selections; no discovery attempted.'
+        ui_error "Mode $mode requires explicit absolute JAVA_HOME and ANDROID_HOME selections; no discovery attempted."
         exit 1
+    end
+    # A conflicting inherited root must stop before any selected JDK execution.
+    if test "$mode" = --check; and test -n "$ANDROID_SDK_ROOT"
+        if test (path resolve -- "$ANDROID_SDK_ROOT") != (path resolve -- "$ANDROID_HOME")
+            ui_error 'Legacy ANDROID_SDK_ROOT conflicts with ANDROID_HOME; no JDK executed.'
+            exit 1
+        end
     end
 else
     # Enable only this child process, including when the deployed profile is disabled.
@@ -92,9 +99,12 @@ if test "$mode" = --check; and test $jdk_ok -eq 1
         set -l selected (path resolve "$JAVA_HOME/bin/$tool")
         set -l on_path (command -s "$tool")
         if test -z "$on_path"; or test (path resolve "$on_path") != "$selected"
-            android_missing "$tool on PATH does not match JAVA_HOME"
-            continue
+            ui_error "$tool on PATH does not match JAVA_HOME; no JDK executed."
+            exit 1
         end
+    end
+    # Validate both resolutions before executing either selected program.
+    for tool in java javac
         set -l tool_version ("$JAVA_HOME/bin/$tool" -version 2>&1 | string collect)
         set -l version_status $pipestatus[1]
         ui_info "$tool_version"
