@@ -2,6 +2,7 @@
 
 import copy
 import errno
+import fcntl
 import importlib
 import json
 import os
@@ -180,18 +181,64 @@ class LiveTransactionContracts(unittest.TestCase):
                 self.assertEqual(tree(self.root), before)
 
     def metadata_snapshot(self):
+        """Observe every field without advancing file OR directory atime."""
         import stat
         result = {}
-        for path in (self.root, *self.root.rglob("*")):
-            info = path.lstat()
-            content = None
-            if stat.S_ISREG(info.st_mode):
-                with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NOATIME), "rb") as handle:
-                    content = handle.read()
-            result[str(path.relative_to(self.root))] = (
+        def record(relative, info, content=None):
+            result[relative or "."] = (
                 info.st_mode, info.st_uid, info.st_gid, info.st_ino, info.st_nlink,
                 info.st_atime_ns, info.st_mtime_ns, info.st_ctime_ns, content)
+        def visit(fd, relative):
+            record(relative, os.fstat(fd))
+            with os.scandir(fd) as entries:
+                names = sorted(entry.name for entry in entries)
+            for name in names:
+                child_path = relative + "/" + name if relative else name
+                info = os.stat(name, dir_fd=fd, follow_symlinks=False)
+                if stat.S_ISDIR(info.st_mode):
+                    child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NOATIME,
+                                    dir_fd=fd)
+                    try:
+                        visit(child, child_path)
+                    finally:
+                        os.close(child)
+                elif stat.S_ISREG(info.st_mode):
+                    child = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_NOATIME,
+                                    dir_fd=fd)
+                    with os.fdopen(child, "rb") as handle:
+                        record(child_path, os.fstat(child), handle.read())
+                else:
+                    record(child_path, info)
+        fd = os.open(self.root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NOATIME)
+        try:
+            visit(fd, "")
+        finally:
+            os.close(fd)
         return result
+
+    def test_metadata_snapshot_protects_directory_reads_from_atime_updates(self):
+        original = os.scandir
+        observed = []
+        def scan(fd):
+            self.assertIsInstance(fd, int, "snapshot must traverse directory descriptors")
+            self.assertTrue(fcntl.fcntl(fd, fcntl.F_GETFL) & os.O_NOATIME)
+            observed.append((os.fstat(fd).st_dev, os.fstat(fd).st_ino))
+            return original(fd)
+        with patch("os.scandir", side_effect=scan):
+            first = self.metadata_snapshot()
+            self.assertEqual(self.metadata_snapshot(), first)
+        self.assertTrue(observed, "no directory enumeration was observed")
+
+    def test_metadata_snapshot_still_detects_atime_and_content_changes(self):
+        path = self.root / self.fs.HOOK
+        before = self.metadata_snapshot()
+        info = path.stat()
+        os.utime(path, ns=(info.st_atime_ns + 1_000_000_000, info.st_mtime_ns))
+        changed = self.metadata_snapshot()
+        key = str(path.relative_to(self.root))
+        self.assertNotEqual(before[key][5], changed[key][5], "atime must remain asserted")
+        path.write_bytes(b"unexpected disposable target edit")
+        self.assertNotEqual(self.metadata_snapshot()[key][8], changed[key][8])
 
     def test_setgid_ancestors_are_zero_write_preflight_refusals(self):
         ancestors = ("config", "config/panda", "config/panda/generated", "state",
