@@ -48,7 +48,7 @@ is checked for the selected GPU. The current Helios path is always `intel`.
 | Panda Desktop | Plasma package plan | Existing `install-desktop.fish --profile plasma` | Theme activation and layout deployment are not implemented |
 | Gaming | Steam, GOG/Epic, Lutris, Intel/AMD dependencies | Official pacman packages; Heroic user Flatpak | Doesn't log into stores, download games, enable NVIDIA, or tune game settings |
 | Android / AOSP | Placeholder, pending | **Blocked** | No Android Studio/SDK/AOSP installation yet; including module in --apply blocks whole plan before writes |
-| Virtualization | QEMU/libvirt/OVMF packages | Package installation only | No services, autostart, VM creation or Audit Lab integration |
+| Virtualization | QEMU/libvirt/OVMF and Audit Lab support packages | Package installation only | Separate [Audit Lab commands](../virtualization/README.md); no service, media or VM actions |
 
 ## Store choices
 
@@ -78,7 +78,11 @@ transaction. If a later stage fails, previous successful stage changes remain
 and may be rechecked on rerun; no rollback is claimed.
 
 The manager never enables a `libvirt` system service or creates an offline audit
-VM. That remains a separate reviewed feature branch.
+VM. `bootstrap/setup-virtualization.fish` is a package-only shortcut to this
+module with the same default preview and explicit apply gates. The recovered
+[Audit Lab](../virtualization/README.md) provides a pure `plan` command and
+separate explicit media/preflight/lifecycle commands. Its live acceptance remains
+gated; package installation does not establish that a guest works.
 
 ## Git and CI
 
