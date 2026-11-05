@@ -10,7 +10,7 @@ source "$script_dir/lib/panda-setup.fish"
 function panda_setup_usage
     echo 'Panda Setup Manager'
     echo 'Usage:'
-    echo '  fish bootstrap/panda-setup.fish [--interactive] [--modules workspace,desktop,gaming,android,virtualization]'
+    echo '  fish bootstrap/panda-setup.fish [--interactive] [--modules '(string join ',' -- (panda_setup_module_ids))']'
     echo '                                 [--stores steam,gog,epic,other] [--gpu auto|intel|amd]'
     echo '                                 [--enable-flathub] [--dry-run | --check | --verify | --apply [--yes]]'
     echo '  fish bootstrap/panda-gaming.fish [--stores steam,gog,epic,other] [--gpu auto|intel|amd] [--dry-run | --check | --verify | --apply]'
@@ -91,31 +91,25 @@ else
     end
     ui_banner
     echo 'Select modules (comma-separated numbers):'
-    echo '  1. Workspace (core tools, chezmoi, Git, development; no boot changes)'
-    echo '  2. Panda Desktop (Plasma packages only; no theme activation)'
-    echo '  3. Gaming (multi-store gaming stack)'
-    echo '  4. Android / AOSP (planning only, not deployable yet)'
-    echo '  5. Virtualization (packages only; never creates/boots a VM)'
+    set -l available_modules (panda_setup_module_ids)
+    set -l module_numbers
+    set -l index 1
+    for module in $available_modules
+        printf '  %s. %s (%s)\n' "$index" (panda_setup_module_get "$module" name) (panda_setup_module_get "$module" menu)
+        set -a module_numbers "$index"
+        set index (math $index + 1)
+    end
     read -l -P 'Modules [3]: ' selection
     if test -z "$selection"
         set selection 3
     end
     for n in (panda_setup_csv "$selection")
-        switch "$n"
-            case 1
-                set -a modules workspace
-            case 2
-                set -a modules desktop
-            case 3
-                set -a modules gaming
-            case 4
-                set -a modules android
-            case 5
-                set -a modules virtualization
-            case '*'
-                ui_error "Unknown module selection: $n"
-                exit 2
+        set -l selected_index (contains -i -- "$n" $module_numbers)
+        if test -z "$selected_index"
+            ui_error "Unknown module selection: $n"
+            exit 2
         end
+        set -a modules "$available_modules[$selected_index]"
     end
 end
 if test (count $modules) -eq 0
@@ -125,7 +119,7 @@ end
 
 set -l unique_modules
 for mod in $modules
-    if not contains -- "$mod" workspace desktop gaming android virtualization
+    if not contains -- "$mod" (panda_setup_module_ids)
         ui_error "Unknown module: $mod"
         exit 2
     end
@@ -184,44 +178,36 @@ if contains gog $stores; or contains epic $stores
 end
 set -l manifest_names
 if contains gaming $modules
-    set -a manifest_names gaming-base
-    if contains steam $stores
-        set -a manifest_names gaming-steam
-    end
-    if test $heroic -eq 1
-        set -a manifest_names gaming-heroic
-    end
-    if contains other $stores
-        set -a manifest_names gaming-other
-    end
-    # GPU-specific packages will be added after safety checks.
     set gpu (panda_setup_gpu_profile "$gpu")
     or exit 1
-    set -a manifest_names "gaming-$gpu"
+    for manifest in (panda_setup_module_manifests gaming "$gpu" $stores)
+        set -a manifest_names (string replace -ar '^setup/manifests/|\.txt$' '' -- "$manifest")
+    end
 end
 if contains virtualization $modules
-    set -a manifest_names virtualization-base
+    for manifest in (panda_setup_module_get virtualization manifests)
+        set -a manifest_names (string replace -ar '^setup/manifests/|\.txt$' '' -- "$manifest")
+    end
 end
-if contains workspace $modules
-    ui_step 'Workspace: install-core → setup-chezmoi → setup-github → setup-development'
-    ui_info 'Existing workstation scripts may change user configuration and install dev tools on --apply.'
-    panda_setup_show_manifest "$repo_root/packages/core.txt"
-    or exit 1
-    panda_setup_show_manifest "$repo_root/packages/development.txt"
-    or exit 1
-end
-if contains desktop $modules
-    ui_step 'Panda Desktop: install-desktop.fish --profile plasma (packages only)'
-    ui_info 'Panda theme/layout activation is not part of this release.'
-    panda_setup_show_manifest "$repo_root/packages/desktop.txt"
-    or exit 1
-end
-if contains android $modules
-    ui_warn 'Android / AOSP is NOT IMPLEMENTED; --apply will refuse the entire selection.'
-end
-if contains virtualization $modules
-    ui_step 'Virtualization: QEMU/libvirt/virt-manager/OVMF package layer only'
-    ui_info 'No libvirt service configuration, VM disk, firmware changes, or guest startup.'
+for module in (panda_setup_module_ids)
+    if not contains -- "$module" $modules
+        continue
+    end
+    for message in (panda_setup_module_get "$module" step)
+        ui_step "$message"
+    end
+    for message in (panda_setup_module_get "$module" info)
+        ui_info "$message"
+    end
+    for message in (panda_setup_module_get "$module" warning)
+        ui_warn "$message"
+    end
+    if contains -- "$module" workspace desktop
+        for manifest in (panda_setup_module_get "$module" manifests)
+            panda_setup_show_manifest "$repo_root/$manifest"
+            or exit 1
+        end
+    end
 end
 if test $heroic -eq 1
     ui_step 'GOG + Epic: install Heroic Flatpak once (user scope)'
@@ -244,11 +230,12 @@ set -l transaction_manifests
 for name in $manifest_names
     set -a transaction_manifests "$repo_root/setup/manifests/$name.txt"
 end
-if contains workspace $modules
-    set -a transaction_manifests "$repo_root/packages/core.txt" "$repo_root/packages/development.txt"
-end
-if contains desktop $modules
-    set -a transaction_manifests "$repo_root/packages/desktop.txt"
+for module in workspace desktop
+    if contains -- "$module" $modules
+        for manifest in (panda_setup_module_get "$module" manifests)
+            set -a transaction_manifests "$repo_root/$manifest"
+        end
+    end
 end
 
 ui_section '🔍' 'Safety checks'
@@ -419,15 +406,14 @@ if test $heroic -eq 1
         exit 1
     end
 end
-if contains workspace $modules
-    for script in install-core.fish setup-chezmoi.fish setup-github.fish setup-development.fish
-        fish "$script_dir/$script"
-        or exit $status
+for module in workspace desktop
+    if contains -- "$module" $modules
+        set -l stage_arguments (panda_setup_module_get "$module" arguments)
+        for script in (panda_setup_module_get "$module" scripts)
+            fish "$repo_root/$script" $stage_arguments
+            or exit $status
+        end
     end
-end
-if contains desktop $modules
-    fish "$script_dir/install-desktop.fish" --profile plasma
-    or exit $status
 end
 ui_section '🔍' 'Automatic installation verification'
 panda_setup_verify_installation "$heroic" $transaction_manifests

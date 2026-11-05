@@ -50,6 +50,31 @@ is checked for the selected GPU. The current Helios path is always `intel`.
 | Android / AOSP | Placeholder, pending | **Blocked** | No Android Studio/SDK/AOSP installation yet; including module in --apply blocks whole plan before writes |
 | Virtualization | QEMU/libvirt/OVMF packages | Package installation only | No services, autostart, VM creation or Audit Lab integration |
 
+The authoritative module definitions are the five records in
+`bootstrap/lib/panda-setup.fish` (`panda_setup_module_contracts`). Each record
+contains a stable ID, display name, implementation status, supported CLI
+operations, repository-relative manifests with selection conditions, existing
+stage scripts and arguments, explicit limitations, and menu/preview text.
+`implemented` means the existing stages or manager actions are available;
+`packages-only` excludes configuration or activation; `preview-only` excludes
+all strict modes. These statuses describe current functionality, not future
+feature promises or proof that a host is ready.
+
+The manager uses this registry for module validation, menu/plan descriptions,
+manifest selection, and stage preflight/dispatch. Gaming manifest conditions
+retain the existing order and select Heroic once for either GOG or Epic.
+Combined package targets remain deduplicated by the existing package helpers.
+The registry does not install packages, invoke stages or replace the explicit
+Android, GPU, transaction, Flathub, confirmation and verification guards.
+
+Android remains a placeholder in this manager: `--check`, `--verify` and
+`--apply` refuse the complete selection before writes. No Android SDK/Studio
+or separately reviewed Android runtime stages are dispatched. Workspace keeps
+its core → chezmoi → Git → development sequence without machine provisioning;
+Desktop keeps the explicit Plasma argument without theme/layout activation.
+Virtualization installs only its package manifest and never starts services
+or guests.
+
 ## Store choices
 
 - `steam`: Arch multilib Steam and a corresponding explicit Intel or AMD Vulkan driver.
@@ -82,7 +107,8 @@ VM. That remains a separate reviewed feature branch.
 
 ## Git and CI
 
-Keep this feature on `feat/panda-setup-manager` (do not use a `codex/*` branch).
+Use a dedicated feature branch; the W1 contract refactor uses
+`feat/setup-manager-module-contract`.
 AI can prepare a diff and review; **the logged-in user performs the commit**.
 
 ```fish
