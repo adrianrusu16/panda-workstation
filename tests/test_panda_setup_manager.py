@@ -6,6 +6,8 @@ import tempfile
 import shutil
 import subprocess
 import unittest
+import pty
+import signal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,6 +15,81 @@ MANIFESTS = ROOT / 'setup' / 'manifests'
 MAIN = ROOT / 'bootstrap' / 'panda-setup.fish'
 HELPERS = ROOT / 'bootstrap' / 'lib' / 'panda-setup.fish'
 GAMING = ROOT / 'bootstrap' / 'panda-gaming.fish'
+
+
+@unittest.skipUnless(shutil.which('fish'), 'Requires Fish')
+class ModuleRegistryContracts(unittest.TestCase):
+    def query(self, function, *args):
+        with tempfile.TemporaryDirectory(prefix='panda-contract-') as home:
+            env = dict(os.environ, HOME=home, XDG_CONFIG_HOME=home,
+                       XDG_CACHE_HOME=home, XDG_DATA_HOME=home)
+            return subprocess.run(
+                ['fish', '--no-config', '-c',
+                 'source "$argv[1]"; set -e argv[1]; $argv',
+                 str(HELPERS), function, *args], env=env,
+                stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)
+
+    def values(self, module, field):
+        result = self.query('panda_setup_module_get', module, field)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout.splitlines()
+
+    def test_five_unique_registered_modules_in_existing_menu_order(self):
+        result = self.query('panda_setup_module_ids')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(),
+                         ['workspace', 'desktop', 'gaming', 'android', 'virtualization'])
+        records = self.query('panda_setup_module_contracts')
+        self.assertEqual(records.returncode, 0, records.stderr)
+        self.assertTrue(all(len(row.split('|')) == 13 for row in records.stdout.splitlines()))
+
+    def test_current_names_status_and_operations(self):
+        expected = {
+            'workspace': ('Workspace', 'implemented'),
+            'desktop': ('Panda Desktop', 'packages-only'),
+            'gaming': ('Gaming', 'implemented'),
+            'android': ('Android / AOSP', 'preview-only'),
+            'virtualization': ('Virtualization', 'packages-only'),
+        }
+        for module, (name, status) in expected.items():
+            with self.subTest(module=module):
+                self.assertEqual(self.values(module, 'name'), [name])
+                self.assertEqual(self.values(module, 'status'), [status])
+                self.assertEqual(self.values(module, 'operations'), ['dry-run'] if module == 'android'
+                                 else ['dry-run', 'check', 'verify', 'apply'])
+                self.assertTrue(self.values(module, 'limitations'))
+
+    def test_unknown_module_and_property_are_refused(self):
+        for module, field in [('bogus', 'name'), ('workspace', 'HOME')]:
+            result = self.query('panda_setup_module_get', module, field)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(result.stdout, '')
+
+    def test_manifest_selectors_and_script_references_are_complete(self):
+        for module in ('workspace', 'desktop', 'gaming', 'android', 'virtualization'):
+            manifests = self.values(module, 'manifests')
+            self.assertEqual(len(manifests), len(self.values(module, 'selectors')))
+            self.assertTrue(set(self.values(module, 'selectors')) <=
+                            {'always', 'steam', 'heroic', 'other', 'intel', 'amd'})
+            self.assertEqual(len(manifests), len(set(manifests)))
+            for relative in manifests + self.values(module, 'scripts'):
+                self.assertTrue((ROOT / relative).is_file(), relative)
+                self.assertFalse(Path(relative).is_absolute())
+        self.assertEqual(self.values('workspace', 'scripts'), [
+            'bootstrap/install-core.fish', 'bootstrap/setup-chezmoi.fish',
+            'bootstrap/setup-github.fish', 'bootstrap/setup-development.fish'])
+        self.assertEqual(self.values('desktop', 'arguments'), ['--profile', 'plasma'])
+        for module in ('gaming', 'android', 'virtualization'):
+            self.assertEqual(self.values(module, 'scripts'), [])
+
+    def test_store_gpu_manifest_selection_preserves_order_and_heroic_dedup(self):
+        result = self.query('panda_setup_module_manifests', 'gaming', 'amd',
+                            'other', 'epic', 'gog', 'steam', 'steam')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), [
+            'setup/manifests/gaming-base.txt', 'setup/manifests/gaming-steam.txt',
+            'setup/manifests/gaming-heroic.txt', 'setup/manifests/gaming-other.txt',
+            'setup/manifests/gaming-amd.txt'])
 
 
 class SetupManagerContracts(unittest.TestCase):
@@ -354,6 +431,17 @@ sys.exit(89)
             'MOCK_FLAT_STATE': str(self.flat_state),
             'MOCK_STAGE_LOG': str(self.stage_log),
         })
+        home = self.root / 'home'
+        home.mkdir()
+        self.env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / 'config'),
+                        XDG_CACHE_HOME=str(home / 'cache'), XDG_DATA_HOME=str(home / 'data'),
+                        XDG_STATE_HOME=str(home / 'state'))
+        self.forbidden_calls = self.root / 'forbidden-calls'
+        self.forbidden_calls.write_text('')
+        self.env['MOCK_FORBIDDEN_CALLS'] = str(self.forbidden_calls)
+        for name in ('systemctl', 'virsh', 'qemu-system-x86_64', 'java', 'javac',
+                     'sdkmanager', 'android', 'android-cli', 'gradle', 'curl', 'wget'):
+            self.make_exe(name, '#!/bin/sh\nprintf "%s\\n" "$0" >> "$MOCK_FORBIDDEN_CALLS"\nexit 97\n')
 
     def make_exe(self, name, source):
         path = self.bin / name
@@ -375,6 +463,112 @@ sys.exit(89)
         self.assertNotIn('flatpak-add', self.events.read_text())
         self.assertNotIn('flatpak-install', self.events.read_text())
         self.assertEqual(self.stage_log.read_text(), '')
+        self.assertEqual(self.forbidden_calls.read_text(), '')
+
+    def run_terminal_manager(self, answers, *args):
+        master, slave = pty.openpty()
+        process = subprocess.Popen(['fish', str(self.repo / 'bootstrap/panda-setup.fish'), *args],
+                                   cwd=self.repo, env=self.env, stdin=slave,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   text=True, start_new_session=True)
+        try:
+            os.write(master, answers.encode())
+            stdout, stderr = process.communicate(timeout=20)
+            return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
+        finally:
+            if process.poll() is None:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=5)
+            os.close(slave)
+            os.close(master)
+
+    def test_interactive_unknown_numbers_are_refused_without_numeric_overflow(self):
+        for answer in ('0', '01', '6', '9' * 100):
+            with self.subTest(answer=answer):
+                result = self.run_terminal_manager(answer + '\n', '--dry-run')
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertIn('Unknown module selection', result.stdout + result.stderr)
+                self.assert_no_apply()
+
+    def test_terminal_apply_still_requires_literal_uppercase_confirmation(self):
+        for confirmation in ('apply', 'no', ''):
+            with self.subTest(confirmation=confirmation):
+                result = self.run_terminal_manager('5\n' + confirmation + '\n', '--apply')
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertIn('Cancelled', result.stdout)
+                self.assert_no_apply()
+        result = self.run_terminal_manager('5\nAPPLY\n', '--apply')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('pacman-install', self.events.read_text())
+        self.assertEqual(self.forbidden_calls.read_text(), '')
+
+    def test_preview_and_check_preserve_disposable_state(self):
+        args = ['--modules', 'workspace,desktop,gaming,virtualization',
+                '--stores', 'steam,gog,epic,other', '--gpu', 'intel', '--enable-flathub']
+        files = (self.installed, self.events, self.flat_state, self.stage_log)
+        before = [path.read_bytes() for path in files]
+        for mode in ('--dry-run', '--check'):
+            result = self.run_manager(*args, mode)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual([path.read_bytes() for path in files], before)
+            self.assert_no_apply()
+
+    def test_android_blocks_combined_strict_modes_before_any_apply(self):
+        for mode in ('--check', '--verify', '--apply'):
+            args = ['--modules', 'workspace,desktop,gaming,android,virtualization',
+                    '--gpu', 'intel', '--enable-flathub', mode]
+            if mode == '--apply':
+                args.append('--yes')
+            result = self.run_manager(*args)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertIn('no selected modules were applied', result.stdout + result.stderr)
+            self.assert_no_apply()
+
+    def test_virtualization_apply_is_packages_only(self):
+        result = self.run_manager('--modules', 'virtualization', '--apply', '--yes')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.events.read_text().splitlines(), [
+            'pacman-install qemu-base,libvirt,virt-manager,virt-install,edk2-ovmf'])
+        self.assertEqual(self.stage_log.read_text(), '')
+        self.assertEqual(self.forbidden_calls.read_text(), '')
+
+    def test_contract_script_dependency_is_used_by_preflight_and_dispatch(self):
+        helper = self.repo / 'bootstrap/lib/panda-setup.fish'
+        helper.write_text(helper.read_text().replace('bootstrap/setup-development.fish',
+                                                     'bootstrap/custom-development.fish'))
+        result = self.run_manager('--modules', 'workspace', '--apply', '--yes')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('custom-development.fish', result.stdout + result.stderr)
+        self.assert_no_apply()
+        (self.repo / 'bootstrap/setup-development.fish').rename(
+            self.repo / 'bootstrap/custom-development.fish')
+        result = self.run_manager('--modules', 'workspace', '--apply', '--yes')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.stage_log.read_text().splitlines(), [
+            'install-core.fish', 'setup-chezmoi.fish', 'setup-github.fish', 'setup-development.fish'])
+
+    def test_combined_transaction_matches_legacy_manifest_order(self):
+        # Oracle is the pre-refactor manifest sequence, independent of the registry.
+        ordered = ['setup/manifests/gaming-base.txt', 'setup/manifests/gaming-steam.txt',
+                   'setup/manifests/gaming-heroic.txt', 'setup/manifests/gaming-other.txt',
+                   'setup/manifests/gaming-intel.txt', 'setup/manifests/virtualization-base.txt',
+                   'packages/core.txt', 'packages/development.txt', 'packages/desktop.txt']
+        expected = []
+        for relative in ordered:
+            for raw in (self.repo / relative).read_text().splitlines():
+                package = raw.strip()
+                if package and not package.startswith('#') and package != 'fish' and package not in expected:
+                    expected.append(package)
+        result = self.run_manager('--modules', 'desktop,virtualization,workspace,gaming,gaming',
+                                  '--stores', 'other,epic,gog,steam,steam', '--gpu', 'intel',
+                                  '--enable-flathub', '--apply', '--yes')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        installs = [line for line in self.events.read_text().splitlines() if line.startswith('pacman-install ')]
+        self.assertEqual(installs, ['pacman-install ' + ','.join(expected)])
+        self.assertEqual(self.stage_log.read_text().splitlines(), [
+            'install-core.fish', 'setup-chezmoi.fish', 'setup-github.fish',
+            'setup-development.fish', 'install-desktop.fish'])
+        self.assertEqual(self.forbidden_calls.read_text(), '')
 
     def configure_mock_helios(self):
         # Only disposable fake commands and a fake validator are executed here.

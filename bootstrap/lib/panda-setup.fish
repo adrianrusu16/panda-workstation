@@ -1,6 +1,96 @@
 #!/usr/bin/env fish
 # Fish helpers for the opt-in Panda Setup Manager.
 
+# Authoritative module metadata, in the existing interactive menu order.
+# Fields: id | name | status | operations | manifests | selectors | scripts |
+# arguments | limitations | menu | step | info | warning.
+# Pipes delimit fields; commas delimit only the list fields. Selectors choose
+# manifests, never execute operations. Text fields may contain commas.
+# Scripts are existing post-package stages, relative to the repository root.
+function panda_setup_module_contracts
+    string join '|' -- workspace Workspace implemented 'dry-run,check,verify,apply' \
+        'packages/core.txt,packages/development.txt' 'always,always' \
+        'bootstrap/install-core.fish,bootstrap/setup-chezmoi.fish,bootstrap/setup-github.fish,bootstrap/setup-development.fish' '' \
+        'Existing stages may configure the user and download development tools; no automatic machine provisioning.' \
+        'core tools, chezmoi, Git, development; no boot changes' \
+        'Workspace: install-core → setup-chezmoi → setup-github → setup-development' \
+        'Existing workstation scripts may change user configuration and install dev tools on --apply.' ''
+    string join '|' -- desktop 'Panda Desktop' packages-only 'dry-run,check,verify,apply' \
+        packages/desktop.txt always bootstrap/install-desktop.fish '--profile,plasma' \
+        'Plasma packages only; no automatic Panda theme or layout activation.' \
+        'Plasma packages only; no theme activation' \
+        'Panda Desktop: install-desktop.fish --profile plasma (packages only)' \
+        'Panda theme/layout activation is not part of this release.' ''
+    string join '|' -- gaming Gaming implemented 'dry-run,check,verify,apply' \
+        'setup/manifests/gaming-base.txt,setup/manifests/gaming-steam.txt,setup/manifests/gaming-heroic.txt,setup/manifests/gaming-other.txt,setup/manifests/gaming-intel.txt,setup/manifests/gaming-amd.txt' \
+        'always,steam,heroic,other,intel,amd' '' '' \
+        'Official packages and user-scoped Heroic only; no NVIDIA activation, accounts, games or automatic machine tuning.' \
+        'multi-store gaming stack' '' '' ''
+    string join '|' -- android 'Android / AOSP' preview-only dry-run '' '' '' '' \
+        'Check, verify and apply are blocked; no SDK, Studio, AOSP or Android runtime-stage dispatch.' \
+        'planning only, not deployable yet' '' '' \
+        'Android / AOSP is NOT IMPLEMENTED; --apply will refuse the entire selection.'
+    string join '|' -- virtualization Virtualization packages-only 'dry-run,check,verify,apply' \
+        setup/manifests/virtualization-base.txt always '' '' \
+        'Packages only; no libvirt service activation, autostart, VM creation or Audit Lab execution.' \
+        'packages only; never creates/boots a VM' \
+        'Virtualization: QEMU/libvirt/virt-manager/OVMF package layer only' \
+        'No libvirt service configuration, VM disk, firmware changes, or guest startup.' ''
+end
+
+function panda_setup_module_ids
+    for row in (panda_setup_module_contracts)
+        set -l fields (string split '|' -- "$row")
+        echo "$fields[1]"
+    end
+end
+
+# Pure lookup: no eval, global state, discovery, package queries or dispatch.
+# List properties emit one value per line; an empty property emits nothing.
+function panda_setup_module_get --argument-names module field
+    set -l keys id name status operations manifests selectors scripts arguments limitations menu step info warning
+    set -l index (contains -i -- "$field" $keys)
+    if test (count $argv) -ne 2; or test -z "$index"
+        printf 'Unknown module contract property: %s\n' "$field" >&2
+        return 2
+    end
+    for row in (panda_setup_module_contracts)
+        set -l fields (string split '|' -- "$row")
+        if test "$fields[1]" != "$module"
+            continue
+        end
+        if contains -- "$field" operations manifests selectors scripts arguments
+            string split -n ',' -- "$fields[$index]"
+        else if test -n "$fields[$index]"
+            echo "$fields[$index]"
+        end
+        return 0
+    end
+    printf 'Unknown module: %s\n' "$module" >&2
+    return 2
+end
+
+# Preserve manifest order independently of store selection order. GOG/Epic
+# share one Heroic selector; installed-package deduplication remains downstream.
+function panda_setup_module_manifests --argument-names module gpu
+    set -e argv[1..2]
+    set -l selected always "$gpu" $argv
+    if contains -- gog $argv; or contains -- epic $argv
+        set -a selected heroic
+    end
+    set -l manifests (panda_setup_module_get "$module" manifests)
+    or return 2
+    set -l selectors (panda_setup_module_get "$module" selectors)
+    set -l index 1
+    for manifest in $manifests
+        if contains -- "$selectors[$index]" $selected
+            echo "$manifest"
+        end
+        set index (math $index + 1)
+    end
+    return 0
+end
+
 function panda_setup_csv --argument-names value
     set -l normalized (string replace -a ',' ' ' -- "$value")
     for part in (string split -n ' ' -- "$normalized")
@@ -182,14 +272,14 @@ end
 function panda_setup_preflight_scripts --argument-names script_dir
     set -e argv[1]
     set -l scripts
-    if contains workspace $argv
-        set -a scripts install-core.fish setup-chezmoi.fish setup-github.fish setup-development.fish
+    for module in (panda_setup_module_ids)
+        if contains -- "$module" $argv
+            set -a scripts (panda_setup_module_get "$module" scripts)
+        end
     end
-    if contains desktop $argv
-        set -a scripts install-desktop.fish
-    end
+    set -l root (path dirname -- "$script_dir")
     for script in $scripts
-        set -l path "$script_dir/$script"
+        set -l path "$root/$script"
         if not test -f "$path"
             ui_error "Missing setup stage: $path"
             return 1
@@ -233,10 +323,13 @@ function panda_setup_preflight_packages --argument-names root
             ui_error 'Arch rust conflicts with workstation rustup; resolve before --apply.'
             return 1
         end
-        set -a manifests packages/core packages/development
     end
-    if contains desktop $modules
-        set -a manifests packages/desktop
+    for module in workspace desktop
+        if contains -- "$module" $modules
+            for manifest in (panda_setup_module_get "$module" manifests)
+                set -a manifests (string replace -r '\.txt$' '' -- "$manifest")
+            end
+        end
     end
     for name in $manifests
         set -l manifest "$root/setup/manifests/$name.txt"
