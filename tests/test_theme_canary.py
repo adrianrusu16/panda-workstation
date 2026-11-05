@@ -644,12 +644,24 @@ class CanaryContracts(unittest.TestCase):
                     self.assertTrue(self.api.apply(self.root).success)
                 original = os.fsync
                 fired = False
-                parent = str(self.root / self.fs.SUPPORT)
+                parent = os.open(self.root / self.fs.SUPPORT,
+                                 os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_NOATIME)
+                self.addCleanup(os.close, parent)
+                parent_info = os.fstat(parent)
+                identity = (parent_info.st_dev, parent_info.st_ino)
                 def fail(fd):
                     nonlocal fired
-                    journal = self.root / self.fs.JOURNAL
-                    if not fired and os.readlink(f"/proc/self/fd/{fd}") == parent and journal.exists():
-                        data = self.fs.unpack(journal.read_bytes())
+                    info = os.fstat(fd)
+                    if not fired and (info.st_dev, info.st_ino) == identity:
+                        try:
+                            journal = os.open("journal.json", os.O_RDONLY | os.O_NOFOLLOW |
+                                              os.O_NONBLOCK | os.O_NOATIME, dir_fd=fd)
+                        except FileNotFoundError:
+                            return original(fd)
+                        # The observer must not alter the expected journal image
+                        # during the earlier durability pass it is observing.
+                        with os.fdopen(journal, "rb") as stream:
+                            data = self.fs.unpack(stream.read(self.fs.LIMIT + 1))
                         match = data["phase"] == checkpoint
                         if checkpoint == "target-done":
                             match = data["phase"] == "applying" and data["sequence"] == 4 and data["intent"] is None
