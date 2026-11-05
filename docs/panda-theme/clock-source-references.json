@@ -1,0 +1,78 @@
+{
+  "baseline": "6.8.2",
+  "repository": "KDE/plasma-workspace",
+  "tag": "v6.8.2",
+  "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+  "tree": "500e0359b74eb67de674565e143281eba5800bea",
+  "sources": [
+    {
+      "path": "applets/digital-clock/main.xml",
+      "git_blob": "6716b906c574c769fc7aeb9faf5bc2a11df2ceb3",
+      "sha256": "06b085a2451b7197253c4c425c61f150ce89ef2f127c7186eb90039e5ddd7c21",
+      "bytes": 4734,
+      "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/digital-clock/main.xml"
+    },
+    {
+      "path": "applets/digital-clock/main.qml",
+      "git_blob": "5b983ef25bc6efe456fff52e8c7f040db1401a88",
+      "sha256": "ce726d36894f67743abb47cd3935afd7fa3c38c60b82bdc8cf6d513326ac40d1",
+      "bytes": 7215,
+      "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/digital-clock/main.qml"
+    },
+    {
+      "path": "applets/digital-clock/DigitalClock.qml",
+      "git_blob": "3559d4a4cce009e95ffbdf4fe5a2254f3a32720b",
+      "sha256": "45781bafa768710f1a21d0feeda15ce364d6936bdc8e8dcb1c02eb46a0bce244",
+      "bytes": 25033,
+      "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/digital-clock/DigitalClock.qml"
+    },
+    {
+      "path": "applets/digital-clock/configAppearance.qml",
+      "git_blob": "1f14d5a560ae774e567f1888c03286762cfef62a",
+      "sha256": "14be521b060a599851e4681d1a560e229c42ee02c3c7732aaf90d1df2d83e5ec",
+      "bytes": 14276,
+      "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/digital-clock/configAppearance.qml"
+    },
+    {
+      "path": "applets/digital-clock/metadata.json",
+      "git_blob": "eff3be62d1afe98941df8db18189b13e52c745c3",
+      "sha256": "39063f5b062226166c5e7a86e6f2bdc9dce47a3d6b8926427265b24e11f830ea",
+      "bytes": 11811,
+      "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/digital-clock/metadata.json"
+    },
+    {
+      "path": "shell/scripting/widget.cpp",
+      "git_blob": "1cafd1c8262f11a059fe1db4be009ca5bae76caf",
+      "sha256": "9ad16f0972d0a042b7c86b9d93ef1dbb338e474d8052f233ecad1d659a8d4cea",
+      "bytes": 5078,
+      "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/shell/scripting/widget.cpp"
+    },
+    {
+      "path": "applets/digital-clock/CMakeLists.txt",
+      "git_blob": "f1f8ea0db3b1f7d54fd09f56cca71c68c38f6b4d",
+      "sha256": "629d979db32a78f5bc9eb8e9a8939291a1fe456ca18b1c432683901f191a9fb9",
+      "bytes": 367,
+      "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/digital-clock/CMakeLists.txt"
+    },
+    {
+      "path": "applets/digital-clock/CalendarView.qml",
+      "git_blob": "8853934f28b5218bbee7ef2c087269ef56932868",
+      "sha256": "0a49ea40663411f7293e08fbd2dc7e8f6528bc2686ce6c66da9fd9254e499cb5",
+      "bytes": 26351,
+      "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/digital-clock/CalendarView.qml"
+    }
+  ],
+  "libplasma": {
+    "tag": "v6.8.2",
+    "commit": "6f6566e4ec44a432abdcdd4854cbed3582bcddd1",
+    "tree": "bee43e82d2102908296e01d41ba1167feb7b3e8d",
+    "sources": [
+      {
+        "path": "src/plasma/plasma.h",
+        "git_blob": "64ba41124c1afd223145e048c5fd1fc7afa5f1ea",
+        "sha256": "f4352e670b00e81b8992dab152e0e98ba46f4517696a78c924dac7a23322669e",
+        "bytes": 6431
+      }
+    ]
+  }
+}

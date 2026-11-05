@@ -5,6 +5,9 @@ generated Plasma Style sources. There is no desktop apply command. These tools
 do not discover host configuration, contact D-Bus or activate widgets/providers.
 Native rendering, deployment and recovery remain separately gated.
 
+The [official clock-only candidate and D2a trial sheet](clock.md) pin Plasma
+6.8.2 source without changing the historical D4C1 clock/media assessment.
+
 Start here for layout and fixture usage; see [compatibility and preservation](desktop-compatibility.md),
 [Plasma Style assets](plasma-style.md), and the [native worker safety boundary](../../tests/native/README.md).
 The theme manager and transaction APIs are documented separately in [manager.md](manager.md),
