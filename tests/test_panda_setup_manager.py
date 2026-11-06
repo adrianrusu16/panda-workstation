@@ -6,9 +6,9 @@ import tempfile
 import shutil
 import subprocess
 import unittest
-import pty
-import signal
 from pathlib import Path
+
+from g11_terminal import CleanupError, run_terminal
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFESTS = ROOT / 'setup' / 'manifests'
@@ -284,9 +284,9 @@ class G11MockedApplyTests(unittest.TestCase):
     '''
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix='panda-g11-')
-        self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name)
+        self.root = Path(tempfile.mkdtemp(prefix='panda-g11-'))
+        self._terminal_cleanup_safe = True
+        self.addCleanup(self._cleanup_fixture)
         self.repo = self.root / 'repo'
         self.bin = self.root / 'bin'
         self.bin.mkdir()
@@ -466,21 +466,22 @@ sys.exit(89)
         self.assertEqual(self.forbidden_calls.read_text(), '')
 
     def run_terminal_manager(self, answers, *args):
-        master, slave = pty.openpty()
-        process = subprocess.Popen(['fish', str(self.repo / 'bootstrap/panda-setup.fish'), *args],
-                                   cwd=self.repo, env=self.env, stdin=slave,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   text=True, start_new_session=True)
+        if not self._terminal_cleanup_safe:
+            raise CleanupError(f'earlier terminal cleanup unproved; retained {self.root}')
+        self._terminal_cleanup_safe = False
         try:
-            os.write(master, answers.encode())
-            stdout, stderr = process.communicate(timeout=20)
-            return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
-        finally:
-            if process.poll() is None:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait(timeout=5)
-            os.close(slave)
-            os.close(master)
+            result = run_terminal(['fish', str(self.repo / 'bootstrap/panda-setup.fish'), *args],
+                                  answers, cwd=self.repo, env=self.env, timeout=20, cleanup_timeout=5)
+        except BaseException as error:
+            self._terminal_cleanup_safe = getattr(error, 'cleanup_complete', False)
+            raise
+        self._terminal_cleanup_safe = result.cleanup_complete
+        return result
+
+    def _cleanup_fixture(self):
+        if not self._terminal_cleanup_safe:
+            raise CleanupError(f'owned terminal cleanup unproved; retained {self.root}')
+        shutil.rmtree(self.root)
 
     def test_interactive_unknown_numbers_are_refused_without_numeric_overflow(self):
         for answer in ('0', '01', '6', '9' * 100):
