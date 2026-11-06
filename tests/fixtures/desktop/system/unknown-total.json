@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "scope": "panda-system-synthetic",
+  "now_ms": 60000,
+  "sample_interval_ms": 1000,
+  "stale_after_ms": 3000,
+  "cpu": {
+    "usage": {
+      "state": "valid",
+      "value": 25.0,
+      "unit": "percent",
+      "sampled_at_ms": 60000
+    },
+    "history": [
+      {
+        "at_ms": 57000,
+        "value": 10.0
+      },
+      {
+        "at_ms": 58000,
+        "value": null
+      },
+      {
+        "at_ms": 60000,
+        "value": 25.0
+      }
+    ]
+  },
+  "ram": {
+    "used": {
+      "state": "valid",
+      "value": 4294967296,
+      "unit": "byte",
+      "sampled_at_ms": 60000
+    },
+    "available": {
+      "state": "valid",
+      "value": 12884901888,
+      "unit": "byte",
+      "sampled_at_ms": 60000
+    },
+    "total": {
+      "state": "unknown",
+      "value": null,
+      "unit": "byte",
+      "sampled_at_ms": null
+    }
+  }
+}
