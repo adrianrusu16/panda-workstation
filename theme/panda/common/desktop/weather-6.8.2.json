@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "scope": "panda-reviewed-weather-source-contract",
+  "plasma_version": "6.8.2",
+  "plugin": "org.kde.plasma.weather",
+  "package": "kdeplasma-addons",
+  "per_instance_config": {
+    "WeatherStation": {
+      "updateInterval": {
+        "type": "int",
+        "source_default": "30"
+      },
+      "placeDisplayName": {
+        "type": "string",
+        "source_default": ""
+      },
+      "provider": {
+        "type": "string",
+        "source_default": ""
+      },
+      "placeInfo": {
+        "type": "string",
+        "source_default": ""
+      },
+      "source": {
+        "type": "string",
+        "source_default": ""
+      }
+    },
+    "Appearance": {
+      "showTemperatureInCompactMode": {
+        "type": "bool",
+        "source_default": "false"
+      },
+      "showTemperatureInBadge": {
+        "type": "bool",
+        "source_default": "false"
+      },
+      "showTemperatureInTooltip": {
+        "type": "bool",
+        "source_default": "true"
+      },
+      "showWindInTooltip": {
+        "type": "bool",
+        "source_default": "true"
+      },
+      "showPressureInTooltip": {
+        "type": "bool",
+        "source_default": "false"
+      },
+      "showHumidityInTooltip": {
+        "type": "bool",
+        "source_default": "true"
+      }
+    },
+    "Units": {
+      "temperatureUnit": {
+        "type": "int",
+        "source_default": null
+      },
+      "pressureUnit": {
+        "type": "int",
+        "source_default": null
+      },
+      "speedUnit": {
+        "type": "int",
+        "source_default": null
+      },
+      "visibilityUnit": {
+        "type": "int",
+        "source_default": null
+      }
+    }
+  },
+  "settings_policy": "no-overrides-unconfigured-only",
+  "native_geometry": {
+    "full_minimum_width": "min(25 gridUnits, max(10 gridUnits, implicitWidth))",
+    "full_minimum_height": "max(10 gridUnits, implicitHeight)",
+    "compact_minimum": "representation-dependent icon/text implicit sizes"
+  },
+  "reviewed_provider": {
+    "id": "noaa",
+    "namespace": "plasma/weather_ions",
+    "selection": null,
+    "coverage": "NWS-supported US stations and forecast grid only; not a worldwide fallback",
+    "station_search": "bundled plasma/weather/noaa_station_list.xml; no network for NOAA-only matching",
+    "secret_key_required": false,
+    "authentication_caveat": "NWS requires application User-Agent and announces a possible future API key; revalidate before use",
+    "request_templates": [
+      "https://api.weather.gov/stations/{stationID}/observations/latest",
+      "https://api.weather.gov/points/{stationLatitude},{stationLongitude}",
+      "forecast URL supplied by points response, normally https://api.weather.gov/gridpoints/{office}/{x},{y}/forecast",
+      "https://api.weather.gov/alerts/active?zone={countyID}"
+    ],
+    "network_caveats": [
+      "KIO::get Reload; redirects and server-provided forecast URL are not host-restricted in this reviewed adapter",
+      "generic KDE location search fans out to eligible providers; NOAA-only review does not authorize that search UI",
+      "configured location starts fetching immediately; updateInterval=0 only stops periodic timer"
+    ],
+    "credit": "Data from NOAA National Weather Service",
+    "source_temperature_unit": "Fahrenheit",
+    "cache_policy": "KDE ForecastData shared in-memory by provider/place; no Panda cache, persistence or credentials; KIO cache behavior not attested"
+  },
+  "source_evidence": {
+    "repository": "KDE/kdeplasma-addons",
+    "tag": "v6.8.2",
+    "tag_object": "07ecb0f85ba95e0491a169686190b8ed8847dfe7",
+    "commit": "d858e942d3bfd4b1478cec829373cf89a3625cb7",
+    "tree": "d858e942d3bfd4b1478cec829373cf89a3625cb7",
+    "sources": [
+      {
+        "path": "applets/weather/main.xml",
+        "git_blob": "61f9b9d7982de886f29a70b20e6d98e81f2c316a",
+        "sha256": "a49bd3fc9d3af02bd45d1edd3d7a9212556722c533c7e29afdc2eb2e77ade2a3",
+        "bytes": 1766,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/main.xml"
+      },
+      {
+        "path": "applets/weather/qml/main.qml",
+        "git_blob": "09dd11d9eab5b8ea84e87df01882d4bc16d7a12a",
+        "sha256": "9a119ec87bc13b7cad9123abf6179020868ed67aa8db9fda242b0273cc95c64f",
+        "bytes": 9964,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/qml/main.qml"
+      },
+      {
+        "path": "applets/weather/qml/FullRepresentation.qml",
+        "git_blob": "2779f320c5eb48b539c08e235c23535064c79f48",
+        "sha256": "813f02202753661ba5d2fd83d47b8d3177452147f574240434d257ff32161cbd",
+        "bytes": 4898,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/qml/FullRepresentation.qml"
+      },
+      {
+        "path": "applets/weather/qml/CompactRepresentation.qml",
+        "git_blob": "4cdfa72790828812edebe811686594a000c72710",
+        "sha256": "a26184c412f318ab023e7a06a906a1a53663b481f4cdb45d1e2f36dd9ec3de2d",
+        "bytes": 3982,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/qml/CompactRepresentation.qml"
+      },
+      {
+        "path": "applets/weather/qml/config/ConfigWeatherStation.qml",
+        "git_blob": "6c5b7ca6d1ca8ffb6e0b564e92a4707f9dc8dfc4",
+        "sha256": "6643e85ff260f26ba75c8f90593ede0b3bde61359755ad4c2fbb9ce42b7cf0e0",
+        "bytes": 9132,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/qml/config/ConfigWeatherStation.qml"
+      },
+      {
+        "path": "applets/weather/qml/config/ConfigUnits.qml",
+        "git_blob": "fe8da9afe50d5eb744a271da7eb1ef15afd4746f",
+        "sha256": "e240c4cbe93219beb3757804f7311da2201fb64f375e9b42aac82545204d06f9",
+        "bytes": 1606,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/qml/config/ConfigUnits.qml"
+      },
+      {
+        "path": "applets/weather/forecastcontrol.cpp",
+        "git_blob": "6cfbf431831ee396409df836f3efbce6b79c7cf8",
+        "sha256": "43a6e7a90b1e12893b8834ba919029e59c0689b953073fec7f4ae803ed2df8bb",
+        "bytes": 6746,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/forecastcontrol.cpp"
+      },
+      {
+        "path": "applets/weather/locationscontrol.cpp",
+        "git_blob": "dcd2845330ebb72746753c2e61a098859c3268a6",
+        "sha256": "ff62bb34b4d268c560ac2fac67d26223dfaead6d5d31321000eb319754862368",
+        "bytes": 10556,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/locationscontrol.cpp"
+      },
+      {
+        "path": "applets/weather/ioncontrol_p.cpp",
+        "git_blob": "a21b112c6a90f86cf9f8d057a63ac6b74a676cf6",
+        "sha256": "281e1099d8d6e0a0bc6f645a4550c469027647b01fa0befe3fcbe9cff4df4fe5",
+        "bytes": 13040,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/ioncontrol_p.cpp"
+      },
+      {
+        "path": "applets/weather/weatherdatamonitor_p.cpp",
+        "git_blob": "7959406f5e9bed015bd78f9daf317beb3b613abd",
+        "sha256": "c6b367dcb3c9b66d3c22f02f03ef00a5dc0b36590ded031898255c2e97b97e56",
+        "bytes": 9793,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/weatherdatamonitor_p.cpp"
+      },
+      {
+        "path": "applets/weather/ions/noaa/ion_noaa.cpp",
+        "git_blob": "f71ca1cbdbb36f65d9d0bae9e25d65410e7fdc42",
+        "sha256": "593e7020f07fcb8b5092b405e8d7d0c0bfaeee10f9c3df92e47d762281cb1dfa",
+        "bytes": 43176,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/ions/noaa/ion_noaa.cpp"
+      },
+      {
+        "path": "applets/weather/ions/noaa/metadata.json",
+        "git_blob": "003931ba20f01f8d55cacb734fa817ce0eb09cc4",
+        "sha256": "cdff718786893d524f186df739d7d09d696f45677fc729d81353a6e335b66a59",
+        "bytes": 6099,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/ions/noaa/metadata.json"
+      },
+      {
+        "path": "applets/weather/metadata.json",
+        "git_blob": "3e1fcb07c58b338cedce2028f0708c73dc3e4dec",
+        "sha256": "3104d9fbd21d8b9093db7a5b05d6bc031bef9430b6ed5dfbb4bf452c6121a9e3",
+        "bytes": 8616,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/metadata.json"
+      },
+      {
+        "path": "applets/weather/ions/ion.cpp",
+        "git_blob": "dd3c47002eab52c715d2dd6fcb385572749775cc",
+        "sha256": "44764ef6b1c262edbf603c1e058071d9e57f53d2487ab4ce9b6657a60c6ae6b0",
+        "bytes": 5252,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/ions/ion.cpp"
+      },
+      {
+        "path": "applets/weather/weatherdata/metadata.cpp",
+        "git_blob": "d42b6f57e3b15deb7bfdf1bb451df905cdc682bf",
+        "sha256": "c7de2f8a1142074311b81f5a7adce0cf838a320c2601ac0fa37835cc4070ad23",
+        "bytes": 2959,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/weatherdata/metadata.cpp"
+      },
+      {
+        "path": "applets/weather/CMakeLists.txt",
+        "git_blob": "84523b4d0496dc0c48474af1f149d13572dc5b37",
+        "sha256": "06f3bae06684731e25ebff68c198284b02ec6493181b382c6a59c1747ef36821",
+        "bytes": 2529,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/CMakeLists.txt"
+      },
+      {
+        "path": "applets/weather/ions/noaa/CMakeLists.txt",
+        "git_blob": "02deb66a1e6b0aff4f82377a14b91c330106ae10",
+        "sha256": "9070df6ddbeb51248cba4410aaf081546b726e4b2663339167206c589025dfa6",
+        "bytes": 672,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/ions/noaa/CMakeLists.txt"
+      },
+      {
+        "path": "applets/weather/forecastdata.cpp",
+        "git_blob": "105b26f7e8103c7ea1f7c9cb3fe7e065c8d2744d",
+        "sha256": "ba9715aa522ad75a97a3fa7018ed9f368ffbd14a56097c34924d4371cb77b3b7",
+        "bytes": 885,
+        "url": "https://github.com/KDE/kdeplasma-addons/blob/d858e942d3bfd4b1478cec829373cf89a3625cb7/applets/weather/forecastdata.cpp"
+      }
+    ],
+    "provider_documentation": "https://www.weather.gov/documentation/services-web-api"
+  }
+}
