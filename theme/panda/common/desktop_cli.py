@@ -25,7 +25,7 @@ def reject_constant(value):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", nargs="?", default="dry-run", choices=("dry-run", "validate", "preview", "packages", "clock-candidate"))
+    parser.add_argument("command", nargs="?", default="dry-run", choices=("dry-run", "validate", "preview", "packages", "clock-candidate", "media-candidate"))
     parser.add_argument("--fixture", required=True, type=Path, help="explicit synthetic JSON fixture; no live discovery")
     parser.add_argument("--config", type=Path, default=ROOT / "theme/panda/common/desktop/layout.toml")
     parser.add_argument("--resolution", choices=("fhd", "qhd"))
@@ -34,17 +34,25 @@ def main(argv=None):
     parser.add_argument("--flavor", choices=("minimal", "cyber", "gothic", "hybrid", "pandawave", "wave"), default="hybrid")
     parser.add_argument("--visual-fixture", type=Path, help="explicit synthetic presentation fixture for detailed offline SVG")
     parser.add_argument("--composition", action="store_true", help="Cyber-only offline wallpaper composition; no desktop application")
-    parser.add_argument("--plasma-version", help="explicit upstream version claim for clock-candidate; not runtime discovery")
+    parser.add_argument("--plasma-version", help="explicit upstream version claim for clock/media candidate; not runtime discovery")
     parser.add_argument("--clock-schema", type=Path, help="explicit pinned clock XML source; never loaded as native code")
+    parser.add_argument("--media-contract", type=Path, help="explicit pinned media source contract; no native configuration XML")
+    parser.add_argument("--media-fixture", type=Path, help="explicit synthetic media state/capabilities; no MPRIS discovery")
     args = parser.parse_args(argv)
     if (args.visual_fixture is not None and args.command != "preview") or (args.composition and args.visual_fixture is None):
         parser.error("visual inputs/composition require preview and an explicit --visual-fixture")
     if args.command == "clock-candidate":
         if (args.plasma_version is None or args.clock_schema is None or args.resolution is not None
-                or args.scale is not None or args.presentation is not None):
+                or args.scale is not None or args.presentation is not None
+                or args.media_contract is not None or args.media_fixture is not None):
             parser.error("clock-candidate requires --plasma-version and --clock-schema; layout overrides are unsupported")
-    elif args.plasma_version is not None or args.clock_schema is not None:
-        parser.error("clock source inputs require clock-candidate")
+    elif args.command == "media-candidate":
+        if (args.plasma_version is None or args.media_contract is None or args.media_fixture is None
+                or args.clock_schema is not None or args.resolution is not None
+                or args.scale is not None or args.presentation is not None):
+            parser.error("media-candidate requires --plasma-version, --media-contract and --media-fixture; layout overrides are unsupported")
+    elif any(value is not None for value in (args.plasma_version,args.clock_schema,args.media_contract,args.media_fixture)):
+        parser.error("source inputs require the matching clock/media candidate")
     try:
         fixture = json.loads(read_regular(args.fixture).decode("utf-8"), object_pairs_hook=unique_object, parse_constant=reject_constant)
         validate_fixture(fixture)
@@ -53,6 +61,11 @@ def main(argv=None):
             from desktop_clock_candidate import build_clock_candidate
             result = build_clock_candidate(config, fixture, plasma_version=args.plasma_version,
                         schema_xml=read_regular(args.clock_schema, limit=8192), flavor=args.flavor)
+        elif args.command == "media-candidate":
+            from desktop_media_candidate import build_media_candidate
+            scene = json.loads(read_regular(args.media_fixture).decode("utf-8"), object_pairs_hook=unique_object, parse_constant=reject_constant)
+            result = build_media_candidate(config, fixture, scene, plasma_version=args.plasma_version,
+                        contract_bytes=read_regular(args.media_contract, limit=65536), flavor=args.flavor)
         elif args.command == "packages":
             result = package_plan(ROOT / "packages", fixture["installed_packages"])
         else:

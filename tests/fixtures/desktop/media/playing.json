@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "scope": "panda-media-synthetic",
+  "state": "playing",
+  "players": 1,
+  "title": "Synthetic track",
+  "artist": "Synthetic artist",
+  "artwork": "sample",
+  "duration_us": 261000000,
+  "position_us": 97000000,
+  "capabilities": {
+    "can_control": true,
+    "can_play": true,
+    "can_pause": true,
+    "can_go_previous": false,
+    "can_go_next": true,
+    "can_seek": false
+  }
+}
