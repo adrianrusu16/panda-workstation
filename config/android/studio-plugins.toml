@@ -1,0 +1,6 @@
+schema_version = 1
+# Empty allowlist: no plugin IDs or compatible versions were approved.
+# Future entries require id, name, version, source and desired = "installed".
+# Even allowlisted entries remain manual until this Studio build's supported
+# installer and Marketplace compatibility have been independently verified.
+plugins = []

@@ -1,0 +1,2 @@
+# Opt-in Android/Kotlin terminal JDK. Studio and vendor SDK packages are manual.
+jdk21-openjdk

@@ -1,0 +1,1427 @@
+{
+  "schema_version": 1,
+  "archive_filename": "commandlinetools-linux-15859902_latest.zip",
+  "archive_url": "https://dl.google.com/android/repository/commandlinetools-linux-15859902_latest.zip",
+  "publisher_source": "https://developer.android.com/studio",
+  "publisher_platform": "Linux",
+  "publisher_size_label": "181.8 MB",
+  "sha256": "4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583",
+  "verified_on": "2026-10-27",
+  "revision": "22.0",
+  "source_properties": "Pkg.Revision=22.0\nPkg.Path=cmdline-tools;22.0\nPkg.Desc=Android SDK Command-line Tools\n",
+  "archive_size": 181833628,
+  "uncompressed_size": 181805618,
+  "entry_count": 141,
+  "entries": [
+    {
+      "path": "cmdline-tools/bin/avdmanager",
+      "size": 5760,
+      "compressed_size": 5760,
+      "crc32": "88a752b7",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/sdkmanager",
+      "size": 5767,
+      "compressed_size": 5767,
+      "crc32": "031e328a",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/d8",
+      "size": 5661,
+      "compressed_size": 5661,
+      "crc32": "306bf399",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/r8",
+      "size": 5661,
+      "compressed_size": 5661,
+      "crc32": "d59d9ef2",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/retrace",
+      "size": 5699,
+      "compressed_size": 5699,
+      "crc32": "c4251538",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/resourceshrinker",
+      "size": 5754,
+      "compressed_size": 5754,
+      "crc32": "83f6eb68",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/apkanalyzer",
+      "size": 5767,
+      "compressed_size": 5767,
+      "crc32": "68c21d6f",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/lint",
+      "size": 5726,
+      "compressed_size": 5726,
+      "crc32": "1f523ea8",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/screenshot2",
+      "size": 5755,
+      "compressed_size": 5755,
+      "crc32": "1347823c",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/profgen",
+      "size": 5699,
+      "compressed_size": 5699,
+      "crc32": "0cbf993f",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libavdmanager_lib.jar",
+      "size": 28431,
+      "compressed_size": 28431,
+      "crc32": "9a5a21ef",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/sdklib.core.jar",
+      "size": 1741049,
+      "compressed_size": 1741049,
+      "crc32": "610312bd",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/common/tools.common.jar",
+      "size": 596633,
+      "compressed_size": 596633,
+      "crc32": "433f1418",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/annotations/annotations.jar",
+      "size": 10677,
+      "compressed_size": 10677,
+      "crc32": "dc9928d1",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/google/guava/guava/33.4.0-jre/guava-33.4.0-jre.jar",
+      "size": 3080298,
+      "compressed_size": 3080298,
+      "crc32": "9e7ecf79",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/google/guava/failureaccess/1.0.2/failureaccess-1.0.2.jar",
+      "size": 4740,
+      "compressed_size": 4740,
+      "crc32": "72c70d83",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/google/guava/listenablefuture/9999.0-empty-to-avoid-conflict-with-guava/listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+      "size": 2199,
+      "compressed_size": 2199,
+      "crc32": "f36d4890",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
+      "size": 19936,
+      "compressed_size": 19936,
+      "crc32": "204031ef",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/checkerframework/checker-qual/3.43.0/checker-qual-3.43.0.jar",
+      "size": 231525,
+      "compressed_size": 231525,
+      "crc32": "02b9e547",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/google/errorprone/error_prone_annotations/2.36.0/error_prone_annotations-2.36.0.jar",
+      "size": 19401,
+      "compressed_size": 19401,
+      "crc32": "f7b63243",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/google/j2objc/j2objc-annotations/3.0.0/j2objc-annotations-3.0.0.jar",
+      "size": 12467,
+      "compressed_size": 12467,
+      "crc32": "f72607e7",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/net/java/dev/jna/jna-platform/5.6.0/jna-platform-5.6.0.jar",
+      "size": 2735878,
+      "compressed_size": 2735878,
+      "crc32": "d243d4dc",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/net/java/dev/jna/jna/5.14.0/jna-5.14.0.jar",
+      "size": 1878533,
+      "compressed_size": 1878533,
+      "crc32": "cd12bd3a",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jetbrains/kotlin/kotlin-stdlib-jdk8/2.2.10/kotlin-stdlib-jdk8-2.2.10.jar",
+      "size": 951,
+      "compressed_size": 951,
+      "crc32": "fec1e145",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jetbrains/kotlin/kotlin-stdlib/2.2.10/kotlin-stdlib-2.2.10.jar",
+      "size": 1750374,
+      "compressed_size": 1750374,
+      "crc32": "44d741e8",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jetbrains/annotations/23.0.0/annotations-23.0.0.jar",
+      "size": 29371,
+      "compressed_size": 29371,
+      "crc32": "515ed24b",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jetbrains/kotlin/kotlin-stdlib-jdk7/2.2.10/kotlin-stdlib-jdk7-2.2.10.jar",
+      "size": 945,
+      "compressed_size": 945,
+      "crc32": "51b0f80f",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/device_validator/tools.dvlib.jar",
+      "size": 74883,
+      "compressed_size": 74883,
+      "crc32": "67ee15bd",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/layoutlib-api/tools.layoutlib-api.jar",
+      "size": 123063,
+      "compressed_size": 123063,
+      "crc32": "66e0717c",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/net/sf/kxml/kxml2/2.3.0/kxml2-2.3.0.jar",
+      "size": 43858,
+      "compressed_size": 43858,
+      "crc32": "4e347488",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/repository/tools.repository.jar",
+      "size": 267452,
+      "compressed_size": 267452,
+      "crc32": "4185adde",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/analytics-library/shared/tools.analytics-shared.jar",
+      "size": 137309,
+      "compressed_size": 137309,
+      "crc32": "40d5ef40",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/analytics-library/protos/src/main/proto/proto.jar",
+      "size": 11281355,
+      "compressed_size": 11281355,
+      "crc32": "6ac69376",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/google/protobuf/protobuf-java/3.25.5/protobuf-java-3.25.5.jar",
+      "size": 1875414,
+      "compressed_size": 1875414,
+      "crc32": "517c5bdc",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar",
+      "size": 298435,
+      "compressed_size": 298435,
+      "crc32": "4cfc9cda",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jetbrains/kotlinx/kotlinx-coroutines-core/1.9.0/kotlinx-coroutines-core-1.9.0.jar",
+      "size": 136423,
+      "compressed_size": 136423,
+      "crc32": "175662d6",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/1.10.2/kotlinx-coroutines-core-jvm-1.10.2.jar",
+      "size": 1479317,
+      "compressed_size": 1479317,
+      "crc32": "3d796252",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/google/jimfs/jimfs/1.1/jimfs-1.1.jar",
+      "size": 206691,
+      "compressed_size": 206691,
+      "crc32": "b2c3001f",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/apache/commons/commons-compress/1.27.1/commons-compress-1.27.1.jar",
+      "size": 1087319,
+      "compressed_size": 1087319,
+      "crc32": "32d6fe4b",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/commons-codec/commons-codec/1.17.1/commons-codec-1.17.1.jar",
+      "size": 372687,
+      "compressed_size": 372687,
+      "crc32": "df9d4c85",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/commons-io/commons-io/2.16.1/commons-io-2.16.1.jar",
+      "size": 508826,
+      "compressed_size": 508826,
+      "crc32": "72dd9073",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/apache/commons/commons-lang3/3.16.0/commons-lang3-3.16.0.jar",
+      "size": 674238,
+      "compressed_size": 674238,
+      "crc32": "fd63e570",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/glassfish/jaxb/jaxb-runtime/2.3.2/jaxb-runtime-2.3.2.jar",
+      "size": 1013367,
+      "compressed_size": 1013367,
+      "crc32": "dc1bd8e7",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/jakarta/xml/bind/jakarta.xml.bind-api/2.3.2/jakarta.xml.bind-api-2.3.2.jar",
+      "size": 115498,
+      "compressed_size": 115498,
+      "crc32": "f966ae05",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/jakarta/activation/jakarta.activation-api/1.2.1/jakarta.activation-api-1.2.1.jar",
+      "size": 44399,
+      "compressed_size": 44399,
+      "crc32": "cf616db2",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/glassfish/jaxb/txw2/2.3.2/txw2-2.3.2.jar",
+      "size": 72080,
+      "compressed_size": 72080,
+      "crc32": "41ed8a50",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/sun/istack/istack-commons-runtime/3.0.8/istack-commons-runtime-3.0.8.jar",
+      "size": 27156,
+      "compressed_size": 27156,
+      "crc32": "9e200e84",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jvnet/staxex/stax-ex/1.8.1/stax-ex-1.8.1.jar",
+      "size": 38099,
+      "compressed_size": 38099,
+      "crc32": "dd5b8482",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/sun/xml/fastinfoset/FastInfoset/1.2.16/FastInfoset-1.2.16.jar",
+      "size": 317195,
+      "compressed_size": 317195,
+      "crc32": "3c219dbb",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/apache/httpcomponents/httpcore/4.4.16/httpcore-4.4.16.jar",
+      "size": 327891,
+      "compressed_size": 327891,
+      "crc32": "16f5b669",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/apache/httpcomponents/httpmime/4.5.6/httpmime-4.5.6.jar",
+      "size": 41794,
+      "compressed_size": 41794,
+      "crc32": "d55c3913",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/apache/httpcomponents/httpclient/4.5.14/httpclient-4.5.14.jar",
+      "size": 785639,
+      "compressed_size": 785639,
+      "crc32": "6bd5beca",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/commons-logging/commons-logging/1.2/commons-logging-1.2.jar",
+      "size": 61829,
+      "compressed_size": 61829,
+      "crc32": "3621fd43",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jetbrains/kotlin/kotlin-reflect/2.2.10/kotlin-reflect-2.2.10.jar",
+      "size": 3298629,
+      "compressed_size": 3298629,
+      "crc32": "fab87714",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-addon-1.lib.jar",
+      "size": 7348,
+      "compressed_size": 7348,
+      "crc32": "5aa03b65",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/repository/librepo-common-1.lib.jar",
+      "size": 22427,
+      "compressed_size": 22427,
+      "crc32": "301472ab",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/repository/repository-core.jar",
+      "size": 193559,
+      "compressed_size": 193559,
+      "crc32": "986b670a",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-common-1.lib.jar",
+      "size": 5640,
+      "compressed_size": 5640,
+      "crc32": "56d2276f",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-addon-2.lib.jar",
+      "size": 7348,
+      "compressed_size": 7348,
+      "crc32": "8b1f8e44",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/repository/librepo-common-2.lib.jar",
+      "size": 23506,
+      "compressed_size": 23506,
+      "crc32": "719293f1",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-common-2.lib.jar",
+      "size": 5640,
+      "compressed_size": 5640,
+      "crc32": "8fb7406b",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-addon-3.lib.jar",
+      "size": 7353,
+      "compressed_size": 7353,
+      "crc32": "45ad54ba",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-common-3.lib.jar",
+      "size": 5871,
+      "compressed_size": 5871,
+      "crc32": "043a1924",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-addon-4.lib.jar",
+      "size": 7354,
+      "compressed_size": 7354,
+      "crc32": "4334f688",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-common-4.lib.jar",
+      "size": 6063,
+      "compressed_size": 6063,
+      "crc32": "45f69d37",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-repository-1.lib.jar",
+      "size": 5635,
+      "compressed_size": 5635,
+      "crc32": "0bbeed17",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/repository/libgeneric-1.lib.jar",
+      "size": 3532,
+      "compressed_size": 3532,
+      "crc32": "c0929c90",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-repository-2.lib.jar",
+      "size": 5632,
+      "compressed_size": 5632,
+      "crc32": "0ff3b37c",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/repository/libgeneric-2.lib.jar",
+      "size": 3531,
+      "compressed_size": 3531,
+      "crc32": "b75bb4ec",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-repository-3.lib.jar",
+      "size": 5637,
+      "compressed_size": 5637,
+      "crc32": "7102161f",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-repository-4.lib.jar",
+      "size": 5637,
+      "compressed_size": 5637,
+      "crc32": "70033be8",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sites-list-1.lib.jar",
+      "size": 4853,
+      "compressed_size": 4853,
+      "crc32": "162d5ddb",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/repository/librepo-sites-common-1.lib.jar",
+      "size": 5340,
+      "compressed_size": 5340,
+      "crc32": "d09a54a2",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sites-list-2.lib.jar",
+      "size": 5899,
+      "compressed_size": 5899,
+      "crc32": "7fda97bb",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sites-list-3.lib.jar",
+      "size": 4286,
+      "compressed_size": 4286,
+      "crc32": "87bdf0f4",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sites-list-4.lib.jar",
+      "size": 4283,
+      "compressed_size": 4283,
+      "crc32": "fee037ac",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sites-list-5.lib.jar",
+      "size": 4286,
+      "compressed_size": 4286,
+      "crc32": "0a40c34b",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sites-list-6.lib.jar",
+      "size": 4285,
+      "compressed_size": 4285,
+      "crc32": "529a2959",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sites-list-7.lib.jar",
+      "size": 4286,
+      "compressed_size": 4286,
+      "crc32": "5b620efb",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sysimg-1.lib.jar",
+      "size": 4232,
+      "compressed_size": 4232,
+      "crc32": "2c363b6d",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sysimg-2.lib.jar",
+      "size": 4338,
+      "compressed_size": 4338,
+      "crc32": "c1838261",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sysimg-3.lib.jar",
+      "size": 4339,
+      "compressed_size": 4339,
+      "crc32": "452d48c9",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sysimg-4.lib.jar",
+      "size": 4511,
+      "compressed_size": 4511,
+      "crc32": "e071cf82",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdk-sysimg-5.lib.jar",
+      "size": 4511,
+      "compressed_size": 4511,
+      "crc32": "02855f82",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/libsdkmanager_lib.jar",
+      "size": 42238,
+      "compressed_size": 42238,
+      "crc32": "bd263ea1",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/r8.jar",
+      "size": 20959065,
+      "compressed_size": 20959065,
+      "crc32": "c8bbeb7d",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/build-system/shrinker/libshrinker.jar",
+      "size": 150097,
+      "compressed_size": 150097,
+      "crc32": "97828501",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/build-system/aapt2-proto/aapt2-proto.jar",
+      "size": 749051,
+      "compressed_size": 749051,
+      "crc32": "1350940a",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdk-common/tools.sdk-common.jar",
+      "size": 1752311,
+      "compressed_size": 1752311,
+      "crc32": "6c00d925",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/ddmlib/tools.ddmlib.jar",
+      "size": 683126,
+      "compressed_size": 683126,
+      "crc32": "566e4c9f",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdklib/tools.sdklib.jar",
+      "size": 1918064,
+      "compressed_size": 1918064,
+      "crc32": "35c36450",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/javax/inject/javax.inject/1/javax.inject-1.jar",
+      "size": 2497,
+      "compressed_size": 2497,
+      "crc32": "d06c1ac8",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/bouncycastle/bcpkix-jdk18on/1.79/bcpkix-jdk18on-1.79.jar",
+      "size": 1134345,
+      "compressed_size": 1134345,
+      "crc32": "5bbed9ea",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/bouncycastle/bcprov-jdk18on/1.79/bcprov-jdk18on-1.79.jar",
+      "size": 8575537,
+      "compressed_size": 8575537,
+      "crc32": "c3e0272d",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/bouncycastle/bcutil-jdk18on/1.79/bcutil-jdk18on-1.79.jar",
+      "size": 705999,
+      "compressed_size": 705999,
+      "crc32": "61c1b5e6",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/apkparser/cli/analyzer-cli.jar",
+      "size": 68801,
+      "compressed_size": 68801,
+      "crc32": "4caf28b7",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/apkparser/tools.binary-resources.jar",
+      "size": 118019,
+      "compressed_size": 118019,
+      "crc32": "da284583",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/apkparser/analyzer/analyzer.jar",
+      "size": 133732,
+      "compressed_size": 133732,
+      "crc32": "628aa134",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/archive-patcher/explainer.jar",
+      "size": 12156,
+      "compressed_size": 12156,
+      "crc32": "9b939f2c",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/archive-patcher/generator.jar",
+      "size": 84159,
+      "compressed_size": 84159,
+      "crc32": "cbefeb97",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/archive-patcher/shared.jar",
+      "size": 28234,
+      "compressed_size": 28234,
+      "crc32": "c3818919",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/zipflinger/zipflinger.jar",
+      "size": 67026,
+      "compressed_size": 67026,
+      "crc32": "4657c793",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/android/tools/smali/smali-baksmali/3.0.9/smali-baksmali-3.0.9.jar",
+      "size": 132972,
+      "compressed_size": 132972,
+      "crc32": "03a551d9",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/android/tools/smali/smali-util/3.0.9/smali-util-3.0.9.jar",
+      "size": 33331,
+      "compressed_size": 33331,
+      "crc32": "1bbf0c49",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/android/tools/smali/smali-dexlib2/3.0.9/smali-dexlib2-3.0.9.jar",
+      "size": 1194123,
+      "compressed_size": 1194123,
+      "crc32": "d96bc069",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/com/beust/jcommander/1.78/jcommander-1.78.jar",
+      "size": 83782,
+      "compressed_size": 83782,
+      "crc32": "f4bce647",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/profgen/profgen/libprofgen.jar",
+      "size": 220449,
+      "compressed_size": 220449,
+      "crc32": "75cb4e11",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/ow2/asm/asm/9.9/asm-9.9.jar",
+      "size": 126122,
+      "compressed_size": 126122,
+      "crc32": "ed113ad9",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/net/sf/jopt-simple/jopt-simple/4.9/jopt-simple-4.9.jar",
+      "size": 66469,
+      "compressed_size": 66469,
+      "crc32": "9e71d8cf",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/lint/cli/cli.jar",
+      "size": 1093464,
+      "compressed_size": 1093464,
+      "crc32": "7e14fb2c",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/lint/tools.lint-api.jar",
+      "size": 1506059,
+      "compressed_size": 1506059,
+      "crc32": "922e625b",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/lint/tools.lint-model.jar",
+      "size": 175258,
+      "compressed_size": 175258,
+      "crc32": "b3c7c106",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/build-system/builder-model/builder-model.jar",
+      "size": 146255,
+      "compressed_size": 146255,
+      "crc32": "35d1fd15",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/lint-psi/intellij-core/intellij-core-mvn.jar",
+      "size": 33910203,
+      "compressed_size": 33910203,
+      "crc32": "91b8ef9b",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/lint-psi/kotlin-compiler/kotlin-compiler-mvn.jar",
+      "size": 52710921,
+      "compressed_size": 52710921,
+      "crc32": "8164c5d0",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/lint-psi/uast/uast.jar",
+      "size": 1943155,
+      "compressed_size": 1943155,
+      "crc32": "7abbdfb0",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/build-system/manifest-merger/tools.manifest-merger.jar",
+      "size": 278428,
+      "compressed_size": 278428,
+      "crc32": "6b9aaaf4",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/ow2/asm/asm-commons/9.9/asm-commons-9.9.jar",
+      "size": 74348,
+      "compressed_size": 74348,
+      "crc32": "dc7d09c3",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/ow2/asm/asm-tree/9.9/asm-tree-9.9.jar",
+      "size": 51947,
+      "compressed_size": 51947,
+      "crc32": "cac490e5",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/lint/tools.lint-checks.jar",
+      "size": 7776107,
+      "compressed_size": 7776107,
+      "crc32": "c431d608",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/lint/lint-checks-proto.jar",
+      "size": 186635,
+      "compressed_size": 186635,
+      "crc32": "1a5d784b",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/ow2/asm/asm-analysis/9.9/asm-analysis-9.9.jar",
+      "size": 35149,
+      "compressed_size": 35149,
+      "crc32": "8a04fc01",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/analytics-library/tracker/tools.analytics-tracker.jar",
+      "size": 67774,
+      "compressed_size": 67774,
+      "crc32": "94b043a9",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/misc/screenshot2/libscreenshot2lib.jar",
+      "size": 11505,
+      "compressed_size": 11505,
+      "crc32": "4523a3ea",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/profgen/profgen-cli/libprofgen-cli-lib.jar",
+      "size": 29821,
+      "compressed_size": 29821,
+      "crc32": "cdecf655",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jetbrains/kotlinx/kotlinx-cli-jvm/0.3.1/kotlinx-cli-jvm-0.3.1.jar",
+      "size": 82399,
+      "compressed_size": 82399,
+      "crc32": "ca337bba",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/external/org/jetbrains/kotlin/kotlin-stdlib-common/1.6.21/kotlin-stdlib-common-1.6.21.jar",
+      "size": 200631,
+      "compressed_size": 200631,
+      "crc32": "66a571b0",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/avdmanager-classpath.jar",
+      "size": 4349,
+      "compressed_size": 4349,
+      "crc32": "878d502b",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/sdkmanager-classpath.jar",
+      "size": 4349,
+      "compressed_size": 4349,
+      "crc32": "dbea7c99",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/d8-classpath.jar",
+      "size": 283,
+      "compressed_size": 283,
+      "crc32": "43f34f33",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/r8-classpath.jar",
+      "size": 283,
+      "compressed_size": 283,
+      "crc32": "43f34f33",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/retrace-classpath.jar",
+      "size": 283,
+      "compressed_size": 283,
+      "crc32": "43f34f33",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/resourceshrinker-classpath.jar",
+      "size": 3692,
+      "compressed_size": 3692,
+      "crc32": "b846545f",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/apkanalyzer-classpath.jar",
+      "size": 4329,
+      "compressed_size": 4329,
+      "crc32": "427dd2d3",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/lint-classpath.jar",
+      "size": 4300,
+      "compressed_size": 4300,
+      "crc32": "cf33d168",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/screenshot2-classpath.jar",
+      "size": 1582,
+      "compressed_size": 1582,
+      "crc32": "3af66f78",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/profgen-classpath.jar",
+      "size": 889,
+      "compressed_size": 889,
+      "crc32": "c7ec1279",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/source.properties",
+      "size": 86,
+      "compressed_size": 86,
+      "crc32": "e10ffe4a",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/NOTICE.txt",
+      "size": 101506,
+      "compressed_size": 101506,
+      "crc32": "d3857411",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/lib/README",
+      "size": 202,
+      "compressed_size": 202,
+      "crc32": "8a9302c7",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    },
+    {
+      "path": "cmdline-tools/bin/android",
+      "size": 5065056,
+      "compressed_size": 5065056,
+      "crc32": "d825b596",
+      "unix_mode": "0o100755",
+      "create_system": 3,
+      "flags": 0,
+      "method": 0
+    }
+  ]
+}

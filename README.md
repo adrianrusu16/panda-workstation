@@ -53,6 +53,13 @@ workspace, desktop, gaming and virtualization modules. It defaults to dry-run;
 installation requires explicit apply and confirmation. Android/AOSP remains
 plan-only. Read its readiness checks, Helios guard and failure limits before use.
 
+The separate [Android profile](docs/android-development.md) adds metadata plans,
+process-local Fish selection and individually approved SDK operations. Legacy
+`setup-workstation.fish --android` runs only that stage and defaults to `--plan`;
+Android stays OFF in ordinary setup. The Setup Manager Android/AOSP apply gate
+remains blocked. [CLI checks](docs/android-cli.md) require their own runtime
+approval and may access the network or write caches.
+
 Portable configuration belongs in `home/`; machine exceptions belong in
 `machines/`. Keep credentials, local Git identity and signing keys outside Git.
 The AI bootstrap has its own [prerequisites and recovery behavior](bootstrap/dev/README.md).
