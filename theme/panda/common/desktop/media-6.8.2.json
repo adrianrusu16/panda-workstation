@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "scope": "panda-reviewed-media-source-contract",
+  "plasma_version": "6.8.2",
+  "plugin": "org.kde.plasma.mediacontroller",
+  "package": "plasma-workspace",
+  "per_instance_xml": null,
+  "per_instance_settings": {},
+  "preserve_global": {
+    "file": "plasmaparc",
+    "group": "General",
+    "key": "VolumeStep",
+    "source_default": 5
+  },
+  "native_geometry": {
+    "switch_grid_units": [
+      14,
+      10
+    ],
+    "compact_minimum_grid_units": null,
+    "full_minimum_grid_units": [
+      14,
+      10
+    ],
+    "full_preferred_grid_units": [
+      20,
+      20
+    ],
+    "full_maximum_grid_units": [
+      40,
+      40
+    ]
+  },
+  "source_evidence": {
+    "plasma_version": "6.8.2",
+    "repository": "KDE/plasma-workspace",
+    "tag": "v6.8.2",
+    "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+    "tree": "500e0359b74eb67de674565e143281eba5800bea",
+    "media_package_inventory": [
+      {
+        "path": "applets/mediacontroller/AlbumArtStackView.qml",
+        "git_blob": "f3126221f04a723be0468a60943f6de0420b07ed"
+      },
+      {
+        "path": "applets/mediacontroller/CMakeLists.txt",
+        "git_blob": "0e03640beccb700b13a27cb6d8e7ce2d5cb0960e"
+      },
+      {
+        "path": "applets/mediacontroller/CompactRepresentation.qml",
+        "git_blob": "e828b2169689f6c72320615d024fc5ed016578b5"
+      },
+      {
+        "path": "applets/mediacontroller/ExpandedRepresentation.qml",
+        "git_blob": "047a674f2c515623fb8c714de2a605cd922ed305"
+      },
+      {
+        "path": "applets/mediacontroller/Messages.sh",
+        "git_blob": "ae1b008db91f5a8f0663a94c9b224631e925682e"
+      },
+      {
+        "path": "applets/mediacontroller/globalconfig.cpp",
+        "git_blob": "ba59ccc2cc4ab51eb907d56df5b8d78f580b52de"
+      },
+      {
+        "path": "applets/mediacontroller/globalconfig.h",
+        "git_blob": "0f9172f21b8289f7bd9aa4c05aaa8682e07f0f09"
+      },
+      {
+        "path": "applets/mediacontroller/main.qml",
+        "git_blob": "e1a34a8dd58d3e7236da2913578f6ce4e8b91f5e"
+      },
+      {
+        "path": "applets/mediacontroller/metadata.json",
+        "git_blob": "0f41af07cb5dbc7bb99639aa9b27a5e9a8be18f0"
+      }
+    ],
+    "sources": [
+      {
+        "path": "applets/mediacontroller/AlbumArtStackView.qml",
+        "git_blob": "f3126221f04a723be0468a60943f6de0420b07ed",
+        "sha256": "4a02527163d5381f09ed0949f756dd5763046f1c77ce90ff6730754d7dd90fde",
+        "bytes": 8678,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/mediacontroller/AlbumArtStackView.qml"
+      },
+      {
+        "path": "applets/mediacontroller/CMakeLists.txt",
+        "git_blob": "0e03640beccb700b13a27cb6d8e7ce2d5cb0960e",
+        "sha256": "5eb0f6940b88187612de23b11ea010ddae2cea5b1bddd7e64ebb48931da36815",
+        "bytes": 557,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/mediacontroller/CMakeLists.txt"
+      },
+      {
+        "path": "applets/mediacontroller/CompactRepresentation.qml",
+        "git_blob": "e828b2169689f6c72320615d024fc5ed016578b5",
+        "sha256": "5dea2171aff4b2c4f20607fa950431589da92adafa622b3b779e474851023432",
+        "bytes": 8762,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/mediacontroller/CompactRepresentation.qml"
+      },
+      {
+        "path": "applets/mediacontroller/ExpandedRepresentation.qml",
+        "git_blob": "047a674f2c515623fb8c714de2a605cd922ed305",
+        "sha256": "cec979a5967d49b0cdc17440af516299ddd4450e64ccc49251855afdd210ca0e",
+        "bytes": 39510,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/mediacontroller/ExpandedRepresentation.qml"
+      },
+      {
+        "path": "applets/mediacontroller/globalconfig.cpp",
+        "git_blob": "ba59ccc2cc4ab51eb907d56df5b8d78f580b52de",
+        "sha256": "019649fde5eab7ebee2a16a5c8756db257e2157e93f46f3cc0d22174ba2ecb83",
+        "bytes": 894,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/mediacontroller/globalconfig.cpp"
+      },
+      {
+        "path": "applets/mediacontroller/globalconfig.h",
+        "git_blob": "0f9172f21b8289f7bd9aa4c05aaa8682e07f0f09",
+        "sha256": "f3e16d0112f210cc4aebd9c9b9d56a8eb6afcc1df4158e96a2040989a2e53b07",
+        "bytes": 710,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/mediacontroller/globalconfig.h"
+      },
+      {
+        "path": "applets/mediacontroller/main.qml",
+        "git_blob": "e1a34a8dd58d3e7236da2913578f6ce4e8b91f5e",
+        "sha256": "e5b266e3526b1da138a832c567eaebe82bd38eadd70a96d8cc8b5c7a52502a15",
+        "bytes": 8515,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/mediacontroller/main.qml"
+      },
+      {
+        "path": "applets/mediacontroller/metadata.json",
+        "git_blob": "0f41af07cb5dbc7bb99639aa9b27a5e9a8be18f0",
+        "sha256": "b46854c86d000bedf86751a70ff7d5641a3d9006f009d63bcb2dfe09af45984e",
+        "bytes": 10405,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/mediacontroller/metadata.json"
+      },
+      {
+        "path": "libkmpris/playercontainer.cpp",
+        "git_blob": "bef668e096a3e60202231d6bf5ebccabd6d2b700",
+        "sha256": "f4e4fa9de9ea84ab3e8edf10efac5e46eec52a049c8fb7f065659483b56dcf51",
+        "bytes": 24045,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/libkmpris/playercontainer.cpp"
+      },
+      {
+        "path": "libkmpris/playercontainer.h",
+        "git_blob": "c73bd00b93e8633354e233c78edfb1e724a06dff",
+        "sha256": "8ac1e2ef3fc547011823d45cb843e2270937603ac867f4c9ec6115b598349a20",
+        "bytes": 13926,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/libkmpris/playercontainer.h"
+      },
+      {
+        "path": "libkmpris/dbus/org.mpris.MediaPlayer2.Player.xml",
+        "git_blob": "5f9d0d1d1e1643aa78385f9fee397669cfa1830a",
+        "sha256": "8f7ee3d980b0aded0dc216d63efe4f8e9e1344f3908ecbcd576d46d7d93abd14",
+        "bytes": 4560,
+        "url": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/libkmpris/dbus/org.mpris.MediaPlayer2.Player.xml"
+      }
+    ]
+  }
+}

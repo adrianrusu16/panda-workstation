@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "scope": "panda-media-synthetic",
+  "state": "no-player",
+  "players": 0,
+  "title": "",
+  "artist": "",
+  "artwork": "none",
+  "duration_us": null,
+  "position_us": null,
+  "capabilities": {
+    "can_control": false,
+    "can_play": false,
+    "can_pause": false,
+    "can_go_previous": false,
+    "can_go_next": false,
+    "can_seek": false
+  }
+}

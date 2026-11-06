@@ -8,6 +8,11 @@ Native rendering, deployment and recovery remain separately gated.
 The [official clock-only candidate and D2a trial sheet](clock.md) pin Plasma
 6.8.2 source without changing the historical D4C1 clock/media assessment.
 
+The [official Media Controller candidate](media.md) adds synthetic states and
+capability-aware planning. Laptop D2a live acceptance remains deferred; offline
+widget development targets a future clean workstation independently. The media
+guide contains a separate native trial proposal and remaining offline slices.
+
 Start here for layout and fixture usage; see [compatibility and preservation](desktop-compatibility.md),
 [Plasma Style assets](plasma-style.md), and the [native worker safety boundary](../../tests/native/README.md).
 The theme manager and transaction APIs are documented separately in [manager.md](manager.md),
