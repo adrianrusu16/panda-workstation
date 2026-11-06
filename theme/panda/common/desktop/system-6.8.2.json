@@ -1,0 +1,379 @@
+{
+  "native_geometry": {
+    "faces_minimum_width_grid_units": 8,
+    "linechart_plot_minimum_height_grid_units": 3,
+    "planar_representation": "full; switchWidth/switchHeight return -1 on desktop",
+    "whole_widget_minimum_height": null,
+    "whole_widget_size": "dynamic title/legend/font/content metrics plus wrapper padding"
+  },
+  "native_limits": [
+    "horizontalbars Bar.qml falls back to zero for null sensor value; unknown/stale display fidelity is not established",
+    "PercentageSensor returns zero when base maximum is not positive; the synthetic projection instead requires a valid positive denominator",
+    "linechart HistoryProxySource samples by interval with FillFromEnd; synthetic null gap segmentation is not proof of native gap handling",
+    "one second updateRateLimit is a requested throttle, not a provider freshness guarantee",
+    "default/configurable background is inherited; opaque rendering requires native visual verification"
+  ],
+  "packages": [
+    "plasma-workspace",
+    "libksysguard",
+    "ksystemstats"
+  ],
+  "plasma_version": "6.8.2",
+  "plugins": {
+    "cpu": "org.kde.plasma.systemmonitor.cpu",
+    "ram": "org.kde.plasma.systemmonitor.memory"
+  },
+  "provider": {
+    "activation": "face/controller/sensor construction may resolve/subscribe/start service",
+    "connection": "session bus; never contacted offline",
+    "interface": "org.kde.ksystemstats1",
+    "path": "/org/kde/ksystemstats1",
+    "service": "org.kde.ksystemstats1"
+  },
+  "schema_version": 1,
+  "scope": "panda-reviewed-system-source-contract",
+  "sensors": {
+    "cpu/all/usage": {
+      "meaning": "aggregate system+user tick delta / aggregate total tick delta; iowait excluded from busy numerator",
+      "range": [
+        0,
+        100
+      ],
+      "unit": "percent"
+    },
+    "memory/physical/free": {
+      "meaning": "Linux MemAvailable, not raw MemFree",
+      "unit": "byte"
+    },
+    "memory/physical/total": {
+      "meaning": "Linux MemTotal",
+      "unit": "byte"
+    },
+    "memory/physical/used": {
+      "meaning": "Linux MemTotal minus MemAvailable",
+      "unit": "byte"
+    },
+    "memory/physical/usedPercent": {
+      "meaning": "used / total * 100; synthetic model requires valid synchronized positive total",
+      "unit": "percent"
+    }
+  },
+  "settings": {
+    "cpu": {
+      "Appearance/chartFace": "org.kde.ksysguard.linechart",
+      "Appearance/showTitle": true,
+      "Appearance/title": "CPU",
+      "Appearance/updateRateLimit": 1000,
+      "Sensors/highPrioritySensorIds": [
+        "cpu/all/usage"
+      ],
+      "Sensors/lowPrioritySensorIds": [],
+      "Sensors/totalSensors": [
+        "cpu/all/usage"
+      ],
+      "org.kde.ksysguard.linechart/General/historyAmount": 60,
+      "org.kde.ksysguard.linechart/General/lineChartSmooth": false,
+      "org.kde.ksysguard.linechart/General/rangeAutoY": false,
+      "org.kde.ksysguard.linechart/General/rangeFromY": 0.0,
+      "org.kde.ksysguard.linechart/General/rangeToY": 100.0
+    },
+    "ram": {
+      "Appearance/chartFace": "org.kde.ksysguard.horizontalbars",
+      "Appearance/showTitle": true,
+      "Appearance/title": "Memory",
+      "Appearance/updateRateLimit": 1000,
+      "Sensors/highPrioritySensorIds": [
+        "memory/physical/used"
+      ],
+      "Sensors/lowPrioritySensorIds": [
+        "memory/physical/free",
+        "memory/physical/total"
+      ],
+      "Sensors/totalSensors": [
+        "memory/physical/usedPercent"
+      ],
+      "org.kde.ksysguard.horizontalbars/General/rangeAuto": true
+    }
+  },
+  "source_evidence": [
+    {
+      "bytes": 470,
+      "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+      "path": "applets/systemmonitor/CMakeLists.txt",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/systemmonitor/CMakeLists.txt",
+      "repo": "plasma-workspace",
+      "sha256": "a9597793d14c354511f3ecbeac1a4b146e1d13dc9bc324f8cf044910e2588b73",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.8.2/applets/systemmonitor/CMakeLists.txt"
+    },
+    {
+      "bytes": 234,
+      "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+      "path": "applets/systemmonitor/cpu/contents/config/faceproperties",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/systemmonitor/cpu/contents/config/faceproperties",
+      "repo": "plasma-workspace",
+      "sha256": "7926c499065162679eff88d3114f4426de2d0505f31085d2f4136680c1d1f50e",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.8.2/applets/systemmonitor/cpu/contents/config/faceproperties"
+    },
+    {
+      "bytes": 239,
+      "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+      "path": "applets/systemmonitor/memory/contents/config/faceproperties",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/systemmonitor/memory/contents/config/faceproperties",
+      "repo": "plasma-workspace",
+      "sha256": "8860e9add7aa6ad74e50cd1d20024e3d39b1cd9b2f25f6cb2819deddb28f6396",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.8.2/applets/systemmonitor/memory/contents/config/faceproperties"
+    },
+    {
+      "bytes": 753,
+      "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+      "path": "applets/systemmonitor/systemmonitor/package/contents/config/main.xml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/systemmonitor/systemmonitor/package/contents/config/main.xml",
+      "repo": "plasma-workspace",
+      "sha256": "9d22f6e07141f0c9346cade67302186f9fbd860dbda666552a2abb9bbaec6580",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.8.2/applets/systemmonitor/systemmonitor/package/contents/config/main.xml"
+    },
+    {
+      "bytes": 3775,
+      "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+      "path": "applets/systemmonitor/systemmonitor/package/contents/ui/main.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/systemmonitor/systemmonitor/package/contents/ui/main.qml",
+      "repo": "plasma-workspace",
+      "sha256": "103c0a4ed2451ee498079cb080963b30573aa646ac55a9ac7e74482a5fe98cee",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.8.2/applets/systemmonitor/systemmonitor/package/contents/ui/main.qml"
+    },
+    {
+      "bytes": 2280,
+      "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+      "path": "applets/systemmonitor/systemmonitor/package/contents/ui/FullRepresentation.qml",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/systemmonitor/systemmonitor/package/contents/ui/FullRepresentation.qml",
+      "repo": "plasma-workspace",
+      "sha256": "64e4d5bdee0908d60f43c58d0831c9613d393d39dc5d172c00651f3162399a6b",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.8.2/applets/systemmonitor/systemmonitor/package/contents/ui/FullRepresentation.qml"
+    },
+    {
+      "bytes": 39466,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "faces/SensorFaceController.cpp",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/faces/SensorFaceController.cpp",
+      "repo": "libksysguard",
+      "sha256": "4a6dca35431a9a99db4da7e31a18db07f9a2598064cea728bd1b4633dc3a72db",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/faces/SensorFaceController.cpp"
+    },
+    {
+      "bytes": 2062,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "faces/facepackages/linechart/contents/config/main.xml",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/faces/facepackages/linechart/contents/config/main.xml",
+      "repo": "libksysguard",
+      "sha256": "65e4b3e4873026e8b3a8ad05b5be0575235f72256230e1776428ceb2398d6cf1",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/faces/facepackages/linechart/contents/config/main.xml"
+    },
+    {
+      "bytes": 4582,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "faces/facepackages/linechart/contents/ui/FullRepresentation.qml",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/faces/facepackages/linechart/contents/ui/FullRepresentation.qml",
+      "repo": "libksysguard",
+      "sha256": "72719b39972eb7243d504ce13ac656fc8ae7d4cc78c07e343bfba25481b418b2",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/faces/facepackages/linechart/contents/ui/FullRepresentation.qml"
+    },
+    {
+      "bytes": 4408,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "faces/facepackages/linechart/metadata.json",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/faces/facepackages/linechart/metadata.json",
+      "repo": "libksysguard",
+      "sha256": "6d7e42132f23d59f836949a8bef6a2c128e22dc55326eba0d156dfe367b3dafe",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/faces/facepackages/linechart/metadata.json"
+    },
+    {
+      "bytes": 1047,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "faces/facepackages/horizontalbars/contents/config/main.xml",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/faces/facepackages/horizontalbars/contents/config/main.xml",
+      "repo": "libksysguard",
+      "sha256": "788f933b2305cc5bd04fb20c9140d8efc26a14dda6d7b7461cd818eb0d0a9a71",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/faces/facepackages/horizontalbars/contents/config/main.xml"
+    },
+    {
+      "bytes": 3493,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "faces/facepackages/horizontalbars/contents/ui/FullRepresentation.qml",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/faces/facepackages/horizontalbars/contents/ui/FullRepresentation.qml",
+      "repo": "libksysguard",
+      "sha256": "e6385dccba851531f213e46409e716ed2f46d65cb23b2038a1010fed59f9a9da",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/faces/facepackages/horizontalbars/contents/ui/FullRepresentation.qml"
+    },
+    {
+      "bytes": 4553,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "faces/facepackages/horizontalbars/metadata.json",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/faces/facepackages/horizontalbars/metadata.json",
+      "repo": "libksysguard",
+      "sha256": "5b3f55335c86d3366cdf3af568103443c46a4b5e40366771912d41003479226e",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/faces/facepackages/horizontalbars/metadata.json"
+    },
+    {
+      "bytes": 4647,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "sensors/SensorDaemonInterface.cpp",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/sensors/SensorDaemonInterface.cpp",
+      "repo": "libksysguard",
+      "sha256": "78a3ec4953b34bd249a7223c79b732eac6206606a13917b91a93e8ae5a346928",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/sensors/SensorDaemonInterface.cpp"
+    },
+    {
+      "bytes": 5975,
+      "commit": "3207406db3a0d73dd0b7917bb53763aece8f9e6e",
+      "path": "plugins/memory/backend.cpp",
+      "reference": "https://github.com/KDE/ksystemstats/blob/3207406db3a0d73dd0b7917bb53763aece8f9e6e/plugins/memory/backend.cpp",
+      "repo": "ksystemstats",
+      "sha256": "985d47a6f25387b4af68125125e258bbd7a150468be97272f4dd2e43d5f5999e",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/ksystemstats/v6.8.2/plugins/memory/backend.cpp"
+    },
+    {
+      "bytes": 2212,
+      "commit": "3207406db3a0d73dd0b7917bb53763aece8f9e6e",
+      "path": "plugins/memory/linuxbackend.cpp",
+      "reference": "https://github.com/KDE/ksystemstats/blob/3207406db3a0d73dd0b7917bb53763aece8f9e6e/plugins/memory/linuxbackend.cpp",
+      "repo": "ksystemstats",
+      "sha256": "7803dc409c84a1e95b81257c610d1455295a6f92840cd4aa62ccc733e11c985e",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/ksystemstats/v6.8.2/plugins/memory/linuxbackend.cpp"
+    },
+    {
+      "bytes": 8593,
+      "commit": "3207406db3a0d73dd0b7917bb53763aece8f9e6e",
+      "path": "plugins/cpu/cpu.cpp",
+      "reference": "https://github.com/KDE/ksystemstats/blob/3207406db3a0d73dd0b7917bb53763aece8f9e6e/plugins/cpu/cpu.cpp",
+      "repo": "ksystemstats",
+      "sha256": "4024091631dac821051c2915e398a86479744e57911d9e4038dae90e551d1222",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/ksystemstats/v6.8.2/plugins/cpu/cpu.cpp"
+    },
+    {
+      "bytes": 3328,
+      "commit": "3207406db3a0d73dd0b7917bb53763aece8f9e6e",
+      "path": "plugins/cpu/linuxcpu.cpp",
+      "reference": "https://github.com/KDE/ksystemstats/blob/3207406db3a0d73dd0b7917bb53763aece8f9e6e/plugins/cpu/linuxcpu.cpp",
+      "repo": "ksystemstats",
+      "sha256": "1d4edd45634824a38c8054d61fd4f610f431405473e637dde5f2f2b72577e8fe",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/ksystemstats/v6.8.2/plugins/cpu/linuxcpu.cpp"
+    },
+    {
+      "bytes": 2295,
+      "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+      "path": "applets/systemmonitor/systemmonitor/systemmonitor.cpp",
+      "reference": "https://github.com/KDE/plasma-workspace/blob/30beb0095873364c6b34ebcfd292ecafd4db7f61/applets/systemmonitor/systemmonitor/systemmonitor.cpp",
+      "repo": "plasma-workspace",
+      "sha256": "81307c48dcb8dff2bee14e26f115089896df1cc1135913417a29e81e80e6069b",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/plasma-workspace/v6.8.2/applets/systemmonitor/systemmonitor/systemmonitor.cpp"
+    },
+    {
+      "bytes": 4884,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "faces/facepackages/linechart/contents/ui/LineChart.qml",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/faces/facepackages/linechart/contents/ui/LineChart.qml",
+      "repo": "libksysguard",
+      "sha256": "8830892596da2fcc0c9aab9e308a293ce36dc45e5fce5b89d3ae4d6635e1eb56",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/faces/facepackages/linechart/contents/ui/LineChart.qml"
+    },
+    {
+      "bytes": 1662,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "faces/facepackages/horizontalbars/contents/ui/Bar.qml",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/faces/facepackages/horizontalbars/contents/ui/Bar.qml",
+      "repo": "libksysguard",
+      "sha256": "0eb531dfcb226635d4d365a751f4686f840997d0306ec7d365d8e41d2bf14cd0",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/faces/facepackages/horizontalbars/contents/ui/Bar.qml"
+    },
+    {
+      "bytes": 930,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "systemstats/DBusInterface.h",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/systemstats/DBusInterface.h",
+      "repo": "libksysguard",
+      "sha256": "8396869a440a4a8d9961427ab659deddf1bb36622303b8acd883be44c853f534",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/systemstats/DBusInterface.h"
+    },
+    {
+      "bytes": 9430,
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "path": "systemstats/AggregateSensor.cpp",
+      "reference": "https://github.com/KDE/libksysguard/blob/41f7f3cda360fff62c2d55d01427f2f5e0abc2e7/systemstats/AggregateSensor.cpp",
+      "repo": "libksysguard",
+      "sha256": "f91ddb31caf9245426f624b0b0f3939c445f1391e065cc304137c549b19df614",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/libksysguard/v6.8.2/systemstats/AggregateSensor.cpp"
+    },
+    {
+      "bytes": 1240,
+      "commit": "3207406db3a0d73dd0b7917bb53763aece8f9e6e",
+      "path": "plugins/cpu/usagecomputer.cpp",
+      "reference": "https://github.com/KDE/ksystemstats/blob/3207406db3a0d73dd0b7917bb53763aece8f9e6e/plugins/cpu/usagecomputer.cpp",
+      "repo": "ksystemstats",
+      "sha256": "fe5cd840b6dc91bc83154ba05c6a52f839e135bba257cc72149e8b8e98aa7fc9",
+      "tag": "v6.8.2",
+      "url": "https://raw.githubusercontent.com/KDE/ksystemstats/v6.8.2/plugins/cpu/usagecomputer.cpp"
+    }
+  ],
+  "source_releases": {
+    "ksystemstats": {
+      "commit": "3207406db3a0d73dd0b7917bb53763aece8f9e6e",
+      "tag": "v6.8.2",
+      "tag_object": "9c6decb320584c8c62f9580a93c0f9f5880066e2"
+    },
+    "libksysguard": {
+      "commit": "41f7f3cda360fff62c2d55d01427f2f5e0abc2e7",
+      "tag": "v6.8.2",
+      "tag_object": "94a3cd053b43e9ba6dff2ca5f26da525c2b23ace"
+    },
+    "plasma-workspace": {
+      "commit": "30beb0095873364c6b34ebcfd292ecafd4db7f61",
+      "tag": "v6.8.2",
+      "tag_object": "6095c941525909950fef4dd2d95fb7835301f42c"
+    }
+  },
+  "storage": {
+    "face_config": "face ID subgroup passed to KConfigLoader; XML General is nested below it (supplemental KConfig v6.20.0 source); installed KConfig must be revalidated",
+    "initialization": "SystemMonitor::init writes CurrentPreset and loadPreset can overwrite settings; configure via reviewed UI only after initialization",
+    "relative_to": "new applet config() group after stock preset initialization",
+    "sensor_arrays": "compact JSON strings in KConfig; typed arrays in this inert candidate",
+    "untouched": [
+      "CurrentPreset",
+      "SensorColors",
+      "SensorLabels",
+      "unlisted face defaults"
+    ]
+  },
+  "supplemental_evidence": [
+    {
+      "path": "src/gui/kconfigloader.cpp",
+      "purpose": "KConfigLoader base-group plus XML group nesting; not an installed-release assertion",
+      "repo": "kconfig",
+      "sha256": "346e0ffb76cb78f919504216a0268c80bc491a064ce7025243c3bf78cf897e77",
+      "tag": "v6.20.0",
+      "url": "https://raw.githubusercontent.com/KDE/kconfig/v6.20.0/src/gui/kconfigloader.cpp"
+    }
+  ]
+}

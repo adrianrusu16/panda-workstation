@@ -13,6 +13,11 @@ capability-aware planning. Laptop D2a live acceptance remains deferred; offline
 widget development targets a future clean workstation independently. The media
 guide contains a separate native trial proposal and remaining offline slices.
 
+The [official CPU and RAM candidates](system-monitors.md) add pinned native
+face/settings proposals, synthetic freshness/history and correct memory units
+without querying sensors or starting providers. Native missing-data behavior
+and geometry remain explicit trial gaps.
+
 Start here for layout and fixture usage; see [compatibility and preservation](desktop-compatibility.md),
 [Plasma Style assets](plasma-style.md), and the [native worker safety boundary](../../tests/native/README.md).
 The theme manager and transaction APIs are documented separately in [manager.md](manager.md),
