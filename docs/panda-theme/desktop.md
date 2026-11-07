@@ -406,3 +406,8 @@ never toggle connections or devices just to manufacture a test.
 Use [the repository guide](../../README.md#development-and-verification) for the complete
 offline verification commands. No offline success establishes native fidelity,
 provider availability, Plasma fallback or safe live rollback.
+
+The [offline deployment package](desktop-deployment.md) combines the existing
+checked Plasma Style files, source-reviewed configuration fragments, per-role
+identity/preservation plans and FHD/QHD flavor schematics in one bounded fresh
+artifact directory. Its `deployment-export` command performs no native activation.

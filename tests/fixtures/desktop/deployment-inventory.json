@@ -1,0 +1,25 @@
+{
+  "installed_plasma": "6.8.2",
+  "packages": {
+    "kdeplasma-addons": "6.8.2-1",
+    "ksystemstats": "6.8.2-1",
+    "libksysguard": "6.8.2-1",
+    "plasma-desktop": "6.8.2-1",
+    "plasma-workspace": "6.8.2-1"
+  },
+  "plugins": [
+    "org.kde.plasma.digitalclock",
+    "org.kde.plasma.mediacontroller",
+    "org.kde.plasma.weather",
+    "org.kde.plasma.systemmonitor.cpu",
+    "org.kde.plasma.systemmonitor.memory",
+    "org.kde.plasma.icontasks"
+  ],
+  "running_plasma": "6.8.2",
+  "schema_version": 1,
+  "scope": "panda-deployment-synthetic-inventory",
+  "sensor_faces": [
+    "org.kde.ksysguard.linechart",
+    "org.kde.ksysguard.horizontalbars"
+  ]
+}

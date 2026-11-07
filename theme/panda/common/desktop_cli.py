@@ -1,4 +1,4 @@
-"""Panda Desktop D4A: explicit fixture reads and stdout-only planning."""
+"""Panda Desktop: explicit offline fixtures, plans and review-package export."""
 import argparse
 import json
 from pathlib import Path
@@ -25,7 +25,7 @@ def reject_constant(value):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", nargs="?", default="dry-run", choices=("dry-run", "validate", "preview", "packages", "clock-candidate", "media-candidate", "system-candidate", "weather-candidate"))
+    parser.add_argument("command", nargs="?", default="dry-run", choices=("dry-run", "validate", "preview", "packages", "clock-candidate", "media-candidate", "system-candidate", "weather-candidate", "deployment-export"))
     parser.add_argument("--fixture", required=True, type=Path, help="explicit synthetic JSON fixture; no live discovery")
     parser.add_argument("--config", type=Path, default=ROOT / "theme/panda/common/desktop/layout.toml")
     parser.add_argument("--resolution", choices=("fhd", "qhd"))
@@ -42,7 +42,15 @@ def main(argv=None):
     parser.add_argument("--system-fixture", type=Path, help="explicit synthetic CPU/RAM readings; no sensor discovery")
     parser.add_argument("--weather-contract", type=Path, help="explicit pinned weather source/config/provider contract; no activation")
     parser.add_argument("--weather-fixture", type=Path, help="explicit synthetic weather state; no location or weather acquisition")
+    parser.add_argument("--inventory", type=Path, help="explicit synthetic release/package/plugin inventory for deployment-export")
+    parser.add_argument("--output-dir", type=Path, help="explicit fresh deployment artifact directory beneath an existing private 0700 parent")
     args = parser.parse_args(argv)
+    if args.command == "deployment-export":
+        if (args.inventory is None or args.output_dir is None or args.resolution is not None
+                or args.scale is not None or args.presentation is not None or args.flavor != "hybrid"):
+            parser.error("deployment-export requires --inventory and --output-dir; exports all fixed profiles/flavors with Hybrid first")
+    elif args.inventory is not None or args.output_dir is not None:
+        parser.error("--inventory and --output-dir require deployment-export")
     if args.command != "weather-candidate" and (args.weather_contract is not None or args.weather_fixture is not None):
         parser.error("weather source inputs require weather-candidate")
     if args.command != "system-candidate" and (args.system_contract is not None or args.system_fixture is not None):
@@ -74,7 +82,14 @@ def main(argv=None):
         fixture = json.loads(read_regular(args.fixture).decode("utf-8"), object_pairs_hook=unique_object, parse_constant=reject_constant)
         validate_fixture(fixture)
         config = load_config(args.config)
-        if args.command == "clock-candidate":
+        if args.command == "deployment-export":
+            from desktop_deployment import build_bundle, export_bundle
+            inventory = json.loads(read_regular(args.inventory).decode("utf-8"), object_pairs_hook=unique_object, parse_constant=reject_constant)
+            files = build_bundle(config, fixture, inventory)
+            export_bundle(args.output_dir, files)
+            result = dict(scope="offline-deployment-review-package", file_count=len(files),
+                          native_verified=False, ready_for_activation=False)
+        elif args.command == "clock-candidate":
             from desktop_clock_candidate import build_clock_candidate
             result = build_clock_candidate(config, fixture, plasma_version=args.plasma_version,
                         schema_xml=read_regular(args.clock_schema, limit=8192), flavor=args.flavor)
