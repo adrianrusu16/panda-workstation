@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "scope": "panda-weather-synthetic",
+  "state": "offline",
+  "location": "Synthetic station",
+  "condition": "unknown",
+  "temperature": null,
+  "low": null,
+  "high": null,
+  "temperature_unit": null,
+  "age_seconds": null
+}

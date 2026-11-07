@@ -25,7 +25,7 @@ def reject_constant(value):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", nargs="?", default="dry-run", choices=("dry-run", "validate", "preview", "packages", "clock-candidate", "media-candidate", "system-candidate"))
+    parser.add_argument("command", nargs="?", default="dry-run", choices=("dry-run", "validate", "preview", "packages", "clock-candidate", "media-candidate", "system-candidate", "weather-candidate"))
     parser.add_argument("--fixture", required=True, type=Path, help="explicit synthetic JSON fixture; no live discovery")
     parser.add_argument("--config", type=Path, default=ROOT / "theme/panda/common/desktop/layout.toml")
     parser.add_argument("--resolution", choices=("fhd", "qhd"))
@@ -40,7 +40,11 @@ def main(argv=None):
     parser.add_argument("--media-fixture", type=Path, help="explicit synthetic media state/capabilities; no MPRIS discovery")
     parser.add_argument("--system-contract", type=Path, help="explicit pinned CPU/RAM source contract; no native loading")
     parser.add_argument("--system-fixture", type=Path, help="explicit synthetic CPU/RAM readings; no sensor discovery")
+    parser.add_argument("--weather-contract", type=Path, help="explicit pinned weather source/config/provider contract; no activation")
+    parser.add_argument("--weather-fixture", type=Path, help="explicit synthetic weather state; no location or weather acquisition")
     args = parser.parse_args(argv)
+    if args.command != "weather-candidate" and (args.weather_contract is not None or args.weather_fixture is not None):
+        parser.error("weather source inputs require weather-candidate")
     if args.command != "system-candidate" and (args.system_contract is not None or args.system_fixture is not None):
         parser.error("system source inputs require system-candidate")
     if (args.visual_fixture is not None and args.command != "preview") or (args.composition and args.visual_fixture is None):
@@ -59,6 +63,11 @@ def main(argv=None):
         if (args.plasma_version is None or args.system_contract is None or args.system_fixture is None
                 or args.clock_schema is not None or args.media_contract is not None or args.media_fixture is not None):
             parser.error("system-candidate requires --plasma-version, --system-contract and --system-fixture")
+    elif args.command == "weather-candidate":
+        if (args.plasma_version is None or args.weather_contract is None or args.weather_fixture is None
+                or args.clock_schema is not None or args.media_contract is not None or args.media_fixture is not None
+                or args.resolution is not None or args.scale is not None or args.presentation is not None):
+            parser.error("weather-candidate requires --plasma-version, --weather-contract and --weather-fixture; layout overrides are unsupported")
     elif any(value is not None for value in (args.plasma_version,args.clock_schema,args.media_contract,args.media_fixture)):
         parser.error("source inputs require the matching clock/media candidate")
     try:
@@ -80,6 +89,11 @@ def main(argv=None):
             result = build_system_candidate(config, fixture, scene, plasma_version=args.plasma_version,
                         contract_bytes=read_regular(args.system_contract, limit=65536), flavor=args.flavor,
                         resolution=args.resolution, scale=args.scale, presentation=args.presentation or "compact")
+        elif args.command == "weather-candidate":
+            from desktop_weather_candidate import build_weather_candidate
+            scene = json.loads(read_regular(args.weather_fixture).decode("utf-8"), object_pairs_hook=unique_object, parse_constant=reject_constant)
+            result = build_weather_candidate(config, fixture, scene, plasma_version=args.plasma_version,
+                        contract_bytes=read_regular(args.weather_contract, limit=65536), flavor=args.flavor)
         elif args.command == "packages":
             result = package_plan(ROOT / "packages", fixture["installed_packages"])
         else:

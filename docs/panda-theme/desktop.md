@@ -18,6 +18,10 @@ face/settings proposals, synthetic freshness/history and correct memory units
 without querying sensors or starting providers. Native missing-data behavior
 and geometry remain explicit trial gaps.
 
+The [official Weather candidate](weather.md) adds strict offline state handling,
+an exact 6.8.2 source/config contract and a conservative provider/privacy policy.
+It remains unconfigured and performs no network or configuration operations.
+
 Start here for layout and fixture usage; see [compatibility and preservation](desktop-compatibility.md),
 [Plasma Style assets](plasma-style.md), and the [native worker safety boundary](../../tests/native/README.md).
 The theme manager and transaction APIs are documented separately in [manager.md](manager.md),

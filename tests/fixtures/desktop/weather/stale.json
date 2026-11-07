@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "scope": "panda-weather-synthetic",
+  "state": "stale",
+  "location": "Synthetic station",
+  "condition": "cloudy",
+  "temperature": 12,
+  "low": null,
+  "high": null,
+  "temperature_unit": "C",
+  "age_seconds": 1800
+}
