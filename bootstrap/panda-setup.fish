@@ -15,11 +15,17 @@ function panda_setup_usage
     echo '                                 [--enable-flathub] [--dry-run | --check | --verify | --apply [--yes]]'
     echo '  fish bootstrap/panda-gaming.fish [--stores steam,gog,epic,other] [--gpu auto|intel|amd] [--dry-run | --check | --verify | --apply]'
     echo 'Without --apply, all selections are READ-ONLY preview operations.'
+    echo 'In a terminal type APPLY; without a terminal use --apply --yes.'
     echo '--check validates readiness; --verify checks installed components. Neither writes.'
 end
 
 argparse 'help' 'interactive' 'modules=' 'only=' 'stores=' 'gpu=' 'dry-run' 'check' 'verify' 'apply' 'yes' 'enable-flathub' -- $argv
 or exit 2
+if test "$PANDA_SETUP_READ_ONLY" = 1; and set -q _flag_apply
+    ui_error 'Use fish bootstrap/panda-setup.fish directly to apply a module plan.'
+    exit 2
+end
+
 if test (count $argv) -gt 0
     ui_error 'Unexpected positional arguments'
     panda_setup_usage
@@ -59,6 +65,7 @@ set -l apply 0
 set -l check 0
 set -l verify 0
 set -l enable_flathub 0
+set -l apply_started 0
 if set -q _flag_apply
     set apply 1
 end
@@ -127,7 +134,17 @@ for mod in $modules
         set -a unique_modules "$mod"
     end
 end
-set modules $unique_modules
+set -l modules_in_order
+for module in (panda_setup_module_ids)
+    if contains -- "$module" $unique_modules
+        set -a modules_in_order "$module"
+    end
+end
+set modules $modules_in_order
+if test "$PANDA_SETUP_GAMING_ONLY" = 1; and test (string join ',' -- $modules) != gaming
+    ui_error 'The gaming shortcut only supports the gaming module.'
+    exit 2
+end
 
 if set -q _flag_stores
     set stores (panda_setup_csv "$_flag_stores")
@@ -176,82 +193,129 @@ set -l heroic 0
 if contains gog $stores; or contains epic $stores
     set heroic 1
 end
-set -l manifest_names
+if set -q _flag_enable_flathub; and test $heroic -eq 0
+    ui_error '--enable-flathub requires the GOG or Epic gaming selection'
+    exit 2
+end
 if contains gaming $modules
     set gpu (panda_setup_gpu_profile "$gpu")
-    or exit 1
-    for manifest in (panda_setup_module_manifests gaming "$gpu" $stores)
-        set -a manifest_names (string replace -ar '^setup/manifests/|\.txt$' '' -- "$manifest")
-    end
+    or exit $status
 end
-if contains virtualization $modules
-    for manifest in (panda_setup_module_get virtualization manifests)
-        set -a manifest_names (string replace -ar '^setup/manifests/|\.txt$' '' -- "$manifest")
-    end
-end
-for module in (panda_setup_module_ids)
-    if not contains -- "$module" $modules
-        continue
-    end
-    for message in (panda_setup_module_get "$module" step)
-        ui_step "$message"
-    end
-    for message in (panda_setup_module_get "$module" info)
-        ui_info "$message"
-    end
-    for message in (panda_setup_module_get "$module" warning)
-        ui_warn "$message"
-    end
-    if contains -- "$module" workspace desktop
-        for manifest in (panda_setup_module_get "$module" manifests)
-            panda_setup_show_manifest "$repo_root/$manifest"
-            or exit 1
-        end
-    end
-end
-if test $heroic -eq 1
-    ui_step 'GOG + Epic: install Heroic Flatpak once (user scope)'
-    if test $enable_flathub -eq 1
-        ui_info 'With --enable-flathub: would add the official user-scoped Flathub remote if missing.'
-    else if command -sq flatpak; and flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
-        ui_info 'Heroic is already installed for this user; Flathub setup not needed.'
-    else
-        ui_warn 'If Flathub is missing, --apply requires --enable-flathub.'
-    end
-end
-for name in $manifest_names
-    set -l manifest "$repo_root/setup/manifests/$name.txt"
-    panda_setup_show_manifest "$manifest"
-    or exit 1
-end
-
-# Use one selected manifest list for preflight and final verification.
 set -l transaction_manifests
-for name in $manifest_names
-    set -a transaction_manifests "$repo_root/setup/manifests/$name.txt"
-end
-for module in workspace desktop
+for module in gaming virtualization workspace desktop
     if contains -- "$module" $modules
-        for manifest in (panda_setup_module_get "$module" manifests)
+        for manifest in (panda_setup_module_manifests "$module" "$gpu" $stores)
             set -a transaction_manifests "$repo_root/$manifest"
         end
     end
 end
 
+# This list is also the source of the final report. Unreached operations stay
+# blocked, including after a preflight refusal or a partial apply.
+set -g panda_setup_operations
+set -g panda_setup_outcomes
+set -g panda_setup_details
+set -l preview_inventory
+set -l inventory_known 0
+if test (count $transaction_manifests) -gt 0
+    set preview_inventory (panda_installed_inventory 2>/dev/null)
+    if test $status -eq 0
+        set inventory_known 1
+    else
+        ui_warn 'Pacman inventory unavailable; listing desired packages with unknown installed status.'
+    end
+end
+for module in $modules
+    ui_section '🧭' (panda_setup_module_get "$module" name)
+    for field in step info warning
+        for message in (panda_setup_module_get "$module" "$field")
+            ui_info "$message"
+        end
+    end
+    ui_info (panda_setup_module_get "$module" limitations)
+    if test (panda_setup_module_get "$module" status) = preview-only
+        panda_setup_add_result "$module/apply" 'Unsupported or deferred' 'Android runtime acceptance is pending'
+        continue
+    end
+    panda_setup_add_result "$module/packages" Blocked 'transaction or verification not reached'
+    ui_step 'Package installation / network: official pacman packages and dependencies via sudo, with native pacman prompts'
+    for manifest in (panda_setup_module_manifests "$module" "$gpu" $stores)
+        panda_setup_show_manifest "$repo_root/$manifest" "$inventory_known" $preview_inventory
+        or exit $status
+    end
+    for script in (panda_setup_module_get "$module" scripts)
+        panda_setup_add_result "$module/"(path basename -- "$script") Blocked 'stage not run'
+    end
+    switch "$module"
+        case workspace
+            ui_step 'User configuration / interactive: review and approve the chezmoi changes, then configure Git identity'
+            ui_step 'Authentication / external service: GitHub CLI may contact GitHub, open browser login and prompt about SSH keys'
+            ui_step 'Network / development: Rust toolchain and components, pinned fish-lsp (sudo install), and uv tools'
+            ui_info 'Codex CLI is a manual prerequisite for the development stage. Dotfiles and GitHub require a terminal.'
+        case desktop
+            panda_setup_add_result desktop/native 'Unsupported or deferred' 'separate native Panda Desktop deployment gate'
+        case gaming
+            ui_step "Hardware: verify the active $gpu driver and check free space"
+            if test $heroic -eq 1
+                panda_setup_add_result gaming/flathub Blocked 'user remote not checked'
+                panda_setup_add_result gaming/heroic Blocked 'user Flatpak not checked'
+                ui_step 'User configuration / network: install Heroic from user Flathub once for GOG or Epic'
+                if test $enable_flathub -eq 1
+                    ui_info 'With --enable-flathub: add the official user-scoped Flathub remote if needed.'
+                else
+                    ui_info 'A user Flathub remote or existing Heroic install is required without --enable-flathub.'
+                end
+            end
+            panda_setup_add_result gaming/first-run 'Pending manual action' 'after installing, launch selected clients, sign in, and choose runners or game downloads'
+    end
+end
+set -l execution_order 'combined pacman transaction'
+if test $heroic -eq 1
+    set -a execution_order 'user Flathub/Heroic'
+end
+for module in $modules
+    for script in (panda_setup_module_get "$module" scripts)
+        set -a execution_order (path basename -- "$script")
+    end
+end
+set -a execution_order 'installed component verification'
+if test (count $transaction_manifests) -gt 0
+    ui_info 'Apply order: '(string join ' → ' -- $execution_order)
+end
+if test $apply -eq 1
+    panda_setup_add_result setup/final-verification Blocked 'verification not reached'
+end
+ui_info 'Hardware: strict modes check Helios safety. Pacman hooks may regenerate boot artifacts during apply.'
+
+set -l mode dry-run
+if test $apply -eq 1
+    set mode apply
+else if test $check -eq 1
+    set mode check
+else if test $verify -eq 1
+    set mode verify
+end
+
+# Refuse unsupported selections before strict safety checks or writes.
+for module in $modules
+    if not contains -- "$mode" (panda_setup_module_get "$module" operations)
+        ui_error 'Android / AOSP implementation is pending; no selected modules were applied.'
+        panda_setup_finish 1
+    end
+end
+
 ui_section '🔍' 'Safety checks'
-# Read-only checks in both plan and apply modes. A failed plan explains blockers,
-# but only --apply performs strict eligibility enforcement.
 set -l strict 0
-if test $apply -eq 1; or test $check -eq 1; or test $verify -eq 1
+if test "$mode" != dry-run
     set strict 1
 end
 if contains gaming $modules
     panda_setup_check_gpu_safety "$gpu" "$strict"
-    or exit 1
+    or panda_setup_finish $status 'Resolve the selected GPU/driver safety check.'
 end
 if test $strict -eq 1
     panda_setup_helios_validate "$repo_root"
-    or exit 1
+    or panda_setup_finish $status 'Resolve the Helios safety validation before rerunning.'
 end
 
 if test $apply -eq 0; and test $check -eq 0; and test $verify -eq 0
@@ -259,71 +323,125 @@ if test $apply -eq 0; and test $check -eq 0; and test $verify -eq 0
     exit 0
 end
 
-# Preflight the complete selection before any writes or privileged commands.
-if contains android $modules
-    ui_error 'Android / AOSP implementation is pending; no selected modules were applied.'
-    exit 1
-end
 if test $verify -eq 1
     ui_section '🔍' 'Installed component verification'
-    panda_setup_verify_installation "$heroic" $transaction_manifests
-    or exit 1
+    set -l verify_status 0
+    for module in $modules
+        set -l manifests
+        for manifest in (panda_setup_module_manifests "$module" "$gpu" $stores)
+            set -a manifests "$repo_root/$manifest"
+        end
+        panda_setup_package_result "$module" 0 verify $manifests
+        set -l module_status $status
+        if test $verify_status -eq 0
+            set verify_status $module_status
+        end
+        for script in (panda_setup_module_get "$module" scripts)
+            set -l stage (path basename -- "$script")
+            switch "$stage"
+                case install-core.fish install-desktop.fish
+                    panda_setup_set_result "$module/$stage" (panda_setup_result_status "$module/packages") 'checked via package inventory'
+                case '*'
+                    panda_setup_set_result "$module/$stage" 'Pending manual action' 'verify this stage separately; package presence does not verify user configuration or authentication'
+            end
+        end
+    end
+    if test $heroic -eq 1
+        command -sq flatpak; and flatpak info --user com.heroicgameslauncher.hgl >/dev/null
+        set -l heroic_status $status
+        if test $heroic_status -eq 0
+            panda_setup_set_result gaming/heroic 'Already satisfied' 'user Flatpak verified'
+            panda_setup_set_result gaming/flathub 'Already satisfied' 'Heroic is installed; remote setup is unnecessary'
+        else
+            panda_setup_set_result gaming/heroic Failed "(exit $heroic_status) user Flatpak is missing or could not be queried"
+            if command -sq flatpak
+                set -l remote_state (panda_setup_flathub_state)
+                set -l remote_status $status
+                if test $remote_status -ne 0
+                    panda_setup_set_result gaming/flathub Failed "(exit $remote_status) user remote query failed"
+                else if test "$remote_state" = configured
+                    panda_setup_set_result gaming/flathub 'Already satisfied' 'user remote available'
+                else
+                    panda_setup_set_result gaming/flathub 'Pending manual action' 'user remote missing; review --enable-flathub'
+                end
+            end
+            if test $verify_status -eq 0
+                set verify_status $heroic_status
+            end
+        end
+    end
+    if test $verify_status -ne 0
+        panda_setup_finish $verify_status 'Review missing components with the same selection in --check before applying.'
+    end
     if contains gaming $modules
         panda_setup_smoke_gaming "$gpu" $stores
     end
     ui_success 'VERIFICATION COMPLETE: no installations or configuration changes made.'
-    exit 0
+    panda_setup_finish 0
 end
 # These preflights are shared by --check and --apply. They do not write.
 if not command -sq pacman; or not command -sq sudo
     ui_error 'pacman and sudo are required for an executable plan'
-    exit 1
+    panda_setup_finish 1 'Install the base package tools through your distribution before rerunning.'
 end
 ui_section '🔎' 'Read-only execution preflight'
 panda_setup_preflight_scripts "$script_dir" $modules
-or exit 1
-panda_setup_preflight_packages "$repo_root" $modules -- $manifest_names
-or exit 1
+or panda_setup_finish $status 'Restore the selected stage from a complete checkout.'
+panda_setup_preflight_packages $transaction_manifests
+or panda_setup_finish $status 'Resolve the package inventory, conflict, or repository error above.'
 # Check the complete selected transaction against cached pacman databases.
 panda_setup_guard_transaction $transaction_manifests
-or exit 1
+or panda_setup_finish $status 'Resolve the cached pacman transaction error above, then rerun --check.'
 if contains gaming $modules
     panda_setup_check_disk_space
-    or exit 1
+    or panda_setup_finish $status 'Check free space on the reported volumes.'
 end
 if contains gaming $modules
     panda_setup_multilib_check
-    or exit 1
+    or panda_setup_finish $status 'Review multilib configuration before rerunning the Gaming check.'
     if test $heroic -eq 1
         panda_setup_preflight_heroic "$enable_flathub"
-        or exit 1
+        or panda_setup_finish $status 'Review user Flathub readiness or pass --enable-flathub to authorize adding it.'
     end
 end
 if test $check -eq 1
+    for operation in $panda_setup_operations
+        if test (panda_setup_result_status "$operation") != Blocked
+            continue
+        end
+        set -l manual_reason (panda_setup_stage_manual_reason (path basename -- "$operation"))
+        if test -n "$manual_reason"
+            panda_setup_set_result "$operation" 'Pending manual action' "$manual_reason"
+        else
+            panda_setup_set_result "$operation" Ready 'offline preflight passed; execution pending'
+        end
+    end
     ui_success 'READINESS CHECK PASSED: no packages, repos, files, services, VMs, or boot settings changed.'
-    exit 0
+    panda_setup_finish 0
 end
 
-# An explicit apply invocation is required; for terminal use we additionally ask.
-if not set -q _flag_yes
-    if not isatty stdin
-        ui_error '--apply needs an interactive terminal or an explicit --yes'
-        exit 1
-    end
+# Terminal apply always asks, even if --yes was supplied.
+if isatty stdin
     read -l -P 'Type APPLY to execute this plan: ' confirmation
     if test "$confirmation" != APPLY
         ui_warn 'Cancelled. No changes applied.'
-        exit 1
+        for operation in $panda_setup_operations
+            if test (panda_setup_result_status "$operation") = Blocked
+                panda_setup_set_result "$operation" 'Skipped by user' 'apply confirmation declined'
+            end
+        end
+        panda_setup_finish 1
     end
+else if not set -q _flag_yes
+    ui_error '--apply needs an interactive terminal or an explicit --yes'
+    panda_setup_finish 1 'Review the plan and confirm in a terminal or use --apply --yes for noninteractive execution.'
 end
 
 # Re-check immediately before writes: the operator may have spent time at the
 # confirmation prompt, and another package manager could have changed state.
-panda_setup_guard_transaction $transaction_manifests
-or exit 1
 if contains gaming $modules
     panda_setup_check_disk_space
-    or exit 1
+    or panda_setup_finish $status 'Check free space on the reported volumes.'
 end
 
 # Record boot configuration before package hooks; this is read-only. A
@@ -331,9 +449,23 @@ end
 set -l limine_before
 if test (hostname) = panda-helios
     panda_setup_helios_limine_lts
-    or exit 1
+    or panda_setup_finish $status 'Inspect the first generated Limine LTS entry.'
     set limine_before (panda_setup_limine_hash)
-    or exit 1
+    or panda_setup_finish $status 'Inspect the generated Limine configuration permissions.'
+end
+
+# Snapshot missing targets per module to distinguish newly installed packages
+# from existing state. The combined transaction remains the only installer.
+for module in $modules
+    set -l manifests
+    for manifest in (panda_setup_module_manifests "$module" "$gpu" $stores)
+        set -a manifests "$repo_root/$manifest"
+    end
+    set -l missing (panda_setup_missing_targets $manifests)
+    or panda_setup_finish $status 'Could not read package inventory before applying.'
+    if test (count $missing) -eq 0
+        panda_setup_set_result "$module/packages" 'Already satisfied' 'all selected packages present before apply'
+    end
 end
 
 # One pacman transaction across ALL selected package manifests. Existing
@@ -341,6 +473,9 @@ end
 # their install_manifest calls become no-ops for already-installed packages.
 # Capture its exit status BEFORE running any other command. Even on failure,
 # pacman may already have run hooks or changed system/boot state.
+panda_setup_guard_transaction $transaction_manifests
+or panda_setup_finish $status 'Resolve the cached pacman transaction error above, then rerun --check.'
+set apply_started 1
 panda_setup_install_selected $transaction_manifests
 set -l package_status $status
 
@@ -349,13 +484,19 @@ set -l package_status $status
 # must not prevent examining the generated Limine entry and its fingerprint.
 set -l post_safety_failed 0
 panda_setup_helios_validate "$repo_root"
-or set post_safety_failed 1
+or set post_safety_failed $status
 if test (hostname) = panda-helios
     panda_setup_helios_limine_lts
-    or set post_safety_failed 1
+    set -l lts_status $status
+    if test $post_safety_failed -eq 0
+        set post_safety_failed $lts_status
+    end
     set -l limine_after (panda_setup_limine_hash)
-    if test $status -ne 0
-        set post_safety_failed 1
+    set -l hash_status $status
+    if test $hash_status -ne 0
+        if test $post_safety_failed -eq 0
+            set post_safety_failed $hash_status
+        end
     else if test "$limine_before" != "$limine_after"
         if test $post_safety_failed -eq 0
             ui_warn 'Pacman hooks changed /boot/limine.conf; verified LTS NVIDIA blacklist remains intact.'
@@ -367,63 +508,93 @@ if test (hostname) = panda-helios
     end
 end
 
-# Preserve pacman's original nonzero status despite subsequent safety checks.
-# No Flatpak, development, or desktop stages may follow either failure.
-if test $package_status -ne 0
-    if test $post_safety_failed -ne 0
-        ui_error 'Post-transaction safety validation failed; do not reboot until investigated.'
+# Check observed package state even on partial transaction failure. Always
+# preserve the original transaction status as the primary failure.
+set -l package_verification 0
+for module in $modules
+    set -l manifests
+    for manifest in (panda_setup_module_manifests "$module" "$gpu" $stores)
+        set -a manifests "$repo_root/$manifest"
     end
-    ui_error "Package transaction failed (exit $package_status); post-transaction safety checks completed."
-    exit $package_status
+    panda_setup_package_result "$module" "$package_status" apply $manifests
+    or set package_verification $status
 end
 if test $post_safety_failed -ne 0
     ui_error 'Post-transaction safety validation failed; refusing remaining setup stages. Do not reboot until investigated.'
-    exit 1
+end
+if test $package_status -ne 0
+    ui_error "Package transaction failed (exit $package_status); post-transaction safety checks completed."
+    panda_setup_finish $package_status 'Inspect pacman output and existing state. Resolve any Helios safety failure before rebooting or retrying.'
+end
+if test $post_safety_failed -ne 0
+    panda_setup_finish $post_safety_failed 'Resolve the Helios safety failure before rebooting or retrying.'
+end
+if test $package_verification -ne 0
+    panda_setup_finish $package_verification 'Inspect the package inventory and resolve missing packages before retrying.'
 end
 
 if test $heroic -eq 1
-    if not command -sq flatpak
-        ui_error 'flatpak was not installed as expected'
-        exit 1
-    end
-    if flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
-        ui_success 'Heroic already installed'
-    else
-        if not panda_setup_has_flathub
-            if test $enable_flathub -eq 0
-                ui_error 'User Flathub remote is unavailable'
-                exit 1
-            end
-            flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-            or exit $status
-        end
-        flatpak install --user --noninteractive -y flathub com.heroicgameslauncher.hgl
-        or exit $status
-    end
-    flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
-    or begin
-        ui_error 'Heroic post-install validation failed'
-        exit 1
-    end
+    panda_setup_apply_heroic "$enable_flathub"
+    or panda_setup_finish $status 'Inspect the user Flathub/Heroic error, then rerun the Gaming selection.' gaming
 end
-for module in workspace desktop
-    if contains -- "$module" $modules
-        set -l stage_arguments (panda_setup_module_get "$module" arguments)
-        for script in (panda_setup_module_get "$module" scripts)
-            fish "$repo_root/$script" $stage_arguments
-            or exit $status
+for module in $modules
+    set -l stage_arguments (panda_setup_module_get "$module" arguments)
+    for script in (panda_setup_module_get "$module" scripts)
+        set -l stage (path basename -- "$script")
+        set -l operation "$module/$stage"
+        set -l manual_reason (panda_setup_stage_manual_reason "$stage")
+        if test -n "$manual_reason"
+            panda_setup_set_result "$operation" 'Pending manual action' "$manual_reason"
+            continue
+        end
+        # Stages may recheck their package layer, but never start another
+        # package transaction outside the combined transaction guard.
+        set -lx PANDA_SETUP_PACKAGE_MODE --verify-only
+        set -l stage_report
+        set -l stage_status
+        if contains -- "$stage" setup-chezmoi.fish setup-github.fish
+            # Stream stage output to the terminal and capture only the small
+            # result marker on a separate descriptor. Preserve every exit code.
+            set -lx PANDA_SETUP_STAGE_REPORT 1
+            set stage_report (fish --no-config "$repo_root/$script" $stage_arguments 3>&1 1>&2)
+            set stage_status $status
+        else
+            fish --no-config "$repo_root/$script" $stage_arguments
+            set stage_status $status
+        end
+        if test $stage_status -eq 0
+            if test "$stage_report" = skipped
+                panda_setup_set_result "$operation" 'Skipped by user' 'rerun Workspace in a terminal to review the dotfile changes again'
+            else if test "$stage_report" = needs-git-identity
+                panda_setup_set_result "$operation" 'Pending manual action' 'apply the portable Git config or configure a global identity, then rerun Workspace'
+            else if test "$stage_report" = already-satisfied
+                panda_setup_set_result "$operation" 'Already satisfied'
+            else if contains -- "$stage" install-core.fish install-desktop.fish
+                panda_setup_set_result "$operation" (panda_setup_result_status "$module/packages") 'package layer verified'
+            else
+                panda_setup_set_result "$operation" Completed
+            end
+        else
+            panda_setup_set_result "$operation" Failed "(exit $stage_status)"
+            panda_setup_finish $stage_status "Review the $stage error and any changes it made, then rerun the affected module." "$module"
         end
     end
 end
 ui_section '🔍' 'Automatic installation verification'
 panda_setup_verify_installation "$heroic" $transaction_manifests
-or exit 1
+or begin
+    set -l verify_status $status
+    panda_setup_set_result setup/final-verification Failed "(exit $verify_status) installed component verification failed"
+    panda_setup_finish $verify_status 'Inspect the package and Heroic inventory before retrying.'
+end
 panda_setup_helios_validate "$repo_root"
-or exit 1
+or begin
+    set -l verify_status $status
+    panda_setup_set_result setup/final-verification Failed "(exit $verify_status) Helios safety verification failed"
+    panda_setup_finish $verify_status 'Resolve the Helios safety failure before rebooting or retrying.'
+end
+panda_setup_set_result setup/final-verification Completed
 if contains gaming $modules
     panda_setup_smoke_gaming "$gpu" $stores
-
-    ui_info 'Launch Steam/Heroic/Lutris normally to sign in and complete their first-run setup.'
-    ui_info 'Proton/game downloads and store authentication require user actions; nothing is enabled in the GPU/boot configuration.'
 end
-ui_success 'Selected implemented modules completed; package-hook boot effects were checked on Helios.'
+panda_setup_finish 0

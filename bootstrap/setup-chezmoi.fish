@@ -17,43 +17,75 @@ if not test -f "$repo_root/.chezmoiroot"
     exit 1
 end
 
-mkdir -p ~/.config/chezmoi
-
-printf 'sourceDir = "%s"\n' "$repo_root" > ~/.config/chezmoi/chezmoi.toml
-chmod 600 ~/.config/chezmoi/chezmoi.toml
-
-ui_success 'chezmoi source directory configured'
+# Use this checkout explicitly, without replacing the user's source or settings.
 ui_info "Source repository: $repo_root"
-
-ui_section '🔎' 'Dotfile preview'
-ui_step 'Showing proposed changes'
-
-chezmoi diff
-set -l diff_status $status
-
-if test $diff_status -ne 0
-    ui_error 'chezmoi diff failed'
-    exit $diff_status
-end
-
-echo
-read -l -P '  Apply these dotfile changes now? [Y/n] ' answer
-
-if test -n "$answer"
-    if not string match -qi 'y*' -- "$answer"
-        ui_skip 'Dotfile application skipped by user'
-        exit 20
+set -l destination (path normalize -- "$HOME")
+set -l chezmoi_args --source "$repo_root" --destination "$destination"
+set -l target_args
+set -l changes
+set -l gitconfig "$destination/.gitconfig"
+set -l preserve_gitconfig 0
+if test -e "$gitconfig"; or test -L "$gitconfig"
+    # The portable Git config is a whole-file template. Replacing an existing
+    # file here could erase the identity before the GitHub stage can reuse it.
+    set preserve_gitconfig 1
+    set -l managed (chezmoi $chezmoi_args managed --path-style=absolute)
+    or exit $status
+    set -l home_prefix (string escape --style=regex -- "$destination/")
+    set -l targets
+    for target in $managed
+        if not string match -qr -- "^$home_prefix" "$target"; or test (path normalize -- "$target") != "$target"
+            ui_error 'Chezmoi returned a managed path outside the user home.'
+            exit 1
+        end
+        if test "$target" != "$gitconfig"
+            set -a targets "$target"
+        end
+    end
+    ui_info 'Existing ~/.gitconfig will be preserved.'
+    if set -q targets[1]
+        set target_args --recursive=false -- $targets
     end
 end
 
-ui_section '⚙️' 'Applying portable configuration'
+ui_section '🔎' 'Dotfile preview'
+if test $preserve_gitconfig -eq 0; or set -q target_args[1]
+    set changes (chezmoi $chezmoi_args status $target_args)
+    or begin
+        set -l preview_status $status
+        ui_error "chezmoi status failed (exit $preview_status)"
+        exit $preview_status
+    end
+end
+if test (count $changes) -eq 0
+    ui_success 'Portable dotfiles already match'
+    if test "$PANDA_SETUP_STAGE_REPORT" = 1
+        echo already-satisfied >&3; or exit $status
+    end
+    exit 0
+end
+# Existing dotfiles can contain credentials. Show paths here and let the
+# operator request the content diff in their own terminal if needed.
+printf '%s\n' $changes
+set -l diff_command (string join ' ' -- (string escape -- chezmoi $chezmoi_args diff $target_args))
+ui_info "To inspect the full diff separately: $diff_command"
 
-ui_spinner 'Applying chezmoi configuration' chezmoi apply
-set -l apply_status $status
-
-if test $apply_status -ne 0
-    exit $apply_status
+set -l answer
+if not isatty stdin; or not read -P '  Apply these dotfile changes now? [y/N] ' answer; or not contains -- "$answer" y Y yes YES
+    ui_skip 'Dotfile application skipped by user'
+    if test "$PANDA_SETUP_STAGE_REPORT" = 1
+        echo skipped >&3; or exit $status
+        exit 0
+    end
+    exit 20
 end
 
-ui_success 'Portable home configuration applied'
-exit 0
+ui_section '⚙️' 'Applying portable configuration'
+if test $preserve_gitconfig -eq 0
+    if test -e "$gitconfig"; or test -L "$gitconfig"
+        ui_error '~/.gitconfig appeared after the preview. Rerun to preserve it.'
+        exit 1
+    end
+end
+chezmoi $chezmoi_args apply $target_args
+exit $status

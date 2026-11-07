@@ -21,7 +21,7 @@ if pacman -Q rust >/dev/null 2>&1; and not pacman -Q rustup >/dev/null 2>&1
     exit 1
 end
 
-install_manifest "$repo_root/packages/development.txt" 'Development packages'
+install_manifest "$repo_root/packages/development.txt" 'Development packages' $PANDA_SETUP_PACKAGE_MODE
 set -l package_status $status
 if test $package_status -ne 0
     exit $package_status
@@ -45,8 +45,9 @@ end
 if test $stable_installed -eq 0
     ui_step 'Installing Rust stable toolchain'
     rustup toolchain install stable; or begin
+        set -l failure $status
         ui_error 'Rust stable toolchain installation failed'
-        exit 1
+        exit $failure
     end
 else
     ui_success 'Rust stable toolchain already installed'
@@ -56,8 +57,9 @@ set -l default_toolchain (rustup default 2>/dev/null | string collect)
 if not string match -q '*stable*' -- "$default_toolchain"
     ui_step 'Setting Rust stable as the default toolchain'
     rustup default stable; or begin
+        set -l failure $status
         ui_error 'Could not set the Rust default toolchain'
-        exit 1
+        exit $failure
     end
 else
     ui_success 'Rust stable is already the default toolchain'
@@ -65,8 +67,9 @@ end
 
 ui_step 'Ensuring rustfmt and clippy are installed'
 rustup component add rustfmt clippy --toolchain stable >/dev/null; or begin
+    set -l failure $status
     ui_error 'Could not install Rust components'
-    exit 1
+    exit $failure
 end
 ui_success 'rustfmt + clippy ready'
 
@@ -85,13 +88,14 @@ if test -x "$fish_lsp_path"
 end
 
 if test $fish_lsp_current_ok -eq 0
-    set -l tmp (mktemp)
+    set -l tmp (mktemp); or exit $status
 
     ui_step "Downloading fish-lsp v$fish_lsp_version"
     curl --fail --location --silent --show-error "$fish_lsp_url" --output "$tmp"; or begin
+        set -l failure $status
         rm -f "$tmp"
         ui_error 'fish-lsp download failed'
-        exit 1
+        exit $failure
     end
 
     set -l downloaded_sha (sha256sum "$tmp" | string split ' ' | head -n 1)
@@ -106,9 +110,10 @@ if test $fish_lsp_current_ok -eq 0
     ui_success 'fish-lsp checksum verified'
 
     sudo install -m 0755 "$tmp" "$fish_lsp_path"; or begin
+        set -l failure $status
         rm -f "$tmp"
         ui_error "Could not install $fish_lsp_path"
-        exit 1
+        exit $failure
     end
 
     rm -f "$tmp"
@@ -121,13 +126,14 @@ if not "$fish_lsp_path" --help >/dev/null 2>&1
 end
 ui_success 'fish-lsp execution verified'
 
-mkdir -p "$completions_dir"
+mkdir -p "$completions_dir"; or exit $status
 
-set -l completion_tmp (mktemp)
+set -l completion_tmp (mktemp); or exit $status
 "$fish_lsp_path" complete > "$completion_tmp"; or begin
+    set -l failure $status
     rm -f "$completion_tmp"
     ui_error 'Could not generate fish-lsp completions'
-    exit 1
+    exit $failure
 end
 
 if not test -s "$completion_tmp"
@@ -140,11 +146,15 @@ if test -f "$completions_file"; and cmp -s "$completion_tmp" "$completions_file"
     rm -f "$completion_tmp"
     ui_success 'fish-lsp completions already current'
 else
-    mv "$completion_tmp" "$completions_file"
+    mv "$completion_tmp" "$completions_file"; or begin
+        set -l failure $status
+        rm -f "$completion_tmp"
+        exit $failure
+    end
     ui_success "fish-lsp completions written to $completions_file"
 end
 
-fish "$script_dir/dev/setup-ai-tools.fish"; or exit 1
+fish --no-config "$script_dir/dev/setup-ai-tools.fish"; or exit $status
 fish_add_path -g "$HOME/.local/bin"
 
 ui_section '🔍' 'Development verification'

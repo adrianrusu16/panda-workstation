@@ -29,7 +29,7 @@ if not set -q _flag_dry_run; and test "$desktop_profile" != plasma
     exit 2
 end
 
-set -l package_mode
+set -l package_mode $PANDA_SETUP_PACKAGE_MODE
 if set -q _flag_dry_run
     set package_mode --dry-run
 end
