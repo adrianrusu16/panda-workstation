@@ -27,31 +27,17 @@ visuals while preserving the shared workflow and desktop structure.
 
 ## Setup and operation
 
-Use an existing Fish installation to inspect implemented and planned stages:
+Use the canonical bootstrap to preview a selection from the repository root.
 
 ```fish
-fish bootstrap/setup-workstation.fish --list
-fish bootstrap/setup-workstation.fish --help
-fish bootstrap/install-desktop.fish --dry-run
+fish --no-config bootstrap/panda-setup.fish --modules workspace
 ```
 
-The stage listing is read-only. Desktop dry-run validates one `pacman -Qq`
-inventory and never installs packages. It requires the existing package tools.
-Normal desktop installation requires explicit `--profile plasma` or an exported
-`PANDA_DESKTOP_PROFILE=plasma`; no session detection is used.
-
-The normal `bootstrap/setup-workstation.fish` entry point runs implemented
-package, machine, chezmoi, GitHub, desktop, plugin, development and validation
-stages. **It can change boot/GPU policy through the machine stage**, install
-packages and apply configuration: inspect each stage and obtain the required
-scoped authorization first. It is not a read-only health check. Its gaming and
-full Panda experience stages are still planned; a complete fresh-system restore
-has not been demonstrated. Never use `pacman -Sy` alone.
-
-The separate [Panda Setup Manager](docs/panda-setup-manager.md) provides opt-in
-workspace, desktop, gaming and virtualization modules. It defaults to dry-run;
-installation requires explicit apply and confirmation. Android/AOSP remains
-plan-only. Read its readiness checks, Helios guard and failure limits before use.
+The [bootstrap guide](docs/panda-setup-manager.md) covers module selection,
+offline readiness, explicit apply confirmation, verification, and recovery.
+Android/AOSP is plan-only and native Panda Desktop activation is separately
+gated. `bootstrap/setup-workstation.fish --list` still shows the historical
+stages. Never use `pacman -Sy` alone.
 
 Portable configuration belongs in `home/`; machine exceptions belong in
 `machines/`. Keep credentials, local Git identity and signing keys outside Git.

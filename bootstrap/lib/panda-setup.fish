@@ -101,22 +101,13 @@ function panda_setup_csv --argument-names value
     end
 end
 
-function panda_setup_show_manifest --argument-names manifest
+function panda_setup_show_manifest --argument-names manifest inventory_known
+    set -e argv[1..2]
     if not test -f "$manifest"
         ui_error "Missing manifest: $manifest"
         return 1
     end
     set -l name (path basename -- "$manifest")
-    set -l installed
-    if command -sq pacman
-        set installed (pacman -Qq 2>/dev/null)
-        if test $status -ne 0
-            ui_warn 'Cannot read pacman inventory; installed status unknown (read-only preview).'
-            set installed
-        end
-    else
-        ui_warn 'pacman is unavailable; listing desired packages only.'
-    end
     ui_section '📦' "$name"
     while read -l line
         set line (string trim -- "$line")
@@ -127,7 +118,9 @@ function panda_setup_show_manifest --argument-names manifest
             ui_error "Invalid package in $manifest: $line"
             return 1
         end
-        if contains -- "$line" $installed
+        if test "$inventory_known" = 0
+            ui_step "Desired (installed status unknown): $line"
+        else if contains -- "$line" $argv
             ui_info "Installed: $line"
         else
             ui_step "Would install: $line"
@@ -235,7 +228,7 @@ function panda_setup_repo_available --argument-names manifest
                     printf '  pacman: %s\n' "$message" >&2
                 end
                 ui_error 'Fix the repository/query error before applying; package availability is unverified.'
-                return 1
+                return $repo_status
             end
         end
     end < "$manifest"
@@ -246,10 +239,11 @@ function panda_setup_multilib_check
         ui_error 'pacman-conf is required to check multilib'
         return 1
     end
-    set -l repos (pacman-conf --repo-list 2>/dev/null)
-    if test $status -ne 0
-        ui_error 'Cannot read enabled pacman repositories; refusing to guess multilib state.'
-        return 1
+    set -l repos (pacman-conf --repo-list)
+    set -l repo_status $status
+    if test $repo_status -ne 0
+        ui_error "Cannot read enabled pacman repositories (exit $repo_status); refusing to guess multilib state."
+        return $repo_status
     end
     if not contains -- multilib $repos
         ui_error 'Arch multilib is not enabled; refusing to modify pacman.conf automatically.'
@@ -257,15 +251,15 @@ function panda_setup_multilib_check
     end
 end
 
-function panda_setup_has_flathub
-    if not command -sq flatpak
-        return 1
+# Report absence separately from a failed local configuration query.
+function panda_setup_flathub_state
+    set -l remotes (flatpak remotes --user --columns=name)
+    or return $status
+    if contains -- flathub $remotes
+        echo configured
+    else
+        echo missing
     end
-    set -l remotes (flatpak remotes --user --columns=name 2>/dev/null)
-    if test $status -ne 0
-        return 1
-    end
-    contains -- flathub $remotes
 end
 
 # Shared strict preflight for --check and --apply. Nothing is modified here.
@@ -292,52 +286,21 @@ function panda_setup_preflight_scripts --argument-names script_dir
     return 0
 end
 
-function panda_setup_preflight_packages --argument-names root
-    set -e argv[1]
-    set -l modules
-    set -l manifests
-    set -l separator 0
-    for token in $argv
-        if test "$token" = --
-            set separator 1
-            continue
-        end
-        if test $separator -eq 0
-            set -a modules "$token"
-        else
-            set -a manifests "$token"
-        end
-    end
-    if test $separator -eq 0
-        ui_error 'Internal error: package preflight missing separator'
-        return 2
-    end
-
+function panda_setup_preflight_packages
     # A failed or empty inventory must never be mistaken for no installed packages.
     panda_installed_inventory >/dev/null
-    or return 1
+    or return $status
 
-    if contains workspace $modules
+    if string match -q '*/packages/development.txt' -- $argv
         # Rust and rustup conflict; check before installing ANY selected packages.
         if pacman -Qq rust >/dev/null 2>&1; and not pacman -Qq rustup >/dev/null 2>&1
             ui_error 'Arch rust conflicts with workstation rustup; resolve before --apply.'
             return 1
         end
     end
-    for module in workspace desktop
-        if contains -- "$module" $modules
-            for manifest in (panda_setup_module_get "$module" manifests)
-                set -a manifests (string replace -r '\.txt$' '' -- "$manifest")
-            end
-        end
-    end
-    for name in $manifests
-        set -l manifest "$root/setup/manifests/$name.txt"
-        if string match -q 'packages/*' -- "$name"
-            set manifest "$root/$name.txt"
-        end
+    for manifest in $argv
         panda_setup_repo_available "$manifest"
-        or return 1
+        or return $status
     end
     return 0
 end
@@ -350,7 +313,9 @@ function panda_setup_preflight_heroic --argument-names enable_flathub
             ui_success 'User-scoped Heroic is already installed.'
             return 0
         end
-        if panda_setup_has_flathub
+        set -l remote_state (panda_setup_flathub_state)
+        or return $status
+        if test "$remote_state" = configured
             return 0
         end
     end
@@ -381,7 +346,7 @@ function panda_setup_guard_transaction
         for line in $pending
             printf '  pacman: %s\n' "$line" >&2
         end
-        return 1
+        return $pending_status
     end
     if test (count $pending) -gt 0
         ui_error 'Cached repositories show pending upgrades; refusing a partial upgrade.'
@@ -394,9 +359,11 @@ function panda_setup_guard_transaction
     # Read the resolved config once so an absent IgnorePkg/IgnoreGroup is OK,
     # while a broken configuration query still blocks the transaction.
     set -l config (pacman-conf 2>&1)
-    if test $status -ne 0
-        ui_error 'Unable to inspect pacman configuration; refusing to guess package holds.'
-        return 1
+    set -l config_status $status
+    if test $config_status -ne 0
+        ui_error "Unable to inspect pacman configuration (exit $config_status); refusing to guess package holds."
+        printf '  pacman-conf: %s\n' $config >&2
+        return $config_status
     end
     if string match -qr '^\s*Ignore(Pkg|Group)\s*=\s*\S' -- $config
         ui_error 'IgnorePkg or IgnoreGroup is configured; review it before installing packages.'
@@ -404,7 +371,7 @@ function panda_setup_guard_transaction
     end
 
     set -l installed (panda_installed_inventory)
-    or return 1
+    or return $status
     set -l targets
     for manifest in $argv
         if not test -f "$manifest"
@@ -440,7 +407,7 @@ function panda_setup_guard_transaction
         for line in $preview
             printf '  pacman: %s\n' "$line" >&2
         end
-        return 1
+        return $preview_status
     end
     if test (count $preview) -eq 0
         ui_error 'No package transaction returned despite missing targets; refusing to guess.'
@@ -516,7 +483,7 @@ end
 function panda_setup_verify_installation --argument-names heroic
     set -e argv[1]
     set -l installed (panda_installed_inventory)
-    or return 1
+    or return $status
     set -l verified
     for manifest in $argv
         if not test -f "$manifest"
@@ -538,9 +505,15 @@ function panda_setup_verify_installation --argument-names heroic
         end < "$manifest"
     end
     if test "$heroic" = 1
-        if not command -sq flatpak; or not flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
-            ui_error 'Selected Heroic user Flatpak is not installed.'
-            return 1
+        if not command -sq flatpak
+            ui_error 'Cannot verify Heroic: flatpak is unavailable.'
+            return 127
+        end
+        flatpak info --user com.heroicgameslauncher.hgl >/dev/null
+        or begin
+            set -l heroic_status $status
+            ui_error "Cannot verify the selected Heroic user Flatpak (exit $heroic_status)."
+            return $heroic_status
         end
         ui_success 'Heroic user-scoped installation verified.'
     end
@@ -553,7 +526,7 @@ end
 # silently treat an unreadable package inventory as an empty installation.
 function panda_setup_missing_targets
     set -l installed (panda_installed_inventory)
-    or return 1
+    or return $status
     set -l missing
     for manifest in $argv
         if not test -f "$manifest"
@@ -583,7 +556,7 @@ end
 # The shared G1.2 transaction guard must run immediately before this helper.
 function panda_setup_install_selected
     set -l missing (panda_setup_missing_targets $argv)
-    or return 1
+    or return $status
     if test (count $missing) -eq 0
         ui_success 'All selected pacman packages are already installed.'
         return 0
@@ -612,10 +585,11 @@ function panda_setup_helios_validate --argument-names repo_root
         return 1
     end
     ui_section '🔒' 'Helios machine safety validation'
-    fish "$validator"
+    fish --no-config "$validator"
     or begin
-        ui_error 'Helios safety validator failed.'
-        return 1
+        set -l validator_status $status
+        ui_error "Helios safety validator failed (exit $validator_status)."
+        return $validator_status
     end
     return 0
 end
@@ -627,9 +601,11 @@ function panda_setup_helios_limine_lts
         return 0
     end
     set -l section (sudo grep -F -A 6 -m 1 'comment: kernel-id=linux-cachyos-lts' /boot/limine.conf 2>&1)
-    if test $status -ne 0
-        ui_error 'Cannot read generated Limine LTS entry; refusing to proceed.'
-        return 1
+    set -l read_status $status
+    if test $read_status -ne 0
+        ui_error "Cannot read generated Limine LTS entry (exit $read_status); refusing to proceed."
+        printf '  %s\n' $section >&2
+        return $read_status
     end
     set -l cmdlines (string match -r '^ *cmdline:.*' -- $section)
     if test (count $cmdlines) -ne 1
@@ -647,9 +623,11 @@ end
 # Return a hash only; do not modify the bootloader or filesystem.
 function panda_setup_limine_hash
     set -l result (sudo sha256sum /boot/limine.conf 2>&1)
-    if test $status -ne 0
-        ui_error 'Cannot fingerprint generated Limine configuration.' >&2
-        return 1
+    set -l hash_status $status
+    if test $hash_status -ne 0
+        ui_error "Cannot fingerprint generated Limine configuration (exit $hash_status)." >&2
+        printf '  %s\n' $result >&2
+        return $hash_status
     end
     set -l fields (string split -n ' ' -- "$result")
     if test (count $fields) -lt 2; or not string match -qr '^[0-9a-f]{64}$' -- "$fields[1]"
@@ -677,14 +655,14 @@ function panda_setup_smoke_gaming --argument-names gpu
         else
             ui_warn 'Lutris executable not on PATH; test from desktop launcher.'
         end
-        if python -c 'import google.protobuf' >/dev/null 2>&1
+        if python -B -c 'import google.protobuf' >/dev/null 2>&1
             ui_success 'Lutris Battle.net protobuf binding imports successfully.'
         else
             ui_warn 'Lutris Battle.net Python protobuf import failed.'
         end
     end
     if command -sq vulkaninfo
-        set -l vk (vulkaninfo --summary 2>&1)
+        set -l vk (env MESA_SHADER_CACHE_DISABLE=true vulkaninfo --summary 2>&1)
         if test $status -ne 0
             ui_warn 'vulkaninfo failed; investigate graphics runtime separately.'
         else if test "$gpu" = intel; and string match -qi '*Intel*' -- $vk
@@ -697,5 +675,158 @@ function panda_setup_smoke_gaming --argument-names gpu
     else
         ui_warn 'vulkaninfo unavailable; graphics runtime not exercised.'
     end
+    return 0
+end
+
+# These stages remain selected, but require an operator to satisfy prerequisites.
+function panda_setup_stage_manual_reason --argument-names stage
+    switch "$stage"
+        case setup-chezmoi.fish setup-github.fish
+            if not isatty stdin
+                echo 'rerun Workspace in a terminal'
+            end
+        case setup-development.fish
+            if not command -sq codex; and not test -x "$HOME/.local/bin/codex"
+                echo 'install the official Codex CLI per bootstrap/dev/README.md, then rerun Workspace'
+            end
+    end
+end
+
+# Keep just the selected operations and their current results for this process.
+function panda_setup_add_result --argument-names operation outcome detail
+    set -ga panda_setup_operations "$operation"
+    set -ga panda_setup_outcomes "$outcome"
+    set -ga panda_setup_details "$detail"
+end
+
+function panda_setup_set_result --argument-names operation outcome detail
+    set -l index (contains -i -- "$operation" $panda_setup_operations)
+    set -g panda_setup_outcomes[$index] "$outcome"
+    set -g panda_setup_details[$index] "$detail"
+end
+
+function panda_setup_result_status --argument-names operation
+    set -l index (contains -i -- "$operation" $panda_setup_operations)
+    echo "$panda_setup_outcomes[$index]"
+end
+
+function panda_setup_finish --no-scope-shadowing --argument-names result guidance affected
+    ui_section '📊' 'Selected module results'
+    for module in $modules setup
+        set -l outcomes
+        for index in (seq (count $panda_setup_operations))
+            set -l fields (string split -m 1 / -- "$panda_setup_operations[$index]")
+            if test "$fields[1]" != "$module"
+                continue
+            end
+            set -l outcome "$panda_setup_outcomes[$index]"
+            set -l detail "$panda_setup_details[$index]"
+            set -a outcomes "$outcome"
+            printf '  %s / %s: %s' "$module" "$fields[2]" "$outcome"
+            if test -n "$detail"
+                printf ' %s' "$detail"
+            end
+            printf '\n'
+        end
+        for outcome in Failed Blocked 'Pending manual action' 'Skipped by user' Completed 'Already satisfied' Ready 'Unsupported or deferred'
+            if contains -- "$outcome" $outcomes
+                printf '  %s: %s\n' "$module" "$outcome"
+                break
+            end
+        end
+    end
+    if test -n "$guidance"
+        ui_info "$guidance"
+        set -l retry_modules $modules
+        if test -n "$affected"
+            set retry_modules "$affected"
+        end
+        set -l retry_args --modules (string join ',' -- $retry_modules)
+        if contains -- gaming $retry_modules
+            set -a retry_args --stores (string join ',' -- $stores) --gpu "$gpu"
+            if test "$enable_flathub" = 1
+                set -a retry_args --enable-flathub
+            end
+        end
+        ui_info 'Readiness command: fish --no-config bootstrap/panda-setup.fish '(string join ' ' -- $retry_args)' --check'
+        if test "$apply_started" = 1
+            ui_info 'Earlier changes may remain. After the check passes, replace --check with --apply and confirm.'
+        end
+    end
+    exit "$result"
+end
+
+# Inspect current state rather than assuming pacman completed all or none.
+function panda_setup_package_result --argument-names module transaction_status mode
+    set -e argv[1..3]
+    set -l missing (panda_setup_missing_targets $argv)
+    set -l query_status $status
+    if test $query_status -ne 0
+        panda_setup_set_result "$module/packages" Failed "(exit $query_status) package inventory could not be verified"
+        return $query_status
+    end
+    if test (count $missing) -gt 0
+        set -l result 1
+        if test "$transaction_status" -ne 0
+            set result "$transaction_status"
+        end
+        panda_setup_set_result "$module/packages" Failed "(exit $result) Still missing ("(count $missing)"): "(string join ', ' -- $missing)
+        ui_error "Selected package missing for $module: $missing[1]"
+        return $result
+    end
+    if test "$mode" = verify; or test (panda_setup_result_status "$module/packages") = 'Already satisfied'
+        panda_setup_set_result "$module/packages" 'Already satisfied' 'selected packages verified'
+    else if test "$transaction_status" -ne 0
+        panda_setup_set_result "$module/packages" Completed "selected packages present despite combined transaction failure (exit $transaction_status)"
+    else
+        panda_setup_set_result "$module/packages" Completed 'selected packages verified'
+    end
+    return 0
+end
+
+function panda_setup_apply_heroic --argument-names enable_flathub
+    if not command -sq flatpak
+        panda_setup_set_result gaming/heroic Blocked 'flatpak command unavailable after package installation'
+        return 127
+    end
+    if flatpak info --user com.heroicgameslauncher.hgl >/dev/null 2>&1
+        panda_setup_set_result gaming/flathub 'Already satisfied' 'Heroic already installed; remote setup unnecessary'
+        panda_setup_set_result gaming/heroic 'Already satisfied' 'user Flatpak verified'
+        return 0
+    end
+    set -l remote_state (panda_setup_flathub_state)
+    set -l query_status $status
+    if test $query_status -ne 0
+        panda_setup_set_result gaming/flathub Failed "(exit $query_status) user remote query failed"
+        return $query_status
+    end
+    if test "$remote_state" = configured
+        panda_setup_set_result gaming/flathub 'Already satisfied' 'user remote available'
+    else
+        if test "$enable_flathub" = 0
+            panda_setup_set_result gaming/flathub Blocked 'user remote unavailable; creation requires --enable-flathub'
+            return 1
+        end
+        flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        set -l remote_status $status
+        if test $remote_status -ne 0
+            panda_setup_set_result gaming/flathub Failed "(exit $remote_status)"
+            return $remote_status
+        end
+        panda_setup_set_result gaming/flathub Completed 'user remote added'
+    end
+    flatpak install --user --noninteractive -y flathub com.heroicgameslauncher.hgl
+    set -l install_status $status
+    if test $install_status -ne 0
+        panda_setup_set_result gaming/heroic Failed "(exit $install_status)"
+        return $install_status
+    end
+    flatpak info --user com.heroicgameslauncher.hgl >/dev/null
+    set -l verify_status $status
+    if test $verify_status -ne 0
+        panda_setup_set_result gaming/heroic Failed "(exit $verify_status) post-install check failed"
+        return $verify_status
+    end
+    panda_setup_set_result gaming/heroic Completed 'user Flatpak verified'
     return 0
 end

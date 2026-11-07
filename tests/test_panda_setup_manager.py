@@ -114,7 +114,7 @@ class SetupManagerContracts(unittest.TestCase):
             for line in file.read_text().splitlines():
                 if line.strip() and not line.lstrip().startswith('#'):
                     self.assertNotRegex(line, r'(nvidia|limine|mkinitcpio|linux-cachyos)')
-        manager = MAIN.read_text()
+        manager = MAIN.read_text() + HELPERS.read_text()
         for forbidden in ('setup-machine.fish"', 'setup-workstation.fish"',
                           'sudo pacman -Sy', 'git add .', 'git commit ', 'git push ',
                           'nvidia-smi', 'systemctl enable'):
@@ -123,14 +123,14 @@ class SetupManagerContracts(unittest.TestCase):
     def test_explicit_apply_and_confirm(self):
         source = MAIN.read_text()
         self.assertIn("if test $apply -eq 0", source)
-        self.assertIn("if not set -q _flag_yes", source)
+        self.assertIn("else if not set -q _flag_yes", source)
         self.assertIn("if test \"$confirmation\" != APPLY", source)
-        self.assertIn("if contains android $modules", source)
+        self.assertIn('panda_setup_module_get "$module" operations', source)
         self.assertIn("panda_setup_check_gpu_safety", source)
         self.assertIn("--enable-flathub", source)
 
     def test_no_aur_and_heroic_is_user_scoped(self):
-        source = MAIN.read_text()
+        source = MAIN.read_text() + HELPERS.read_text()
         self.assertIn('flatpak install --user', source)
         self.assertIn('flatpak remote-add --user', source)
         for forbidden in ('yay -S', 'paru -S', 'curl | sh', 'sudo flatpak'):
@@ -145,9 +145,16 @@ class SetupManagerContracts(unittest.TestCase):
 @unittest.skipUnless(shutil.which('fish'), 'Requires Fish; GitHub CI installs Fish')
 class FishSmokeTests(unittest.TestCase):
     def run_fish(self, *args):
-        return subprocess.run(['fish', str(MAIN), *args],
-                              cwd=ROOT, capture_output=True, text=True,
-                              timeout=20)
+        with tempfile.TemporaryDirectory(prefix='panda-setup-preview-') as directory:
+            home = Path(directory)
+            hostname = home / 'hostname'
+            hostname.write_text('#!/bin/sh\necho panda-test-host\n')
+            hostname.chmod(0o755)
+            env = dict(os.environ, HOME=directory, PATH=directory, XDG_CONFIG_HOME=directory,
+                       XDG_CACHE_HOME=directory, XDG_DATA_HOME=directory, XDG_STATE_HOME=directory)
+            return subprocess.run([shutil.which('fish'), '--no-config', str(MAIN), *args],
+                                  cwd=ROOT, env=env, stdin=subprocess.DEVNULL,
+                                  capture_output=True, text=True, timeout=20)
 
     def test_syntax(self):
         proc = subprocess.run(['fish', '-n', str(MAIN), str(HELPERS), str(GAMING)],
@@ -202,7 +209,7 @@ class G11PreflightContracts(unittest.TestCase):
         self.assertLess(src.index('panda_setup_preflight_packages'),
                         src.index('panda_setup_install_selected $transaction_manifests'))
         self.assertLess(src.index('panda_setup_preflight_packages'),
-                        src.index('flatpak remote-add --user'))
+                        src.index('panda_setup_apply_heroic'))
 
     def test_manifests_are_preflighted_for_all_modules(self):
         helpers = HELPERS.read_text()
@@ -272,7 +279,7 @@ class G141SafetyContracts(unittest.TestCase):
         self.assertNotIn('or exit $status',stage)
         self.assertLess(stage.index('panda_setup_limine_hash'),
                         stage.index('if test $package_status -ne 0'))
-        self.assertIn('exit $package_status',stage)
+        self.assertIn('panda_setup_finish $package_status',stage)
 
 
 @unittest.skipUnless(shutil.which('fish'), 'Requires Fish on the host or CI')
@@ -291,6 +298,8 @@ class G11MockedApplyTests(unittest.TestCase):
         self.bin = self.root / 'bin'
         self.bin.mkdir()
         for rel in ['bootstrap/panda-setup.fish',
+                    'bootstrap/setup-workstation.fish',
+                    'bootstrap/panda-gaming.fish',
                     'bootstrap/lib/panda-setup.fish',
                     'bootstrap/lib/packages.fish',
                     'bootstrap/lib/ui.fish',
@@ -314,6 +323,10 @@ class G11MockedApplyTests(unittest.TestCase):
 if test "$MOCK_FAIL_STAGE" = "'''+stage+'''"
     exit 61
 end
+if test "$MOCK_SKIP_STAGE" = "'''+stage+'''"
+    echo skipped >&3
+    exit 0
+end
 printf '%s\\n' "'''+stage+'''" >> "$MOCK_STAGE_LOG"
 ''')
 
@@ -326,6 +339,7 @@ printf '%s\\n' "'''+stage+'''" >> "$MOCK_STAGE_LOG"
         self.stage_log = self.root / 'stages'
         self.stage_log.write_text('')
 
+        self.make_exe('codex', '#!/bin/sh\nexit 0\n')
         self.make_exe('pacman', r'''#!/usr/bin/env python3
 import os,sys,pathlib
 args=sys.argv[1:]
@@ -366,6 +380,10 @@ if args[:2]==['-S','--needed']:
     targets=args[2:]
     if targets and targets[0]=='--': targets=targets[1:]
     with events.open('a') as f:f.write('pacman-install '+','.join(targets)+'\n')
+    if os.getenv('MOCK_PACMAN_PARTIAL')=='1':
+        entries.add(targets[0]);state.write_text('\n'.join(sorted(entries))+'\n')
+        print('error: interrupted after installing first package', file=sys.stderr)
+        sys.exit(51)
     if os.getenv('MOCK_PACMAN_FAIL')=='1':sys.exit(51)
     entries.update(targets);state.write_text('\n'.join(sorted(entries))+'\n')
     sys.exit(0)
@@ -389,6 +407,9 @@ echo panda-test-host
         self.make_exe('lspci', '''#!/bin/sh
 echo 'Kernel driver in use: i915'
 ''')
+        self.make_exe('vulkaninfo', '''#!/bin/sh
+echo 'deviceName = Intel fixture'
+''')
         # Disk checks are run against a fake df, never host storage.
         self.make_exe('df', '''#!/bin/sh
 if [ "$MOCK_DF_FAIL" = "1" ]; then echo 'df: unavailable' >&2; exit 42; fi
@@ -407,8 +428,17 @@ events=pathlib.Path(os.environ['MOCK_EVENTS'])
 parts=set(state.read_text().splitlines())
 if args[:1]==['info']:
     assert '--user' in args, 'Heroic info must always be user-scoped'
+    if os.getenv('MOCK_FINAL_HEROIC_QUERY_FAIL') == '1' and 'heroic' in parts:
+        if 'heroic-checked' in parts:
+            print('error: final Heroic metadata query failed', file=sys.stderr)
+            sys.exit(57)
+        parts.add('heroic-checked')
+        state.write_text('\n'.join(sorted(parts))+'\n')
     sys.exit(0 if 'heroic' in parts else 1)
 if args[:1]==['remotes']:
+    if os.getenv('MOCK_FLATHUB_QUERY_FAIL')=='1':
+        print('error: user remote config unreadable', file=sys.stderr)
+        sys.exit(47)
     if 'flathub' in parts:print('flathub')
     sys.exit(0)
 if args[:1]==['remote-add']:
@@ -448,11 +478,11 @@ sys.exit(89)
         path.write_text(source)
         path.chmod(0o755)
 
-    def run_manager(self, *args, env=None):
+    def run_manager(self, *args, env=None, entry='panda-setup.fish'):
         # Keep the fake apply invocation noninteractive even when the test runner
         # itself was started from a terminal. subprocess.run() otherwise inherits
         # the terminal on stdin and Fish correctly prompts for APPLY indefinitely.
-        p = subprocess.run(['fish', str(self.repo / 'bootstrap/panda-setup.fish'),
+        p = subprocess.run(['fish', str(self.repo / 'bootstrap' / entry),
                             *args], cwd=self.repo, env=(env or self.env),
                            stdin=subprocess.DEVNULL, capture_output=True,
                            text=True, timeout=30)
@@ -465,13 +495,13 @@ sys.exit(89)
         self.assertEqual(self.stage_log.read_text(), '')
         self.assertEqual(self.forbidden_calls.read_text(), '')
 
-    def run_terminal_manager(self, answers, *args):
+    def run_terminal_manager(self, answers, *args, env=None, entry='panda-setup.fish'):
         if not self._terminal_cleanup_safe:
             raise CleanupError(f'earlier terminal cleanup unproved; retained {self.root}')
         self._terminal_cleanup_safe = False
         try:
-            result = run_terminal(['fish', str(self.repo / 'bootstrap/panda-setup.fish'), *args],
-                                  answers, cwd=self.repo, env=self.env, timeout=20, cleanup_timeout=5)
+            result = run_terminal(['fish', str(self.repo / 'bootstrap' / entry), *args],
+                                  answers, cwd=self.repo, env=(env or self.env), timeout=20, cleanup_timeout=5)
         except BaseException as error:
             self._terminal_cleanup_safe = getattr(error, 'cleanup_complete', False)
             raise
@@ -508,8 +538,8 @@ sys.exit(89)
                 '--stores', 'steam,gog,epic,other', '--gpu', 'intel', '--enable-flathub']
         files = (self.installed, self.events, self.flat_state, self.stage_log)
         before = [path.read_bytes() for path in files]
-        for mode in ('--dry-run', '--check'):
-            result = self.run_manager(*args, mode)
+        for mode in ((), ('--dry-run',), ('--check',)):
+            result = self.run_manager(*args, *mode)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual([path.read_bytes() for path in files], before)
             self.assert_no_apply()
@@ -524,6 +554,205 @@ sys.exit(89)
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
             self.assertIn('no selected modules were applied', result.stdout + result.stderr)
             self.assert_no_apply()
+
+    def test_legacy_lists_stages_and_forwards_only_explicit_read_only_modes(self):
+        entry = 'setup-workstation.fish'
+        listing = self.run_manager('--list', entry=entry)
+        self.assertEqual(listing.returncode, 0, listing.stderr)
+        self.assertIn('Machine profile', listing.stdout)
+        self.assertIn('Plugins', listing.stdout)
+        for mode, summary in (('--dry-run', 'DRY RUN COMPLETE'),
+                              ('--check', 'READINESS CHECK PASSED')):
+            result = self.run_manager(mode, '--modules', 'virtualization', entry=entry)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn(summary, result.stdout)
+        self.installed.write_text('fish\nqemu-base\nlibvirt\nvirt-manager\nvirt-install\nedk2-ovmf\n')
+        verified = self.run_manager('--verify', '--modules', 'virtualization', entry=entry)
+        self.assertEqual(verified.returncode, 0, verified.stdout + verified.stderr)
+        self.assertIn('virtualization / packages: Already satisfied', verified.stdout)
+        for args in ((), ('--apply', '--yes'), ('--check', '--app', '--yes')):
+            result = self.run_manager(*args, entry=entry)
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertIn('panda-setup.fish', result.stdout)
+        self.assert_no_apply()
+
+    def test_gaming_shortcut_refuses_module_override(self):
+        result = self.run_manager('--modules=virtualization', '--apply', '--yes',
+                                  entry='panda-gaming.fish')
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assert_no_apply()
+
+    def test_tty_yes_does_not_bypass_literal_confirmation(self):
+        result = self.run_terminal_manager('5\nno\n', '--apply', '--yes')
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('Skipped by user', result.stdout)
+        self.assert_no_apply()
+
+    def test_apply_report_separates_completed_failed_and_blocked_operations(self):
+        env = dict(self.env, MOCK_FLATPAK_FAIL='install')
+        result = self.run_manager('--modules', 'desktop,gaming,virtualization',
+                                  '--stores', 'gog', '--gpu', 'intel',
+                                  '--enable-flathub', '--apply', '--yes', env=env)
+        self.assertEqual(result.returncode, 43, result.stdout + result.stderr)
+        for line in ('gaming / packages: Completed', 'gaming / flathub: Completed',
+                     'gaming / heroic: Failed (exit 43)',
+                     'desktop / install-desktop.fish: Blocked',
+                     'virtualization: Completed', '--modules gaming --stores gog --gpu intel'):
+            self.assertIn(line, result.stdout)
+
+    def test_package_report_uses_observed_partial_transaction_state(self):
+        env = dict(self.env, MOCK_PACMAN_PARTIAL='1')
+        result = self.run_manager('--modules', 'virtualization', '--apply', '--yes', env=env)
+        self.assertEqual(result.returncode, 51, result.stdout + result.stderr)
+        self.assertIn('virtualization / packages: Failed (exit 51)', result.stdout)
+        self.assertIn('Still missing (4)', result.stdout)
+        self.assertIn('qemu-base', self.installed.read_text())
+
+    def test_final_verification_failure_is_reported_after_completed_stage(self):
+        stage = self.repo / 'bootstrap/install-desktop.fish'
+        with stage.open('a') as script:
+            script.write("sed -i '/^plasma-desktop$/d' \"$MOCK_INSTALLED\"\n")
+        result = self.run_manager('--modules', 'desktop', '--apply', '--yes')
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('desktop / install-desktop.fish: Completed', result.stdout)
+        self.assertIn('setup / final-verification: Failed (exit 1)', result.stdout)
+
+    def test_final_heroic_query_preserves_exit_code_and_diagnostic(self):
+        result = self.run_manager('--modules', 'gaming', '--gpu', 'intel', '--stores', 'gog',
+                                  '--enable-flathub', '--apply', '--yes',
+                                  env=dict(self.env, MOCK_FINAL_HEROIC_QUERY_FAIL='1'))
+        self.assertEqual(result.returncode, 57, result.stdout + result.stderr)
+        self.assertIn('error: final Heroic metadata query failed', result.stderr)
+        self.assertIn('setup / final-verification: Failed (exit 57)', result.stdout)
+
+    def test_verify_reports_every_selected_module_and_its_limits(self):
+        result = self.run_manager('--modules', 'virtualization,workspace', '--verify')
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('workspace / packages: Failed', result.stdout)
+        self.assertIn('virtualization / packages: Failed', result.stdout)
+        self.assertIn('workspace / setup-github.fish: Pending manual action', result.stdout)
+        self.assert_no_apply()
+
+    def test_workspace_keeps_existing_chezmoi_config_when_dotfiles_declined(self):
+        shutil.copy2(ROOT / 'bootstrap/setup-chezmoi.fish', self.repo / 'bootstrap')
+        (self.repo / '.chezmoiroot').write_text('home\n')
+        config = Path(self.env['XDG_CONFIG_HOME']) / 'chezmoi' / 'chezmoi.toml'
+        config.parent.mkdir(parents=True)
+        config.write_text('sourceDir = "/my/existing/source"\n')
+        self.make_exe('chezmoi', """#!/bin/sh
+case "$*" in
+  *status*) echo ' M .fixture-dotfile';;
+  *) printf 'unexpected chezmoi call\\n' >> "$MOCK_FORBIDDEN_CALLS"; exit 99;;
+esac
+""")
+        result = self.run_terminal_manager('n\n', entry='setup-chezmoi.fish')
+        self.assertEqual(result.returncode, 20, result.stdout + result.stderr)
+        self.assertIn('skipped by user', result.stdout)
+        self.assertEqual(config.read_text(), 'sourceDir = "/my/existing/source"\n')
+        self.assertFalse((Path(self.env['HOME']) / '.config' / 'chezmoi').exists())
+        self.assertEqual(self.forbidden_calls.read_text(), '')
+
+    def test_accepted_dotfiles_preserve_direct_git_identity_and_apply_other_paths(self):
+        shutil.copy2(ROOT / 'bootstrap/setup-chezmoi.fish', self.repo / 'bootstrap')
+        (self.repo / '.chezmoiroot').write_text('home\n')
+        home = Path(self.env['HOME'])
+        config = home / '.gitconfig'
+        config.write_text('[user]\n    name = Fixture\n    email = fixture@example.invalid\n')
+        original = (config.read_bytes(), config.stat().st_mtime_ns)
+        self.make_exe('chezmoi', """#!/bin/sh
+case "$*" in
+  *managed*) printf '%s\\n' "$HOME/.gitconfig" "$HOME/.fixture dotfile";;
+  *status*) echo ' A .fixture dotfile';;
+  *apply*)
+    if [ "$#" -eq 3 ]; then printf '[init]\\n' > "$HOME/.gitconfig"; fi
+    for target do
+        if [ "$target" = "$HOME/.gitconfig" ]; then exit 98; fi
+    done
+    printf 'installed\\n' > "$HOME/.fixture dotfile";;
+  *) exit 99;;
+esac
+""")
+        result = self.run_terminal_manager('yes\n', entry='setup-chezmoi.fish')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((config.read_bytes(), config.stat().st_mtime_ns), original)
+        self.assertEqual((home / '.fixture dotfile').read_text(), 'installed\n')
+        self.assertIn(f"--destination {home} diff --recursive=false -- '{home}/.fixture dotfile'",
+                      result.stdout)
+
+    def test_skipping_dotfiles_reports_skip_and_keeps_running_workspace(self):
+        env = dict(self.env, MOCK_SKIP_STAGE='setup-chezmoi.fish')
+        result = self.run_terminal_manager('APPLY\n', '--modules', 'workspace', '--apply', env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('workspace / setup-chezmoi.fish: Skipped by user', result.stdout)
+        self.assertIn('workspace / setup-development.fish: Completed', result.stdout)
+
+    def test_chezmoi_exit_20_is_a_failure_and_blocks_following_stages(self):
+        shutil.copy2(ROOT / 'bootstrap/setup-chezmoi.fish', self.repo / 'bootstrap')
+        (self.repo / '.chezmoiroot').write_text('home\n')
+        self.make_exe('chezmoi', '#!/bin/sh\necho "fixture preview failure" >&2\nexit 20\n')
+        result = self.run_terminal_manager('APPLY\n', '--modules', 'workspace', '--apply')
+        self.assertEqual(result.returncode, 20, result.stdout + result.stderr)
+        self.assertIn('workspace / setup-chezmoi.fish: Failed (exit 20)', result.stdout)
+        self.assertIn('fixture preview failure', result.stderr)
+        self.assertNotIn('setup-github.fish', self.stage_log.read_text())
+
+    def test_workspace_reports_unconfigured_git_identity_as_pending(self):
+        shutil.copy2(ROOT / 'bootstrap/setup-github.fish', self.repo / 'bootstrap')
+        self.make_exe('gh', '#!/bin/sh\necho unexpected >> "$MOCK_FORBIDDEN_CALLS"\nexit 99\n')
+        result = self.run_terminal_manager('APPLY\n', '--modules', 'workspace', '--apply')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('workspace / setup-github.fish: Pending manual action', result.stdout)
+        self.assertFalse((Path(self.env['HOME']) / '.config/git/local.inc').exists())
+        self.assertEqual(self.forbidden_calls.read_text(), '')
+
+    def test_workspace_preserves_existing_local_git_identity(self):
+        shutil.copy2(ROOT / 'bootstrap/setup-github.fish', self.repo / 'bootstrap')
+        identity = Path(self.env['HOME']) / '.config' / 'git' / 'local.inc'
+        identity.parent.mkdir(parents=True)
+        expected = '[user]\n    name = Fixture\n    email = fixture@example.invalid\n'
+        identity.write_text(expected)
+        (Path(self.env['HOME']) / '.gitconfig').write_text('[include]\n    path = ~/.config/git/local.inc\n')
+        original_mtime = identity.stat().st_mtime_ns
+        self.make_exe('gh', """#!/bin/sh
+case "$*" in
+  'auth status --hostname github.com') exit 0;;
+  *) printf 'unexpected GitHub call\\n' >> "$MOCK_FORBIDDEN_CALLS"; exit 99;;
+esac
+""")
+        for _ in range(2):
+            result = self.run_terminal_manager('APPLY\n', '--modules', 'workspace', '--apply')
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(identity.read_text(), expected)
+            self.assertEqual(identity.stat().st_mtime_ns, original_mtime)
+            self.assertIn('workspace / setup-github.fish: Already satisfied', result.stdout)
+            effective = subprocess.run(['git', 'config', '--global', '--includes', '--get', 'user.email'],
+                                       env=self.env, check=True, capture_output=True, text=True)
+            self.assertEqual(effective.stdout.strip(), 'fixture@example.invalid')
+        self.assertEqual(self.forbidden_calls.read_text(), '')
+
+    def test_git_identity_first_run_is_loaded_through_portable_include(self):
+        shutil.copy2(ROOT / 'bootstrap/setup-github.fish', self.repo / 'bootstrap')
+        home = Path(self.env['HOME'])
+        config = home / '.gitconfig'
+        config.write_text('[user]\n    name = Fixture\n[include]\n    path = ~/.config/git/local.inc\n')
+        before = config.read_bytes()
+        self.make_exe('gh', '#!/bin/sh\ntest "$*" = "auth status --hostname github.com"\n')
+        result = self.run_terminal_manager('fixture@example.invalid\n', entry='setup-github.fish')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(config.read_bytes(), before)
+        identity = home / '.config/git/local.inc'
+        self.assertEqual(identity.stat().st_mode & 0o777, 0o600)
+        effective = subprocess.run(['git', 'config', '--global', '--includes', '--get', 'user.email'],
+                                   env=self.env, check=True, capture_output=True, text=True)
+        self.assertEqual(effective.stdout.strip(), 'fixture@example.invalid')
+
+    def test_package_stage_cannot_install_outside_combined_transaction(self):
+        shutil.copy2(ROOT / 'bootstrap/install-desktop.fish', self.repo / 'bootstrap')
+        result = self.run_manager('--profile', 'plasma', entry='install-desktop.fish',
+                                  env=dict(self.env, PANDA_SETUP_PACKAGE_MODE='--verify-only'))
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('Missing package', result.stdout)
+        self.assert_no_apply()
 
     def test_virtualization_apply_is_packages_only(self):
         result = self.run_manager('--modules', 'virtualization', '--apply', '--yes')
@@ -543,7 +772,7 @@ sys.exit(89)
         self.assert_no_apply()
         (self.repo / 'bootstrap/setup-development.fish').rename(
             self.repo / 'bootstrap/custom-development.fish')
-        result = self.run_manager('--modules', 'workspace', '--apply', '--yes')
+        result = self.run_terminal_manager('APPLY\n', '--modules', 'workspace', '--apply')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.stage_log.read_text().splitlines(), [
             'install-core.fish', 'setup-chezmoi.fish', 'setup-github.fish', 'setup-development.fish'])
@@ -567,8 +796,8 @@ sys.exit(89)
         installs = [line for line in self.events.read_text().splitlines() if line.startswith('pacman-install ')]
         self.assertEqual(installs, ['pacman-install ' + ','.join(expected)])
         self.assertEqual(self.stage_log.read_text().splitlines(), [
-            'install-core.fish', 'setup-chezmoi.fish', 'setup-github.fish',
-            'setup-development.fish', 'install-desktop.fish'])
+            'install-core.fish', 'setup-development.fish', 'install-desktop.fish'])
+        self.assertIn('workspace / setup-github.fish: Pending manual action', result.stdout)
         self.assertEqual(self.forbidden_calls.read_text(), '')
 
     def configure_mock_helios(self):
@@ -653,7 +882,7 @@ exec "$@"
         self.configure_mock_helios()
         env=dict(self.env,MOCK_HELIOS_VALIDATE_FAIL_AFTER='1')
         r=self.run_manager('--modules','virtualization','--apply','--yes',env=env)
-        self.assertEqual(r.returncode,1,r.stdout+r.stderr)
+        self.assertEqual(r.returncode,65,r.stdout+r.stderr)
         self.assertIn('Post-transaction safety validation failed',r.stdout+r.stderr)
         log=self.events.read_text().splitlines()
         self.assertEqual(log.count('helios-validate'),2,log)
@@ -692,6 +921,10 @@ exec "$@"
         second=self.run_manager(*args, '--apply', '--yes')
         self.assertEqual(second.returncode, 0, second.stdout+second.stderr)
         self.assertEqual(self.events.read_text(), events)
+        self.assertIn('gaming / packages: Completed', first.stdout)
+        self.assertIn('gaming / heroic: Completed', first.stdout)
+        self.assertIn('gaming / packages: Already satisfied', second.stdout)
+        self.assertIn('gaming / heroic: Already satisfied', second.stdout)
 
     def test_pacman_signature_failure_is_not_reported_as_missing_package(self):
         env=dict(self.env, MOCK_REPO_QUERY_ERROR='gamemode')
@@ -750,6 +983,14 @@ exec "$@"
         self.assertIn('Flathub', r.stdout+r.stderr)
         self.assert_no_apply()
 
+    def test_flathub_query_failure_is_preserved_and_blocks_all_writes(self):
+        env = dict(self.env, MOCK_FLATHUB_QUERY_FAIL='1')
+        result = self.run_manager('--modules', 'gaming', '--stores', 'gog', '--gpu', 'intel',
+                                  '--enable-flathub', '--apply', '--yes', env=env)
+        self.assertEqual(result.returncode, 47, result.stdout + result.stderr)
+        self.assertIn('user remote config unreadable', result.stderr)
+        self.assert_no_apply()
+
     def test_flatpak_failure_stops_following_desktop_stage(self):
         env=dict(self.env, MOCK_FLATPAK_FAIL='install')
         r=self.run_manager('--modules','gaming,desktop','--stores','gog',
@@ -801,8 +1042,10 @@ exec "$@"
 
     def test_failed_workspace_stage_stops_desktop(self):
         env=dict(self.env, MOCK_FAIL_STAGE='setup-chezmoi.fish')
-        r=self.run_manager('--modules','workspace,desktop','--apply','--yes',env=env)
-        self.assertNotEqual(r.returncode, 0)
+        r = self.run_terminal_manager('APPLY\n', '--modules', 'workspace,desktop', '--apply', env=env)
+        self.assertEqual(r.returncode, 61, r.stdout + r.stderr)
+        self.assertIn('workspace / setup-chezmoi.fish: Failed (exit 61)', r.stdout)
+        self.assertIn('--modules workspace --check', r.stdout)
         self.assertIn('install-core.fish', self.stage_log.read_text())
         self.assertNotIn('install-desktop.fish', self.stage_log.read_text())
 

@@ -216,6 +216,15 @@ elif name == "graphify":
             env={**self.env, "PATH": "/usr/bin:/bin"}, capture_output=True, text=True)
         self.assertEqual(path_check.stdout.strip(), "1")
 
+    def test_existing_user_path_customization_is_preserved(self):
+        target = self.home / ".config/fish/conf.d/panda-user-path.fish"
+        target.parent.mkdir(parents=True)
+        target.write_text("# fixture customization\n")
+        original = (target.read_bytes(), target.stat().st_mtime_ns)
+        result = self.run_bootstrap()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual((target.read_bytes(), target.stat().st_mtime_ns), original)
+
     def test_missing_codex_stops_before_tool_installs(self):
         (self.bin / "codex").unlink()
         result = self.run_bootstrap()

@@ -7,5 +7,5 @@ source "$script_dir/lib/ui.fish"
 source "$script_dir/lib/packages.fish"
 
 ui_section '📦' 'Core package layer'
-install_manifest "$repo_root/packages/core.txt" 'Core packages'
+install_manifest "$repo_root/packages/core.txt" 'Core packages' $PANDA_SETUP_PACKAGE_MODE
 exit $status

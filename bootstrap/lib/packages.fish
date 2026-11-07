@@ -36,10 +36,10 @@ end
 
 function install_manifest --argument-names manifest label mode
     if test (count $argv) -lt 2; or test (count $argv) -gt 3
-        ui_error "Expected manifest, label and optional --dry-run"
+        ui_error "Expected manifest, label and optional --dry-run or --verify-only"
         return 2
     end
-    if test -n "$mode"; and test "$mode" != --dry-run
+    if test -n "$mode"; and not contains -- "$mode" --dry-run --verify-only
         ui_error "Unknown package mode: $mode"
         return 2
     end
@@ -107,7 +107,7 @@ function install_manifest --argument-names manifest label mode
         return 0
     end
 
-    if test (count $missing) -gt 0
+    if test "$mode" != --verify-only; and test (count $missing) -gt 0
         echo
         ui_step 'Handing package installation to pacman'
         ui_info "Pacman's native progress bars stay visible."
@@ -129,7 +129,7 @@ function install_manifest --argument-names manifest label mode
             return $inventory_status
         end
         ui_success "$label installation completed"
-    else
+    else if test (count $missing) -eq 0
         ui_success "$label is already fully installed"
     end
 
