@@ -298,11 +298,13 @@ class G11MockedApplyTests(unittest.TestCase):
         self.bin = self.root / 'bin'
         self.bin.mkdir()
         for rel in ['bootstrap/panda-setup.fish',
-                    'bootstrap/setup-workstation.fish',
+                    'bootstrap/setup-workstation.fish', 'bootstrap/setup-plugins.fish',
                     'bootstrap/panda-gaming.fish',
                     'bootstrap/lib/panda-setup.fish',
                     'bootstrap/lib/packages.fish',
-                    'bootstrap/lib/ui.fish',
+                    'bootstrap/lib/ui.fish', 'bootstrap/lib/shell-tools.fish',
+                    'bootstrap/lib/shell_tools.py', 'packages/plugins.txt',
+                    '.chezmoiroot',
                     'packages/core.txt', 'packages/desktop.txt',
                     'packages/development.txt']:
             dest = self.repo / rel
@@ -311,6 +313,10 @@ class G11MockedApplyTests(unittest.TestCase):
                 shutil.copy2(ROOT / rel, dest)
             else:
                 dest.write_text('fixture-package\n')
+        for path in ('fish', 'ghostty', 'kitty'):
+            shutil.copytree(ROOT / 'home/dot_config' / path,
+                            self.repo / 'home/dot_config' / path)
+        shutil.copy2(ROOT / 'home/dot_config/starship.toml', self.repo / 'home/dot_config')
         for manifest in MANIFESTS.glob('*.txt'):
             dest = self.repo / 'setup/manifests' / manifest.name
             dest.parent.mkdir(parents=True, exist_ok=True)
@@ -468,6 +474,10 @@ sys.exit(89)
                         XDG_STATE_HOME=str(home / 'state'))
         self.forbidden_calls = self.root / 'forbidden-calls'
         self.forbidden_calls.write_text('')
+        subprocess.run(['fish', '--no-config', '-c', 'true'], env=self.env,
+                       check=True, capture_output=True, timeout=10)
+        # CachyOS can seed its vendor config on the first Fish launch.
+        (home / 'config/fish/config.fish').unlink(missing_ok=True)
         self.env['MOCK_FORBIDDEN_CALLS'] = str(self.forbidden_calls)
         for name in ('systemctl', 'virsh', 'qemu-system-x86_64', 'java', 'javac',
                      'sdkmanager', 'android', 'android-cli', 'gradle', 'curl', 'wget'):
@@ -482,7 +492,7 @@ sys.exit(89)
         # Keep the fake apply invocation noninteractive even when the test runner
         # itself was started from a terminal. subprocess.run() otherwise inherits
         # the terminal on stdin and Fish correctly prompts for APPLY indefinitely.
-        p = subprocess.run(['fish', str(self.repo / 'bootstrap' / entry),
+        p = subprocess.run(['fish', '--no-config', str(self.repo / 'bootstrap' / entry),
                             *args], cwd=self.repo, env=(env or self.env),
                            stdin=subprocess.DEVNULL, capture_output=True,
                            text=True, timeout=30)
@@ -500,7 +510,7 @@ sys.exit(89)
             raise CleanupError(f'earlier terminal cleanup unproved; retained {self.root}')
         self._terminal_cleanup_safe = False
         try:
-            result = run_terminal(['fish', str(self.repo / 'bootstrap' / entry), *args],
+            result = run_terminal(['fish', '--no-config', str(self.repo / 'bootstrap' / entry), *args],
                                   answers, cwd=self.repo, env=(env or self.env), timeout=20, cleanup_timeout=5)
         except BaseException as error:
             self._terminal_cleanup_safe = getattr(error, 'cleanup_complete', False)
@@ -520,6 +530,13 @@ sys.exit(89)
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                 self.assertIn('Unknown module selection', result.stdout + result.stderr)
                 self.assert_no_apply()
+
+    def test_shell_tools_can_be_selected_from_the_terminal_menu(self):
+        result = self.run_terminal_manager('1\ny\n', '--dry-run')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('Include optional Workspace shell tools?', result.stdout)
+        self.assertIn('Optional Workspace shell manifest:', result.stdout)
+        self.assert_no_apply()
 
     def test_terminal_apply_still_requires_literal_uppercase_confirmation(self):
         for confirmation in ('apply', 'no', ''):
@@ -745,6 +762,383 @@ esac
         effective = subprocess.run(['git', 'config', '--global', '--includes', '--get', 'user.email'],
                                    env=self.env, check=True, capture_output=True, text=True)
         self.assertEqual(effective.stdout.strip(), 'fixture@example.invalid')
+
+    def shell_snapshot(self):
+        return {str(path.relative_to(self.root)): (path.read_bytes(), path.stat().st_mtime_ns)
+                for path in Path(self.env['HOME']).rglob('*') if path.is_file()}
+
+    def test_shell_fish_helper_layouts(self):
+        cases = (
+            ('standard', False, False, True, 'legacy'),
+            ('custom-xdg', True, True, False, 'xdg'),
+            ('custom-xdg-with-legacy-helper', True, False, True, 'legacy'),
+            ('both-helpers', True, True, True, 'xdg'),
+            ('neither-helper', True, False, False, None),
+        )
+        source = ROOT / 'home/dot_config/fish'
+        for name, custom_xdg, xdg_helper, legacy_helper, expected in cases:
+            with self.subTest(layout=name):
+                home = Path(self.env['HOME']) / name
+                config = home / ('xdg-config' if custom_xdg else '.config')
+                active = config / 'fish'
+                legacy = home / '.config/fish'
+                active.mkdir(parents=True)
+                user_bin = home / 'user-bin'
+                user_bin.mkdir()
+                env = dict(self.env, HOME=str(home), XDG_CONFIG_HOME=str(config),
+                           XDG_DATA_HOME=str(home / 'data'), XDG_CACHE_HOME=str(home / 'cache'),
+                           XDG_STATE_HOME=str(home / 'state'),
+                           PATH=os.pathsep.join((str(user_bin), str(self.bin), os.defpath)))
+                subprocess.run(['fish', '--no-config', '-c', 'true'], env=env,
+                               check=True, capture_output=True, timeout=10)
+                shutil.copy2(source / 'config.fish', active)
+                for enabled, target, label in ((xdg_helper, active, 'xdg'),
+                                                (legacy_helper, legacy, 'legacy')):
+                    if enabled:
+                        target.mkdir(parents=True, exist_ok=True)
+                        (target / 'panda.fish').write_text(
+                            (source / 'panda.fish').read_text() + f'\necho {label}\n')
+                before = self.shell_snapshot()
+                paths_before = sorted(home.rglob('*'))
+                result = subprocess.run(
+                    ['fish', '--no-config', '-c',
+                     'set -l original_path (string join : -- $PATH); '
+                     'source "$__fish_config_dir/config.fish"; or exit $status; '
+                     'test "$original_path" = (string join : -- $PATH); or exit 9; '
+                     'if abbr --query workstation; echo workstation; end'],
+                    env=env, capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stderr, '')
+                self.assertEqual(self.shell_snapshot(), before)
+                self.assertEqual(sorted(home.rglob('*')), paths_before)
+                self.assertEqual(self.forbidden_calls.read_text(), '')
+                self.assertEqual(result.stdout.splitlines(), [expected, 'workstation'] if expected else [])
+
+    def setup_shell_tools(self):
+        shutil.copytree(ROOT / 'theme/panda', self.repo / 'theme/panda')
+        self.shell_log = self.root / 'shell-log'
+        self.shell_log.touch()
+        self.make_exe('chezmoi', f"""#!/usr/bin/env python3
+from pathlib import Path
+import sys
+args = sys.argv[1:]
+assert args[:2] == ['--source', {str(self.repo)!r}]
+assert args[2:4] == ['--destination', {self.env['HOME']!r}]
+assert args[4:11] == ['--config', '/dev/null', '--config-format', 'toml',
+                       '--refresh-externals=never', '--no-tty', 'cat']
+assert args[11] == '--' and len(args) == 13
+target = Path(args[12]).relative_to(Path(args[3]) / '.config')
+with open({str(self.shell_log)!r}, 'a') as log:
+    print('chezmoi cat', target, file=log)
+sys.stdout.buffer.write((Path(args[1]) / 'home/dot_config' / target).read_bytes())
+""")
+        self.make_exe('starship', "#!/bin/sh\ncase $1 in print-config) echo 'format = \"$character\"';; init) echo 'function enable_transience; true; end; function fish_prompt; starship prompt; end';; esac\n")
+        self.make_exe('kitty', '#!/bin/sh\nif [ "$1" = --version ]; then echo "kitty fixture"; fi\n')
+        for name in ('fzf', 'fd', 'bat'):
+            self.make_exe(name, '#!/bin/sh\nexit 0\n')
+        self.make_exe('fc-match', '#!/bin/sh\nprintf "JetBrainsMono Nerd Font Mono"\n')
+        self.fake_ghostty()
+
+    def fake_ghostty(self, fail=False):
+        parser = ("echo 'native parser diagnostic' >&2; exit 63" if fail
+                  else f"printf '%s\\n' \"$2\" >> {self.shell_log}")
+        self.make_exe('ghostty', f"""#!/bin/sh
+case "$1" in
+    +version) echo 'Ghostty fixture';;
+    +help) echo '+validate-config';;
+    +validate-config) {parser};;
+    *) exit 99;;
+esac
+""")
+
+    def set_fake_fisher_download(self):
+        import hashlib
+        source = b'function fisher\n    set --local fisher_version 4.4.8\nend\n'
+        helper = self.repo / 'bootstrap/lib/shell_tools.py'
+        helper.write_text(re.sub(r'FISHER_SHA256 = "[a-f0-9]+"',
+                                 f'FISHER_SHA256 = "{hashlib.sha256(source).hexdigest()}"',
+                                 helper.read_text()))
+        self.make_exe('curl', f"""#!/usr/bin/env python3
+from pathlib import Path
+import sys
+assert sys.argv[-1].endswith('/a04308be92daa6cfecdbb0ca58b1e8508664cff2/functions/fisher.fish')
+Path(sys.argv[sys.argv.index('--output') + 1]).write_bytes({source!r})
+with open({str(self.shell_log)!r}, 'a') as log:
+    print('curl fisher', file=log)
+""")
+
+    @unittest.skipUnless(shutil.which('chezmoi'), 'Requires native chezmoi')
+    def test_shell_renders_exact_targets_with_native_chezmoi(self):
+        self.setup_shell_tools()
+        executable = self.bin / 'chezmoi'
+        executable.unlink()
+        executable.symlink_to(shutil.which('chezmoi'))
+        env = dict(self.env, fisher_path='/fixture/keep-manual')
+        result = self.run_manager('--modules', 'workspace', '--with-shell-tools', '--apply', '--yes', env=env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        config = Path(self.env['XDG_CONFIG_HOME'])
+        for relative in ('fish/config.fish', 'fish/panda.fish', 'fish/fish_plugins',
+                         'fish/conf.d/panda-user-path.fish', 'ghostty/config.ghostty',
+                         'kitty/kitty.conf', 'starship.toml'):
+            self.assertEqual((config / relative).read_bytes(),
+                             (ROOT / 'home/dot_config' / relative).read_bytes())
+        self.assertFalse((Path(self.env['HOME']) / '.config').exists())
+        self.assertEqual(self.forbidden_calls.read_text(), '')
+
+    def test_shell_first_apply_and_repeat(self):
+        self.setup_shell_tools()
+        self.set_fake_fisher_download()
+        args = ('--modules', 'workspace', '--with-shell-tools')
+        before = self.shell_snapshot()
+        check = self.run_manager(*args, '--check')
+        self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+        self.assertEqual(self.shell_snapshot(), before)
+        self.assert_no_apply()
+
+        apply = self.run_manager(*args, '--apply', '--yes')
+        self.assertEqual(apply.returncode, 0, apply.stdout + apply.stderr)
+        self.assertIn('shell-configuration: Completed created 7', apply.stdout)
+        self.assertIn('shell-fisher: Completed', apply.stdout)
+        self.assertIn('shell-fzf-fish: Pending manual action', apply.stdout)
+        self.assertIn('shell-fish-startup: Already satisfied', apply.stdout)
+        self.assertEqual(self.shell_log.read_text().count('--config-file='), 6)
+        self.assertEqual(self.shell_log.read_text().count('chezmoi cat'), 7)
+        self.assertEqual(self.shell_log.read_text().count('curl fisher'), 1)
+
+        configured = self.shell_snapshot()
+        retry = self.run_manager(*args, '--apply', '--yes')
+        self.assertEqual(retry.returncode, 0, retry.stdout + retry.stderr)
+        self.assertIn('shell-configuration: Already satisfied', retry.stdout)
+        self.assertIn('shell-fisher: Already satisfied', retry.stdout)
+        self.assertEqual(self.events.read_text().count('pacman-install'), 1)
+        self.assertEqual(self.shell_log.read_text().count('chezmoi cat'), 7)
+        self.assertEqual(self.shell_log.read_text().count('curl fisher'), 1)
+        self.assertEqual(self.shell_snapshot(), configured)
+
+    def test_shell_preserves_custom_configuration_and_unrelated_plugins(self):
+        self.setup_shell_tools()
+        home = Path(self.env['HOME'])
+        config = Path(self.env['XDG_CONFIG_HOME'])
+        user_files = {
+            home / '.gitconfig': '[user]\n    name = Fixture\n',
+            config / 'chezmoi/chezmoi.toml': 'sourceDir = "/existing/source"\n',
+            config / 'fish/config.fish': 'fish_add_path /my/bin\n',
+            config / 'fish/conf.d/panda-user-path.fish': 'fish_add_path /custom/bin\n',
+            config / 'ghostty/config': 'font-size = 19\n',
+            config / 'kitty/kitty.conf': 'font_size 19\n',
+            config / 'starship.toml': 'format = "$directory"\n',
+            config / 'fish/fish_plugins': ('jorgebucaran/fisher@4.4.8\n'
+                                           'PatrickF1/fzf.fish@v11.0\nother/plugin\n'),
+            config / 'fish/functions/fisher.fish': ('function fisher\n'
+                                                   '    set --local fisher_version 4.4.8\n'
+                                                   '    echo must not be executed\nend\n'),
+            config / 'fish/fish_variables': ('# VERSION: 3.0\nSETUVAR _fisher_plugins:'
+                                            r'jorgebucaran/fisher\x404\x2e4\x2e8\x1epatrickf1/fzf\x2efish\x40v11\x2e0'
+                                            r'\x1eother/plugin' '\n'),
+        }
+        for name in (
+            "completions/fzf_configure_bindings.fish",
+            "conf.d/fzf.fish",
+            "functions/_fzf_configure_bindings_help.fish",
+            "functions/_fzf_extract_var_info.fish",
+            "functions/_fzf_preview_changed_file.fish",
+            "functions/_fzf_preview_file.fish",
+            "functions/_fzf_report_diff_type.fish",
+            "functions/_fzf_report_file_type.fish",
+            "functions/_fzf_search_directory.fish",
+            "functions/_fzf_search_git_log.fish",
+            "functions/_fzf_search_git_status.fish",
+            "functions/_fzf_search_history.fish",
+            "functions/_fzf_search_processes.fish",
+            "functions/_fzf_search_variables.fish",
+            "functions/_fzf_wrapper.fish",
+            "functions/fzf_configure_bindings.fish",
+        ):
+            user_files[config / 'fish' / name] = '# fixture plugin file\n'
+        for path, contents in user_files.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(contents)
+        before = self.shell_snapshot()
+        result = self.run_manager('--modules', 'workspace', '--with-shell-tools', '--apply', '--yes')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('shell-configuration: Pending manual action', result.stdout)
+        self.assertIn('shell-fisher: Already satisfied', result.stdout)
+        self.assertIn('shell-fzf-fish: Already satisfied', result.stdout)
+        self.assertIn('shell-ghostty: Pending manual action', result.stdout)
+        self.assertNotIn('must not be executed', result.stderr)
+        self.assertEqual(self.shell_snapshot(), before)
+        self.assertEqual(self.forbidden_calls.read_text(), '')
+        self.assertNotIn('chezmoi cat', self.shell_log.read_text())
+
+    def test_shell_download_failure_preserves_code_and_recovers(self):
+        self.setup_shell_tools()
+        self.make_exe('curl', "#!/bin/sh\necho 'fixture network error' >&2\nexit 28\n")
+        args = ('--modules', 'workspace', '--with-shell-tools')
+        result = self.run_manager(*args, '--apply', '--yes')
+        self.assertEqual(result.returncode, 28, result.stdout + result.stderr)
+        self.assertIn('fixture network error', result.stderr)
+        self.assertIn('shell-configuration: Completed', result.stdout)
+        self.assertIn('shell-fisher: Failed (exit 28)', result.stdout)
+        self.assertIn('shell-fzf-fish: Blocked', result.stdout)
+        self.assertIn('shell-ghostty: Blocked', result.stdout)
+        self.assertIn('--modules workspace --with-shell-tools --check', result.stdout)
+        self.set_fake_fisher_download()
+        retry = self.run_manager(*args, '--apply', '--yes')
+        self.assertEqual(retry.returncode, 0, retry.stdout + retry.stderr)
+        self.assertIn('shell-configuration: Already satisfied', retry.stdout)
+        self.assertIn('shell-fisher: Completed', retry.stdout)
+        self.assertEqual(self.events.read_text().count('pacman-install'), 1)
+        self.assertEqual(self.shell_log.read_text().count('chezmoi cat'), 7)
+
+    def test_shell_apply_refuses_unreviewed_scope_expansion(self):
+        self.setup_shell_tools()
+        config = Path(self.env['XDG_CONFIG_HOME'])
+        existing = config / 'starship.toml'
+        existing.write_text('format = "$directory"\n')
+        # Simulate an external change while the confirmed Workspace steps run.
+        stage = self.repo / 'bootstrap/setup-development.fish'
+        stage.write_text('rm -- "$XDG_CONFIG_HOME/starship.toml"\n')
+        result = self.run_manager('--modules', 'workspace', '--with-shell-tools', '--apply', '--yes')
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('shell create plan changed after preview', result.stderr)
+        self.assertIn('shell-configuration: Failed', result.stdout)
+        self.assertIn('shell-fisher: Blocked', result.stdout)
+        self.assertFalse(existing.exists())
+        self.assertFalse((config / 'ghostty/config.ghostty').exists())
+        self.assertNotIn('chezmoi cat', self.shell_log.read_text())
+
+    def test_shell_fisher_integrity_failure_never_publishes_download(self):
+        self.setup_shell_tools()
+        self.make_exe('curl', '#!/bin/sh\nwhile [ "$1" != --output ]; do shift; done\necho unexpected > "$2"\n')
+        result = self.run_manager('--modules', 'workspace', '--with-shell-tools', '--apply', '--yes')
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn('Fisher download failed SHA-256 verification', result.stderr)
+        self.assertFalse((Path(self.env['XDG_CONFIG_HOME']) / 'fish/functions/fisher.fish').exists())
+        self.assertIn('shell-fzf-fish: Blocked', result.stdout)
+
+    def test_shell_partial_plugin_is_pending(self):
+        self.setup_shell_tools()
+        fish = Path(self.env['XDG_CONFIG_HOME']) / 'fish'
+        (fish / 'conf.d').mkdir(parents=True, exist_ok=True)
+        (fish / 'conf.d/fzf.fish').write_text('# partial plugin\n')
+        result = self.run_manager('--modules', 'workspace', '--with-shell-tools', '--apply', '--yes')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('shell-fzf-fish: Pending manual action partial registration or files', result.stdout)
+        self.assertEqual(self.forbidden_calls.read_text(), '')
+
+    def test_shell_verify_is_offline_and_retains_parser_diagnostics(self):
+        self.setup_shell_tools()
+        self.fake_ghostty(fail=True)
+        self.make_exe('fc-match', '#!/bin/sh\nprintf "Fallback font"\n')
+        self.installed.write_text('\n'.join(
+            line for manifest in ('core', 'development', 'plugins')
+            for line in (self.repo / f'packages/{manifest}.txt').read_text().splitlines()
+            if line and not line.startswith('#')) + '\n')
+        before = self.shell_snapshot()
+        result = self.run_manager('--modules', 'workspace', '--with-shell-tools', '--verify')
+        self.assertEqual(result.returncode, 63, result.stdout + result.stderr)
+        self.assertIn('native parser diagnostic', result.stderr)
+        self.assertIn('shell-ghostty: Failed (exit 63)', result.stdout)
+        self.assertIn('shell-font: Failed', result.stdout)
+        self.assertIn('shell-fisher: Pending manual action', result.stdout)
+        self.assertIn('shell-starship: Pending manual action baseline TOML', result.stdout)
+        self.assertEqual(self.shell_snapshot(), before)
+        self.assert_no_apply()
+        self.assertNotIn('chezmoi', self.shell_log.read_text())
+
+    def test_shell_option_terminal_confirmation_and_legacy_preview(self):
+        args = ('--modules', 'workspace', '--with-shell-tools')
+        before = self.shell_snapshot()
+        no_yes = self.run_manager(*args, '--apply')
+        self.assertEqual(no_yes.returncode, 1, no_yes.stdout + no_yes.stderr)
+        decline = self.run_terminal_manager('no\n', *args, '--apply', '--yes')
+        self.assertEqual(decline.returncode, 1, decline.stdout + decline.stderr)
+        self.assertIn('shell-configuration: Skipped by user', decline.stdout)
+        shortcut = self.run_manager(entry='setup-plugins.fish')
+        self.assertEqual(shortcut.returncode, 0, shortcut.stdout + shortcut.stderr)
+        self.assertIn('packages/plugins.txt', shortcut.stdout)
+        self.assertEqual(self.shell_snapshot(), before)
+        self.assert_no_apply()
+
+    def test_workspace_default_keeps_original_package_selection(self):
+        result = self.run_manager('--modules', 'workspace', '--apply', '--yes')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn('plugins.txt', result.stdout)
+        self.assertNotIn('ghostty', self.events.read_text())
+
+    def test_shell_option_excludes_shell_paths_from_regular_dotfile_stage(self):
+        shutil.copy2(ROOT / 'bootstrap/setup-chezmoi.fish', self.repo / 'bootstrap')
+        self.make_exe('chezmoi', """#!/bin/sh
+case "$*" in
+    *managed*)
+        printf '%s\n' "$HOME/.gitconfig" "$HOME/.config/fish" \
+            "$HOME/.config/fish/config.fish" "$HOME/.config/ghostty/config.ghostty" \
+            "$HOME/.config/kitty/kitty.conf" "$HOME/.config/starship.toml" "$HOME/.fixture";;
+    *status*|*apply*)
+        case "$*" in *' --recursive=false -- '*) ;; *) exit 95;; esac
+        for arg do
+            case "$arg" in "$HOME/.config/"*|"$HOME/.gitconfig") exit 96;; esac
+        done
+        case "$*" in
+            *status*) echo ' A .fixture';;
+            *apply*) echo installed > "$HOME/.fixture";;
+        esac;;
+    *) exit 97;;
+esac
+""")
+        gitconfig = Path(self.env['HOME']) / '.gitconfig'
+        gitconfig.write_text('[user]\n    name = Fixture\n')
+        before = self.shell_snapshot()
+        env = dict(self.env, PANDA_SETUP_SHELL_TOOLS='1')
+        decline = self.run_terminal_manager('n\n', entry='setup-chezmoi.fish', env=env)
+        self.assertEqual(decline.returncode, 20, decline.stdout + decline.stderr)
+        self.assertEqual(self.shell_snapshot(), before)
+        accept = self.run_terminal_manager('yes\n', entry='setup-chezmoi.fish', env=env)
+        self.assertEqual(accept.returncode, 0, accept.stdout + accept.stderr)
+        self.assertEqual((Path(self.env['HOME']) / '.fixture').read_text(), 'installed\n')
+        self.assertEqual(gitconfig.read_text(), '[user]\n    name = Fixture\n')
+
+    def test_shell_option_requires_workspace(self):
+        result = self.run_manager('--modules', 'desktop', '--with-shell-tools', '--apply', '--yes')
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn('--with-shell-tools requires Workspace', result.stdout + result.stderr)
+        self.assert_no_apply()
+
+    def test_shell_option_previews_manifest_and_exact_paths_without_writes(self):
+        before = self.shell_snapshot()
+        result = self.run_manager('--modules', 'workspace', '--with-shell-tools')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('packages/plugins.txt', result.stdout)
+        self.assertIn(str(Path(self.env['XDG_CONFIG_HOME']) / 'ghostty/config.ghostty'), result.stderr)
+        self.assertIn('diff -u', result.stderr)
+        self.assertEqual(self.shell_snapshot(), before)
+        self.assert_no_apply()
+
+    def test_shell_packages_are_combined_and_partial_failure_keeps_exit(self):
+        before = self.shell_snapshot()
+        result = self.run_manager('--modules', 'workspace,virtualization', '--with-shell-tools',
+                                  '--apply', '--yes', env=dict(self.env, MOCK_PACMAN_PARTIAL='1'))
+        self.assertEqual(result.returncode, 51, result.stdout + result.stderr)
+        installs = [line for line in self.events.read_text().splitlines()
+                    if line.startswith('pacman-install ')]
+        self.assertEqual(len(installs), 1)
+        packages = installs[0].removeprefix('pacman-install ').split(',')
+        self.assertEqual(packages[-4:], ['starship', 'ghostty', 'kitty', 'ttf-jetbrains-mono-nerd'])
+        self.assertEqual(len(packages), len(set(packages)))
+        self.assertIn('workspace / shell-packages: Failed', result.stdout)
+        self.assertIn('workspace / shell-configuration: Blocked', result.stdout)
+        self.assertIn('--modules workspace,virtualization --with-shell-tools --check', result.stdout)
+        self.assertEqual(self.shell_snapshot(), before)
+
+    def test_shell_configuration_blocks_symlink_before_install(self):
+        config = Path(self.env['XDG_CONFIG_HOME'])
+        config.mkdir(exist_ok=True)
+        (config / 'kitty').symlink_to(self.root / 'missing')
+        result = self.run_manager('--modules', 'workspace', '--with-shell-tools', '--apply', '--yes')
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('kitty', result.stderr)
+        self.assertIn('workspace / shell-configuration: Blocked', result.stdout)
+        self.assert_no_apply()
 
     def test_package_stage_cannot_install_outside_combined_transaction(self):
         shutil.copy2(ROOT / 'bootstrap/install-desktop.fish', self.repo / 'bootstrap')
