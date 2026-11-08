@@ -88,7 +88,7 @@ ui_info "To inspect the full diff separately: $diff_command"
 
 set -l answer
 if isatty stdin
-    fish_default_key_bindings
+    ui_prepare_terminal_read; or exit $status
 end
 if not isatty stdin; or not read -P '  Apply these dotfile changes now? [y/N] ' answer; or not contains -- "$answer" y Y yes YES
     ui_skip 'Dotfile application skipped by user'

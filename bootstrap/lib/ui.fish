@@ -2,6 +2,12 @@
 
 # 🐼 Panda Workstation — shared terminal UI helpers.
 
+function ui_prepare_terminal_read
+    # Fish 4.2 under --no-config can set the binding name on the first call
+    # and return early. Retry to install the presets using that name.
+    fish_default_key_bindings; or fish_default_key_bindings
+end
+
 function ui_line
     set_color brblack
     printf '%s\n' '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'

@@ -531,6 +531,13 @@ sys.exit(89)
                 self.assertIn('Unknown module selection', result.stdout + result.stderr)
                 self.assert_no_apply()
 
+    def test_shell_tools_can_be_selected_from_the_terminal_menu(self):
+        result = self.run_terminal_manager('1\ny\n', '--dry-run')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn('Include optional Workspace shell tools?', result.stdout)
+        self.assertIn('Optional Workspace shell manifest:', result.stdout)
+        self.assert_no_apply()
+
     def test_terminal_apply_still_requires_literal_uppercase_confirmation(self):
         for confirmation in ('apply', 'no', ''):
             with self.subTest(confirmation=confirmation):
@@ -1012,6 +1019,7 @@ with open({str(self.shell_log)!r}, 'a') as log:
     def test_shell_partial_plugin_is_pending(self):
         self.setup_shell_tools()
         fish = Path(self.env['XDG_CONFIG_HOME']) / 'fish'
+        (fish / 'conf.d').mkdir(parents=True, exist_ok=True)
         (fish / 'conf.d/fzf.fish').write_text('# partial plugin\n')
         result = self.run_manager('--modules', 'workspace', '--with-shell-tools', '--apply', '--yes')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

@@ -45,7 +45,7 @@ else
         exit 1
     end
     if test -z "$git_name"; or test -z "$git_email"
-        fish_default_key_bindings
+        ui_prepare_terminal_read; or exit $status
     end
     if test -z "$git_name"
         read -P '  Git commit name: ' git_name; or exit $status

@@ -99,7 +99,7 @@ else
         exit 2
     end
     set module_menu 1
-    fish_default_key_bindings
+    ui_prepare_terminal_read; or exit $status
     ui_banner
     echo 'Select modules (comma-separated numbers):'
     set -l available_modules (panda_setup_module_ids)
@@ -159,7 +159,7 @@ if set -q _flag_with_shell_tools
 else if contains -- workspace $modules; and begin
         test $module_menu -eq 1; or set -q _flag_interactive
     end
-    fish_default_key_bindings
+    ui_prepare_terminal_read; or exit $status
     read -l -P 'Include optional Workspace shell tools? [y/N] ' answer
     if contains -- "$answer" y Y yes YES
         set shell_tools 1
@@ -174,7 +174,7 @@ if set -q _flag_stores
     set stores (panda_setup_csv "$_flag_stores")
 else if contains gaming $modules
     if set -q _flag_interactive
-        fish_default_key_bindings
+        ui_prepare_terminal_read; or exit $status
         read -l -P 'Gaming stores [steam,gog,epic,other]: ' answer
         if test -z "$answer"
             set answer steam,gog,epic,other
@@ -498,8 +498,7 @@ end
 
 # Terminal apply always asks, even if --yes was supplied.
 if isatty stdin
-    # Fish can omit the reader's Enter binding when launched with --no-config.
-    fish_default_key_bindings
+    ui_prepare_terminal_read; or exit $status
     read -l -P 'Type APPLY to execute this plan: ' confirmation
     if test "$confirmation" != APPLY
         ui_warn 'Cancelled. No changes applied.'
