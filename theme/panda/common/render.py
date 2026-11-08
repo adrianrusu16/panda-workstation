@@ -8,7 +8,7 @@ from string import Template
 import tomllib
 
 from fixture_fs import FILENAMES, FixtureError, FixtureFS, new_image
-from palette import Theme, ROLES, HEX, contrast_checks, load_family
+from palette import Theme, ROLES, HEX, contrast_checks, load_family, terminal_heading_roles
 
 COMPONENTS = tuple(FILENAMES)
 TEMPLATES = Path(__file__).parent / "templates"
@@ -22,6 +22,13 @@ def ansi_roles():
     return roles
 
 
+def render_fish(theme: Theme, *, trial: bool = False) -> str:
+    colors = theme.palette
+    role = terminal_heading_roles(theme)[0] if trial else "accent_text"
+    return Template((TEMPLATES / "fish/theme.tmpl").read_text()).substitute(
+        colors, command_color=colors[role], command_weight=" --bold" if trial else "")
+
+
 def render_bytes(component: str, theme: Theme) -> bytes:
     if component not in COMPONENTS:
         raise ValueError("unsupported Phase 3A component")
@@ -30,11 +37,12 @@ def render_bytes(component: str, theme: Theme) -> bytes:
             any(check.required and not check.passes for check in contrast_checks(theme))):
         raise ValueError("invalid canonical opaque palette")
     colors = theme.palette
-    if component in ("ghostty", "kitty", "fish"):
+    if component == "fish":
+        content = render_fish(theme)
+    elif component in ("ghostty", "kitty"):
         content = Template((TEMPLATES / component / "theme.tmpl").read_text()).substitute(colors)
-        if component in ("ghostty", "kitty"):
-            content += "".join((f"palette = {index}={colors[role]}\n" if component == "ghostty" else
-                                f"color{index} {colors[role]}\n") for index, role in ansi_roles().items())
+        content += "".join((f"palette = {index}={colors[role]}\n" if component == "ghostty" else
+                            f"color{index} {colors[role]}\n") for index, role in ansi_roles().items())
     elif component == "konsole":
         parser = configparser.ConfigParser()
         parser.optionxform = str
@@ -60,6 +68,19 @@ def render_bytes(component: str, theme: Theme) -> bytes:
         content = json.dumps({"display": {"color": {"keys": colors["accent_text"],
                                                      "title": colors["text"]}}}, indent=2) + "\n"
     return content.encode("utf-8")
+
+
+def render_ghostty_profile(theme: Theme) -> bytes:
+    """Compose the portable Ghostty preferences and the canonical opaque palette."""
+    base = Path(__file__).resolve().parents[3] / "home/dot_config/ghostty/config.ghostty"
+    fragment = render_bytes("ghostty", theme).decode()
+    color_keys = {line.partition("=")[0].strip() for line in fragment.splitlines()
+                  if "=" in line and not line.startswith("#")}
+    replaced_keys = color_keys | {"config-file", "theme"}
+    preferences = "\n".join(line for line in base.read_text().splitlines()
+                            if line.partition("=")[0].strip() not in replaced_keys)
+    titlebar = Template((TEMPLATES / "ghostty/trial-titlebar.tmpl").read_text()).substitute(theme.palette)
+    return (preferences.rstrip() + "\n\n" + fragment + "\n" + titlebar).encode()
 
 
 def validate_rendered(component, content, theme):

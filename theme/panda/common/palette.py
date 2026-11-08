@@ -106,6 +106,17 @@ def load_family(root: Path) -> dict[str, Theme]:
     return {slug: load_theme(root / slug / "theme.toml") for slug in IDENTITIES}
 
 
+def terminal_heading_roles(theme: Theme) -> tuple[str, str]:
+    """Prominent and section heading roles for Panda-owned terminal text."""
+    return {
+        "minimal": ("secondary", "primary"),
+        "cyber": ("accent_text", "secondary"),
+        "gothic": ("accent_text", "focus"),
+        "hybrid": ("accent_text", "secondary"),
+        "pandawave": ("accent_text", "focus"),
+    }[theme.slug]
+
+
 def luminance(color: str) -> float:
     if not isinstance(color, str) or HEX.fullmatch(color) is None:
         raise PaletteError("contrast input must be opaque sRGB #RRGGBB")
