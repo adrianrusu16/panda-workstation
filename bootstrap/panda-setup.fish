@@ -12,14 +12,14 @@ function panda_setup_usage
     echo 'Usage:'
     echo '  fish bootstrap/panda-setup.fish [--interactive] [--modules '(string join ',' -- (panda_setup_module_ids))']'
     echo '                                 [--stores steam,gog,epic,other] [--gpu auto|intel|amd]'
-    echo '                                 [--enable-flathub] [--dry-run | --check | --verify | --apply [--yes]]'
+    echo '                                 [--enable-flathub] [--with-shell-tools] [--dry-run | --check | --verify | --apply [--yes]]'
     echo '  fish bootstrap/panda-gaming.fish [--stores steam,gog,epic,other] [--gpu auto|intel|amd] [--dry-run | --check | --verify | --apply]'
     echo 'Without --apply, all selections are READ-ONLY preview operations.'
     echo 'In a terminal type APPLY; without a terminal use --apply --yes.'
     echo '--check validates readiness; --verify checks installed components. Neither writes.'
 end
 
-argparse 'help' 'interactive' 'modules=' 'only=' 'stores=' 'gpu=' 'dry-run' 'check' 'verify' 'apply' 'yes' 'enable-flathub' -- $argv
+argparse 'help' 'interactive' 'modules=' 'only=' 'stores=' 'gpu=' 'dry-run' 'check' 'verify' 'apply' 'yes' 'enable-flathub' 'with-shell-tools' -- $argv
 or exit 2
 if test "$PANDA_SETUP_READ_ONLY" = 1; and set -q _flag_apply
     ui_error 'Use fish bootstrap/panda-setup.fish directly to apply a module plan.'
@@ -59,6 +59,8 @@ if set -q _flag_yes; and not set -q _flag_apply
 end
 
 set -l modules
+set -l shell_tools 0
+set -l module_menu 0
 set -l stores
 set -l gpu auto
 set -l apply 0
@@ -96,6 +98,8 @@ else
         ui_error 'No modules supplied on non-interactive input; use --modules'
         exit 2
     end
+    set module_menu 1
+    fish_default_key_bindings
     ui_banner
     echo 'Select modules (comma-separated numbers):'
     set -l available_modules (panda_setup_module_ids)
@@ -146,10 +150,31 @@ if test "$PANDA_SETUP_GAMING_ONLY" = 1; and test (string join ',' -- $modules) !
     exit 2
 end
 
+if set -q _flag_with_shell_tools
+    if not contains -- workspace $modules
+        ui_error '--with-shell-tools requires Workspace'
+        exit 2
+    end
+    set shell_tools 1
+else if contains -- workspace $modules; and begin
+        test $module_menu -eq 1; or set -q _flag_interactive
+    end
+    fish_default_key_bindings
+    read -l -P 'Include optional Workspace shell tools? [y/N] ' answer
+    if contains -- "$answer" y Y yes YES
+        set shell_tools 1
+    end
+end
+if test $shell_tools -eq 1
+    source "$script_dir/lib/shell-tools.fish"
+    or exit $status
+end
+
 if set -q _flag_stores
     set stores (panda_setup_csv "$_flag_stores")
 else if contains gaming $modules
     if set -q _flag_interactive
+        fish_default_key_bindings
         read -l -P 'Gaming stores [steam,gog,epic,other]: ' answer
         if test -z "$answer"
             set answer steam,gog,epic,other
@@ -208,6 +233,11 @@ for module in gaming virtualization workspace desktop
             set -a transaction_manifests "$repo_root/$manifest"
         end
     end
+end
+
+set -l shell_manifest "$repo_root/packages/plugins.txt"
+if test $shell_tools -eq 1
+    set -a transaction_manifests "$shell_manifest"
 end
 
 # This list is also the source of the final report. Unreached operations stay
@@ -269,6 +299,13 @@ for module in $modules
             panda_setup_add_result gaming/first-run 'Pending manual action' 'after installing, launch selected clients, sign in, and choose runners or game downloads'
     end
 end
+if test $shell_tools -eq 1
+    panda_setup_add_result workspace/shell-packages Blocked 'transaction or verification not reached'
+    panda_shell_add_results
+    ui_info "Optional Workspace shell manifest: $shell_manifest"
+    panda_setup_show_manifest "$shell_manifest" "$inventory_known" $preview_inventory
+    or panda_setup_finish $status 'Restore the shell package manifest.'
+end
 set -l execution_order 'combined pacman transaction'
 if test $heroic -eq 1
     set -a execution_order 'user Flathub/Heroic'
@@ -277,6 +314,9 @@ for module in $modules
     for script in (panda_setup_module_get "$module" scripts)
         set -a execution_order (path basename -- "$script")
     end
+end
+if test $shell_tools -eq 1
+    set -a execution_order 'scoped shell configuration and readiness'
 end
 set -a execution_order 'installed component verification'
 if test (count $transaction_manifests) -gt 0
@@ -318,8 +358,13 @@ if test $strict -eq 1
     or panda_setup_finish $status 'Resolve the Helios safety validation before rerunning.'
 end
 
+if test $shell_tools -eq 1; and test "$mode" != verify
+    panda_shell_stage "$repo_root" plan
+    or panda_setup_finish $status 'Resolve the shell configuration preflight error.'
+end
+
 if test $apply -eq 0; and test $check -eq 0; and test $verify -eq 0
-    ui_success 'DRY RUN COMPLETE: no packages, repos, files, services, VMs, or boot settings changed.'
+    ui_success 'DRY RUN COMPLETE: the manager performed read-only checks.'
     exit 0
 end
 
@@ -370,6 +415,22 @@ if test $verify -eq 1
             end
         end
     end
+    if test $shell_tools -eq 1
+        panda_setup_package_result workspace 0 verify --operation workspace/shell-packages "$shell_manifest"
+        or begin
+            set -l shell_package_status $status
+            if test $verify_status -eq 0
+                set verify_status $shell_package_status
+            end
+        end
+        panda_shell_stage "$repo_root" verify
+        or begin
+            set -l shell_status $status
+            if test $verify_status -eq 0
+                set verify_status $shell_status
+            end
+        end
+    end
     if test $verify_status -ne 0
         panda_setup_finish $verify_status 'Review missing components with the same selection in --check before applying.'
     end
@@ -405,8 +466,23 @@ if contains gaming $modules
     end
 end
 if test $check -eq 1
+    if test $shell_tools -eq 1
+        set -l missing (panda_setup_missing_targets "$shell_manifest")
+        or panda_setup_finish $status 'Could not read shell package inventory.'
+        if set -q missing[1]
+            panda_setup_set_result workspace/shell-packages 'Pending manual action' 'cached package preflight passed; packages missing'
+        else
+            panda_setup_set_result workspace/shell-packages 'Already satisfied' 'selected packages verified'
+        end
+        panda_shell_stage "$repo_root" check
+        or panda_setup_finish $status 'Resolve the shell configuration preflight error.'
+    end
     for operation in $panda_setup_operations
         if test (panda_setup_result_status "$operation") != Blocked
+            continue
+        end
+        if string match -q 'workspace/shell-*' -- "$operation"
+            panda_setup_set_result "$operation" 'Pending manual action' 'run the selected apply or verification to check readiness'
             continue
         end
         set -l manual_reason (panda_setup_stage_manual_reason (path basename -- "$operation"))
@@ -416,12 +492,14 @@ if test $check -eq 1
             panda_setup_set_result "$operation" Ready 'offline preflight passed; execution pending'
         end
     end
-    ui_success 'READINESS CHECK PASSED: no packages, repos, files, services, VMs, or boot settings changed.'
+    ui_success 'READINESS CHECK PASSED: the manager performed read-only checks.'
     panda_setup_finish 0
 end
 
 # Terminal apply always asks, even if --yes was supplied.
 if isatty stdin
+    # Fish can omit the reader's Enter binding when launched with --no-config.
+    fish_default_key_bindings
     read -l -P 'Type APPLY to execute this plan: ' confirmation
     if test "$confirmation" != APPLY
         ui_warn 'Cancelled. No changes applied.'
@@ -465,6 +543,14 @@ for module in $modules
     or panda_setup_finish $status 'Could not read package inventory before applying.'
     if test (count $missing) -eq 0
         panda_setup_set_result "$module/packages" 'Already satisfied' 'all selected packages present before apply'
+    end
+end
+
+if test $shell_tools -eq 1
+    set -l missing (panda_setup_missing_targets "$shell_manifest")
+    or panda_setup_finish $status 'Could not read shell package inventory before applying.'
+    if not set -q missing[1]
+        panda_setup_set_result workspace/shell-packages 'Already satisfied' 'all selected packages present before apply'
     end
 end
 
@@ -519,6 +605,10 @@ for module in $modules
     panda_setup_package_result "$module" "$package_status" apply $manifests
     or set package_verification $status
 end
+if test $shell_tools -eq 1
+    panda_setup_package_result workspace "$package_status" apply --operation workspace/shell-packages "$shell_manifest"
+    or set package_verification $status
+end
 if test $post_safety_failed -ne 0
     ui_error 'Post-transaction safety validation failed; refusing remaining setup stages. Do not reboot until investigated.'
 end
@@ -550,6 +640,7 @@ for module in $modules
         # Stages may recheck their package layer, but never start another
         # package transaction outside the combined transaction guard.
         set -lx PANDA_SETUP_PACKAGE_MODE --verify-only
+        set -lx PANDA_SETUP_SHELL_TOOLS "$shell_tools"
         set -l stage_report
         set -l stage_status
         if contains -- "$stage" setup-chezmoi.fish setup-github.fish
@@ -579,6 +670,10 @@ for module in $modules
             panda_setup_finish $stage_status "Review the $stage error and any changes it made, then rerun the affected module." "$module"
         end
     end
+end
+if test $shell_tools -eq 1
+    panda_shell_stage "$repo_root" apply
+    or panda_setup_finish $status 'Review the shell stage error and any completed operations before retrying.' workspace
 end
 ui_section '🔍' 'Automatic installation verification'
 panda_setup_verify_installation "$heroic" $transaction_manifests

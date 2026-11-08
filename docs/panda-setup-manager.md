@@ -42,6 +42,61 @@ pending. An existing Fish user PATH customization is preserved. The
 development stage can set Rust stable as the default and install the pinned
 fish-lsp binary under `/usr/local/bin` with sudo.
 
+### Optional Workspace shell tools
+
+```fish
+fish --no-config bootstrap/panda-setup.fish --modules workspace --with-shell-tools
+fish --no-config bootstrap/panda-setup.fish --modules workspace --with-shell-tools --check
+fish --no-config bootstrap/panda-setup.fish --modules workspace --with-shell-tools --apply
+fish --no-config bootstrap/panda-setup.fish --modules workspace --with-shell-tools --verify
+```
+
+Select Workspace in the terminal menu to get the same opt-in. The optional
+preflight needs Python 3.11 or later. The four packages in
+`packages/plugins.txt` join the same guarded pacman transaction. An existing
+Konsole installation remains available as the fallback terminal.
+
+With the option selected, Workspace's regular chezmoi stage excludes Fish,
+Ghostty, Kitty, and Starship. The shell stage lists the exact paths it can
+create and prints a `diff -u` command for each file. It uses this checkout as
+the explicit chezmoi source and renders only named files. It creates missing
+files under `$XDG_CONFIG_HOME` or `~/.config` and leaves matching files alone.
+An existing customized file or other startup preference can put its entire
+configuration group into manual review. Existing files are never replaced by
+the shell stage. Workspace still asks separately about its other dotfiles
+and preserves an existing `~/.gitconfig` and chezmoi configuration.
+If the list of shell files to create changes after the preview, apply stops
+the shell stage and asks for a fresh plan.
+
+The selected configuration root must be inside a real HOME directory.
+Symlinks and nonregular files at managed paths block execution. A distribution
+that seeds its own Fish configuration on first launch can cause the Fish
+group to require review. Fish can initialize its standard directories before
+the manager starts, including with `--no-config`. Use a real HOME and config
+root before invoking Fish so that initialization stays inside the intended
+directory.
+
+If the Fish group is suitable and Fisher is missing, apply downloads the
+Fisher 4.4.8 function from the [pinned upstream commit](https://raw.githubusercontent.com/jorgebucaran/fisher/a04308be92daa6cfecdbb0ca58b1e8508664cff2/functions/fisher.fish).
+The bootstrap checks its reviewed SHA-256 before publishing the function.
+It leaves existing Fisher installations in place and reports the checks
+it could perform. The repository's `fish_plugins` selects
+[`PatrickF1/fzf.fish@v11.0`](https://github.com/PatrickF1/fzf.fish/tree/v11.0).
+Bootstrap checks the user's manifest, Fisher registration, and the expected
+files. A missing or partial installation is a manual action. Fisher 4.4.8
+can pick up extra manifest entries during an initial install and rewrite the
+manifest. Review the installed plugins and manifest before running a
+selective install in your own shell.
+
+Verification runs without downloads and reports the package layer, each
+configuration group, Fisher, fzf.fish, the Nerd Font, and baseline startup
+separately. It uses disposable XDG paths to parse the baseline Ghostty,
+Kitty, and Starship files and load the repository's Fish snippets. A
+compatible Ghostty also parses all five standalone profiles. Custom startup
+scripts and terminal configuration require manual review. Pending actions
+are listed separately from probe failures. See the
+[terminal trial](terminal-trial.md) for the separate attended Wayland check.
+
 Gaming accepts `--stores steam,gog,epic,other`. Choose a subset to limit
 launcher installations. The shared Gaming utilities and GPU manifest apply to
 all store selections. GOG and Epic share one user-scoped Heroic Flatpak.
@@ -81,5 +136,7 @@ Heroic are detected on retry.
 `--help` explains the supported compatibility path. An explicit `--dry-run`,
 `--check`, or `--verify` as the first argument forwards to the canonical
 bootstrap. Bare invocation and apply requests through this entrypoint are
-refused. Standalone stages such as plugin setup and repository validation are
-still available. Machine provisioning requires separate scoped authorization.
+refused. `bootstrap/setup-plugins.fish` is a shortcut for the canonical
+Workspace shell-tools selection and defaults to preview. Repository
+validation remains a standalone stage. Machine provisioning requires
+separate scoped authorization.

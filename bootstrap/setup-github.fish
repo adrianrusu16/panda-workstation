@@ -44,6 +44,9 @@ else
         ui_error 'Review the existing ~/.config/git/local.inc; Git does not resolve a complete identity from it.'
         exit 1
     end
+    if test -z "$git_name"; or test -z "$git_email"
+        fish_default_key_bindings
+    end
     if test -z "$git_name"
         read -P '  Git commit name: ' git_name; or exit $status
     end

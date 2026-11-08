@@ -742,6 +742,9 @@ function panda_setup_finish --no-scope-shadowing --argument-names result guidanc
             set retry_modules "$affected"
         end
         set -l retry_args --modules (string join ',' -- $retry_modules)
+        if test "$shell_tools" = 1; and contains -- workspace $retry_modules
+            set -a retry_args --with-shell-tools
+        end
         if contains -- gaming $retry_modules
             set -a retry_args --stores (string join ',' -- $stores) --gpu "$gpu"
             if test "$enable_flathub" = 1
@@ -759,10 +762,15 @@ end
 # Inspect current state rather than assuming pacman completed all or none.
 function panda_setup_package_result --argument-names module transaction_status mode
     set -e argv[1..3]
+    set -l operation "$module/packages"
+    if test "$argv[1]" = --operation
+        set operation "$argv[2]"
+        set -e argv[1..2]
+    end
     set -l missing (panda_setup_missing_targets $argv)
     set -l query_status $status
     if test $query_status -ne 0
-        panda_setup_set_result "$module/packages" Failed "(exit $query_status) package inventory could not be verified"
+        panda_setup_set_result "$operation" Failed "(exit $query_status) package inventory could not be verified"
         return $query_status
     end
     if test (count $missing) -gt 0
@@ -770,16 +778,16 @@ function panda_setup_package_result --argument-names module transaction_status m
         if test "$transaction_status" -ne 0
             set result "$transaction_status"
         end
-        panda_setup_set_result "$module/packages" Failed "(exit $result) Still missing ("(count $missing)"): "(string join ', ' -- $missing)
+        panda_setup_set_result "$operation" Failed "(exit $result) Still missing ("(count $missing)"): "(string join ', ' -- $missing)
         ui_error "Selected package missing for $module: $missing[1]"
         return $result
     end
-    if test "$mode" = verify; or test (panda_setup_result_status "$module/packages") = 'Already satisfied'
-        panda_setup_set_result "$module/packages" 'Already satisfied' 'selected packages verified'
+    if test "$mode" = verify; or test (panda_setup_result_status "$operation") = 'Already satisfied'
+        panda_setup_set_result "$operation" 'Already satisfied' 'selected packages verified'
     else if test "$transaction_status" -ne 0
-        panda_setup_set_result "$module/packages" Completed "selected packages present despite combined transaction failure (exit $transaction_status)"
+        panda_setup_set_result "$operation" Completed "selected packages present despite combined transaction failure (exit $transaction_status)"
     else
-        panda_setup_set_result "$module/packages" Completed 'selected packages verified'
+        panda_setup_set_result "$operation" Completed 'selected packages verified'
     end
     return 0
 end

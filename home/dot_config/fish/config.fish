@@ -1,5 +1,11 @@
 # CachyOS defaults
-source /usr/share/cachyos-fish-config/cachyos-config.fish
+if test -r /usr/share/cachyos-fish-config/cachyos-config.fish
+    source /usr/share/cachyos-fish-config/cachyos-config.fish
+end
 
 # Panda Workstation customizations
-test -f ~/.config/fish/panda.fish; and source ~/.config/fish/panda.fish
+if test -f "$__fish_config_dir/panda.fish"
+    source "$__fish_config_dir/panda.fish"
+else if test -f "$HOME/.config/fish/panda.fish"
+    source "$HOME/.config/fish/panda.fish"
+end

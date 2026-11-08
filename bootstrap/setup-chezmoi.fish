@@ -21,6 +21,10 @@ end
 ui_info "Source repository: $repo_root"
 set -l destination (path normalize -- "$HOME")
 set -l chezmoi_args --source "$repo_root" --destination "$destination"
+if test "$PANDA_SETUP_SHELL_TOOLS" = 1
+    # Do not run hooks or use target-mode overrides from another source.
+    set -a chezmoi_args --config /dev/null --config-format toml --refresh-externals=never
+end
 set -l target_args
 set -l changes
 set -l gitconfig "$destination/.gitconfig"
@@ -29,6 +33,11 @@ if test -e "$gitconfig"; or test -L "$gitconfig"
     # The portable Git config is a whole-file template. Replacing an existing
     # file here could erase the identity before the GitHub stage can reuse it.
     set preserve_gitconfig 1
+    ui_info 'Existing ~/.gitconfig will be preserved.'
+end
+set -l scoped 0
+if test $preserve_gitconfig -eq 1; or test "$PANDA_SETUP_SHELL_TOOLS" = 1
+    set scoped 1
     set -l managed (chezmoi $chezmoi_args managed --path-style=absolute)
     or exit $status
     set -l home_prefix (string escape --style=regex -- "$destination/")
@@ -38,18 +47,25 @@ if test -e "$gitconfig"; or test -L "$gitconfig"
             ui_error 'Chezmoi returned a managed path outside the user home.'
             exit 1
         end
-        if test "$target" != "$gitconfig"
-            set -a targets "$target"
+        if test "$target" = "$gitconfig"; and test $preserve_gitconfig -eq 1
+            continue
         end
+        if test "$PANDA_SETUP_SHELL_TOOLS" = 1
+            set -l relative (string replace -- "$destination/" '' "$target")
+            switch "$relative"
+                case .config/fish '.config/fish/*' .config/ghostty '.config/ghostty/*' .config/kitty '.config/kitty/*' .config/starship.toml
+                    continue
+            end
+        end
+        set -a targets "$target"
     end
-    ui_info 'Existing ~/.gitconfig will be preserved.'
     if set -q targets[1]
         set target_args --recursive=false -- $targets
     end
 end
 
 ui_section '🔎' 'Dotfile preview'
-if test $preserve_gitconfig -eq 0; or set -q target_args[1]
+if test $scoped -eq 0; or set -q target_args[1]
     set changes (chezmoi $chezmoi_args status $target_args)
     or begin
         set -l preview_status $status
@@ -71,6 +87,9 @@ set -l diff_command (string join ' ' -- (string escape -- chezmoi $chezmoi_args 
 ui_info "To inspect the full diff separately: $diff_command"
 
 set -l answer
+if isatty stdin
+    fish_default_key_bindings
+end
 if not isatty stdin; or not read -P '  Apply these dotfile changes now? [y/N] ' answer; or not contains -- "$answer" y Y yes YES
     ui_skip 'Dotfile application skipped by user'
     if test "$PANDA_SETUP_STAGE_REPORT" = 1
