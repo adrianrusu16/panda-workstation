@@ -96,7 +96,11 @@ def load_theme(path: Path) -> Theme:
         raise PaletteError(f"{path}: {error}") from error
 
 
-def load_family(root: Path) -> dict[str, Theme]:
+def load_family(root: Path, *, palette_version: str = "v1") -> dict[str, Theme]:
+    if palette_version == "v2":
+        root = root / "palettes" / "v2"
+    elif palette_version != "v1":
+        raise PaletteError("palette_version must be v1 or v2")
     expected = {root / slug / "theme.toml" for slug in IDENTITIES}
     actual = set(root.glob("*/theme.toml"))
     if actual != expected:
@@ -155,9 +159,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path, nargs="?", default=Path(__file__).resolve().parents[1])
     parser.add_argument("--json", action="store_true", help="print every measured pair")
+    parser.add_argument("--palette-version", choices=("v1", "v2"), default="v1",
+                        help="select a palette edition (default: v1)")
     args = parser.parse_args()
     try:
-        family = load_family(args.root)
+        family = load_family(args.root, palette_version=args.palette_version)
     except PaletteError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1

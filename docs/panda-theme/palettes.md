@@ -1,12 +1,12 @@
 # Canonical Panda palettes — Phase 1
 
-This phase provides five TOML manifests, a strict data model, a read-only
-validator, and tests. It does not apply themes, write runtime state, or generate
+Each palette edition provides five TOML manifests. Both use the same strict
+data model, read-only validator, and tests. It does not apply themes, write runtime state, or generate
 application configurations. The approved specification remains authoritative.
 
 ## Manifest schema v1
 
-Each `theme/panda/<slug>/theme.toml` contains exactly:
+Each manifest contains exactly:
 
 - `schema_version`: integer `1`.
 - `name`: the approved display name.
@@ -40,8 +40,7 @@ implicitly recolor `secondary`. Where secondary and success share green, future
 adapters must distinguish status through text/icons. Primary actions and
 destructive actions must also remain distinguishable by labels and treatment.
 
-The existing Minimal, Cyber, Gothic and Hybrid semantic values are retained.
-The specification's Gothic metallic color becomes `focus`. Cyber's accent-dark
+In V1, the specification's Gothic metallic color becomes `focus`. Cyber's accent-dark
 example is a visual reference, not an extra component or semantic role. Missing
 status, muted, boundary and selection roles are Phase 1 additions. They do not
 introduce a new palette for each application or unused color ramps.
@@ -70,7 +69,7 @@ and provide non-color state cues. Neither a selected row nor a status may rely
 only on its background hue. Palette validation cannot check focus geometry,
 keyboard behavior, screen-reader output, or reduced-motion behavior.
 
-### Gothic fill restriction
+### V1 Gothic fill restriction
 
 The approved burgundy `primary` (`#741D32`) and wine `secondary` (`#992E4D`)
 remain unchanged. They are too dark for accent text or standalone meaningful
@@ -82,7 +81,7 @@ The lowest fill/base results are **1.632852:1** (`primary`/`surface2`) and
 **2.370990:1** (`secondary`/`surface2`), both below 3:1. These are explicit
 restrictions for future adapters, not permission to use failing text colors.
 
-## PandaWave reference
+## V1 PandaWave reference
 
 Repository: [adrianrusu16/PandaWave](https://github.com/adrianrusu16/PandaWave).
 Pinned revision: `bb1e83c3c178e5a315aa799c105c3cab5b662c9c`.
@@ -116,7 +115,7 @@ Success, warning and control-border colors are semantic additions, not logo
 samples. The paired label colors are dark because light text on hot pink is
 not a safe default.
 
-## Measured results
+## V1 measured results
 
 Each cell is the minimum ratio among that category's required pairs; displayed
 values are rounded to six decimals. All 140 required pairs pass at full precision.
@@ -135,6 +134,59 @@ against selection. All colors are opaque 8-bit sRGB, so no gamut or alpha
 compositing approximation is needed. Only the five specified dark appearances
 exist; no separate light appearance is claimed.
 
+## Palette editions
+
+V1 is the default. Its manifests remain at `theme/panda/<slug>/theme.toml`.
+V2 is explicit and uses `theme/panda/palettes/v2/<slug>/theme.toml`. Edition
+selection is independent of `schema_version = 1`. Both editions use the same
+five flavor identities and the single `wave` alias.
+
+`load_family(root, palette_version="v2")` reads `root/palettes/v2`.
+Omitting the keyword or passing `palette_version="v1"` reads directly from
+`root`. The CLI accepts `--palette-version v1` and `--palette-version v2`.
+Its positional root is the parent directory used by the API. Unknown
+editions and malformed or incomplete selected families fail. The validator
+exits unsuccessfully on required contrast failures in the selected edition.
+
+### V2 source and token digest
+
+The approved `panda-v2-five-palettes-design.json` defines the V2 tokens.
+Its SHA-256 is
+`a959a868943430803178a0a4eb34a5d517a59f34ac3c121b6bc4f84800ac42ea`.
+V2 uses retained Graphite & Bamboo, C4 Acid Circuit, G5-G High Contrast
+Sanguine, Evergreen Signal, and S2 Original Laser Grid.
+
+The normalized token digest hashes a JSON object from canonical slug to
+its 17-role palette object. Sort object keys at both levels, preserve the
+exact hex strings, use the separators `(",", ":")`, and encode as UTF-8
+without a trailing newline. Names, aliases, and other manifest metadata
+are validated separately and are outside the token digest.
+
+```python
+palettes = {slug: dict(theme.palette) for slug, theme in family.items()}
+canonical = json.dumps(palettes, sort_keys=True, separators=(",", ":")).encode("utf-8")
+```
+
+The SHA-256 of `canonical` is
+`bb261a76ed5854c371d84b9cff6f6c8abcd1e0384d21570695415e4f0c033bec`.
+
+### V2 contrast results
+
+All 140 required comparisons pass. The table contains the 30 fill
+advisories, in contrast ratios against a 3:1 advisory threshold.
+
+| Flavor | Primary/background | Secondary/background | Primary/surface | Secondary/surface | Primary/surface2 | Secondary/surface2 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| minimal | 15.022476 | 10.241898 | 13.883166 | 9.465149 | 12.645547 | 8.621375 |
+| cyber | 15.338610 | 6.730102 | 13.696693 | 6.009681 | 11.384028 | 4.994955 |
+| gothic | 6.057196 | 3.686784 | 5.759965 | 3.505871 | 4.077474 | **2.481803** |
+| hybrid | 11.059980 | 8.540952 | 8.926455 | 6.893360 | 7.005666 | 5.410051 |
+| pandawave | 6.518824 | 13.121418 | 5.983145 | 12.043175 | 5.087533 | 10.240444 |
+
+Gothic's `secondary` fill against `surface2` is the only result below
+3:1. Use a visible control boundary such as `border`, and use the paired
+`on_secondary` for text on that fill.
+
 ## Reproduce validation
 
 From the repository root, with Python 3.11+ and Fish installed:
@@ -144,14 +196,15 @@ python3 -B -m unittest discover -s tests -v
 fish -n theme/panda/common/scripts/validate-palettes.fish
 fish theme/panda/common/scripts/validate-palettes.fish
 fish theme/panda/common/scripts/validate-palettes.fish --json
+fish theme/panda/common/scripts/validate-palettes.fish --palette-version v2 --json
 git diff --check
 ```
 
 No additional Python packages are required for validation. `--json` reports
 every measured pair, its criterion/threshold, whether it is required, and its
 unrounded result. A positional directory can validate an isolated five-manifest
-family. Validation writes no files. Re-run it after any manifest change; the
-summary above records the Phase 1 values.
+family. The validator reads the selected edition without writing runtime state.
+Re-run it after any manifest change.
 
 Color review: no actionable findings within the documented role pairings;
 Gothic fill restrictions remain visible. Accessibility review: required palette

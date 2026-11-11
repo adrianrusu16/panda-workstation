@@ -1,0 +1,23 @@
+schema_version = 1
+name = "Panda Hybrid"
+slug = "hybrid"
+aliases = []
+
+[palette]
+background = "#101D19"
+surface = "#1C3027"
+surface2 = "#254237"
+text = "#E0E9DD"
+muted = "#A0BAAC"
+primary = "#B6DB7A"
+secondary = "#58C9AA"
+success = "#58C9AA"
+warning = "#E7C57A"
+error = "#FFA79B"
+border = "#83AF9D"
+focus = "#D7EAA7"
+selection = "#395B49"
+accent_text = "#B6DB7A"
+on_primary = "#101D19"
+on_secondary = "#101D19"
+on_selection = "#E0E9DD"
