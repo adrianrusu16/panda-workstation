@@ -1,0 +1,23 @@
+schema_version = 1
+name = "PandaWave Pulse"
+slug = "pandawave"
+aliases = ["wave"]
+
+[palette]
+background = "#090E20"
+surface = "#14172F"
+surface2 = "#20234B"
+text = "#E6F6FF"
+muted = "#A5BAD2"
+primary = "#FF4BCD"
+secondary = "#60E7FF"
+success = "#91E2BC"
+warning = "#FFD28A"
+error = "#FF9FB5"
+border = "#837FC4"
+focus = "#60E7FF"
+selection = "#653080"
+accent_text = "#FF4BCD"
+on_primary = "#090E20"
+on_secondary = "#090E20"
+on_selection = "#E6F6FF"

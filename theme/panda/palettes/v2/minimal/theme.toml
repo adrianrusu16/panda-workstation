@@ -1,0 +1,23 @@
+schema_version = 1
+name = "Panda Minimal"
+slug = "minimal"
+aliases = []
+
+[palette]
+background = "#0B0D0F"
+surface = "#14171A"
+surface2 = "#1C2024"
+text = "#F1F3F4"
+muted = "#8B949E"
+primary = "#DDE3E6"
+secondary = "#6FCF97"
+success = "#6FCF97"
+warning = "#D6B96A"
+error = "#E99089"
+border = "#626B73"
+focus = "#DDE3E6"
+selection = "#335B49"
+accent_text = "#DDE3E6"
+on_primary = "#0B0D0F"
+on_secondary = "#0B0D0F"
+on_selection = "#F1F3F4"

@@ -1,7 +1,9 @@
 """Behavioral contracts for the Phase 1 palette foundation (stdlib only)."""
 
+from hashlib import sha256
 import importlib
 import json
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -204,6 +206,107 @@ class PaletteContracts(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 1)
             self.assertIn("FAIL", result.stdout)
+
+
+    def test_explicit_editions_preserve_v1_and_load_approved_v2_tokens(self):
+        v1 = self.api.load_family(THEMES)
+        self.assertEqual(v1, self.api.load_family(THEMES, palette_version="v1"))
+        v2 = self.api.load_family(THEMES, palette_version="v2")
+        self.assertEqual(list(v2), ["minimal", "cyber", "gothic", "hybrid", "pandawave"])
+        self.assertEqual(v2["minimal"], v1["minimal"])
+        self.assertEqual(v2[self.api.resolve_slug("wave")].aliases, ("wave",))
+        palettes = {slug: dict(theme.palette) for slug, theme in v2.items()}
+        self.assertEqual(sum(len(palette) for palette in palettes.values()), 85)
+        # Sorted object keys at both levels, compact separators, UTF-8, no newline.
+        encoded = json.dumps(palettes, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        self.assertEqual(sha256(encoded).hexdigest(),
+                         "bb261a76ed5854c371d84b9cff6f6c8abcd1e0384d21570695415e4f0c033bec")
+
+    def test_validator_reports_deterministic_editions_and_advisories(self):
+        def run(*options):
+            return subprocess.run([sys.executable, "-B", str(MODULE), *options],
+                                  capture_output=True)
+
+        for output in ((), ("--json",)):
+            with self.subTest(output=output):
+                implicit, explicit = run(*output), run("--palette-version", "v1", *output)
+                self.assertEqual(implicit.returncode, 0)
+                self.assertEqual(implicit.stderr, b"")
+                self.assertEqual(implicit.stdout, explicit.stdout)
+                self.assertEqual((explicit.returncode, explicit.stderr), (0, b""))
+
+        report = run("--palette-version", "v2", "--json")
+        repeated = run("--palette-version", "v2", "--json")
+        self.assertEqual((report.returncode, report.stderr), (0, b""))
+        self.assertEqual((repeated.returncode, repeated.stderr), (0, b""))
+        self.assertEqual(report.stdout, repeated.stdout)
+        pairs = json.loads(report.stdout)
+        advisory_failures = []
+        for slug, checks in pairs.items():
+            required = [check for check in checks if check["required"]]
+            advisory = [check for check in checks if not check["required"]]
+            self.assertEqual(len(required), 28)
+            self.assertTrue(all(check["passes"] for check in required))
+            self.assertEqual(len(advisory), 6)
+            advisory_failures.extend((slug, check["foreground"], check["background"])
+                                     for check in advisory if not check["passes"])
+        self.assertEqual(list(pairs), ["minimal", "cyber", "gothic", "hybrid", "pandawave"])
+        self.assertEqual(advisory_failures, [("gothic", "secondary", "surface2")])
+        human = run("--palette-version", "v2")
+        self.assertEqual((human.returncode, human.stderr), (0, b""))
+        self.assertIn(b"ADVISORY secondary/surface2:", human.stdout)
+
+    def test_unknown_editions_fail(self):
+        for version in ("v3", "", "../v2", None, 2):
+            with self.subTest(version=version), self.assertRaises(self.api.PaletteError):
+                self.api.load_family(THEMES, palette_version=version)
+        result = subprocess.run([sys.executable, "-B", str(MODULE), "--palette-version", "v3"],
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("invalid choice", result.stderr)
+        self.assertEqual(result.stdout, "")
+
+    def test_explicit_v2_never_falls_back_to_valid_v1(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for source in THEMES.glob("*/theme.toml"):
+                path = root / source.relative_to(THEMES)
+                path.parent.mkdir()
+                path.write_bytes(source.read_bytes())
+            v1 = self.api.load_family(root)
+            with self.assertRaises(self.api.PaletteError):
+                self.api.load_family(root, palette_version="v2")
+
+            v2 = root / "palettes/v2"
+            shutil.copytree(THEMES / "palettes/v2", v2)
+            path = v2 / "hybrid/theme.toml"
+            original = path.read_text()
+            command = [sys.executable, "-B", str(MODULE), str(root), "--palette-version", "v2"]
+            for data in ("[palette\n", original.replace('text = "#E0E9DD"', 'text = "#12345678"', 1)):
+                path.write_text(data)
+                with self.assertRaises(self.api.PaletteError):
+                    self.api.load_family(root, palette_version="v2")
+                invalid = subprocess.run(command, capture_output=True, text=True)
+                self.assertEqual(invalid.returncode, 1)
+                self.assertIn("ERROR", invalid.stderr)
+                self.assertEqual(invalid.stdout, "")
+                self.assertEqual(self.api.load_family(root), v1)
+
+            path.write_text(original.replace('text = "#E0E9DD"', 'text = "#101D19"', 1))
+            low_contrast = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(low_contrast.returncode, 1)
+            self.assertIn("FAIL text/background", low_contrast.stdout)
+            self.assertEqual(self.api.load_family(root), v1)
+
+            path.unlink()
+            with self.assertRaises(self.api.PaletteError):
+                self.api.load_family(root, palette_version="v2")
+            path.write_text(original)
+            (v2 / "wave").mkdir()
+            (v2 / "wave/theme.toml").write_text(original)
+            with self.assertRaises(self.api.PaletteError):
+                self.api.load_family(root, palette_version="v2")
+            self.assertEqual(self.api.load_family(root), v1)
 
 
 if __name__ == "__main__":

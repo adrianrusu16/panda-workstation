@@ -1,0 +1,23 @@
+schema_version = 1
+name = "Panda Gothic"
+slug = "gothic"
+aliases = []
+
+[palette]
+background = "#030405"
+surface = "#100B0E"
+surface2 = "#5D091B"
+text = "#FFFFFF"
+muted = "#C4B9BD"
+primary = "#FF4359"
+secondary = "#B53D58"
+success = "#82D3B0"
+warning = "#F3C37B"
+error = "#FF9C8A"
+border = "#A6717D"
+focus = "#FFD1D8"
+selection = "#B95069"
+accent_text = "#FF697D"
+on_primary = "#030405"
+on_secondary = "#FFFFFF"
+on_selection = "#FFFFFF"
