@@ -37,6 +37,38 @@ runs without user modules and uses plain external text under a Panda heading.
 Starship keeps the user's prompt and configuration. Its ANSI styles can reflect
 the terminal palette.
 
+## V2 terminal and shell preview
+
+Run the separate offline generator from the repository root. It requires an
+explicit edition and prints the path to a new private `/tmp` directory.
+
+```fish
+set -l preview_v2 (python3 -B theme/panda/common/terminal_preview.py --palette-version v2 --validate)
+echo "$preview_v2/index.html"
+```
+
+Open the index to compare the five V2 flavors. Each flavor directory contains
+a full Ghostty profile (`config-v2.ghostty`), Fish syntax colors
+(`panda-v2.fish`), a Starship palette fragment (`starship-v2.toml`), and a
+Fastfetch display-color fragment (`fastfetch-v2.json`). The Starship fragment
+contains only palette settings. The Fastfetch fragment contains only display
+colors. Prompt layout, Fastfetch modules, and artwork remain separate.
+
+The optional `--validate` runs Ghostty's native parser with disposable HOME and
+XDG directories. Omit it when Ghostty is unavailable. The generator does not
+launch a terminal, source Fish, or install any configuration. The V1 command
+above retains its original CLI and outputs. For a Fish syntax check:
+
+```fish
+fish --no-config --no-execute "$preview_v2/hybrid/panda-v2.fish"
+```
+
+Gothic's secondary fill against surface2 measures 2.481803:1. A control using
+that fill needs a visible boundary such as the `border` role and the paired
+`on_secondary` text. See [palette validation](panda-theme/palettes.md#v2-contrast-results)
+for all required checks and advisories. The HTML and native parser establish
+offline evidence. Compositor appearance needs a separate attended check.
+
 ## Later attended trial on Plasma Wayland
 
 Use a new disposable directory for each flavor. Run this from the repository
