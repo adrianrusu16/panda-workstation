@@ -6,6 +6,7 @@ set -l repo_root (path resolve "$script_dir/..")
 source "$script_dir/lib/ui.fish"
 source "$script_dir/lib/packages.fish"
 source "$script_dir/lib/panda-setup.fish"
+source "$script_dir/lib/workstation.fish"
 
 function panda_setup_usage
     echo 'Panda Setup Manager'
@@ -14,13 +15,22 @@ function panda_setup_usage
     echo '                                 [--stores steam,gog,epic,other] [--gpu auto|intel|amd]'
     echo '                                 [--enable-flathub] [--with-shell-tools] [--dry-run | --check | --verify | --apply [--yes]]'
     echo '  fish bootstrap/panda-gaming.fish [--stores steam,gog,epic,other] [--gpu auto|intel|amd] [--dry-run | --check | --verify | --apply]'
+    echo '  fish bootstrap/panda-setup.fish --chatgpt-desktop (read-only inventory)'
     echo 'Without --apply, all selections are READ-ONLY preview operations.'
     echo 'In a terminal type APPLY; without a terminal use --apply --yes.'
     echo '--check validates readiness; --verify checks installed components. Neither writes.'
 end
 
-argparse 'help' 'interactive' 'modules=' 'only=' 'stores=' 'gpu=' 'dry-run' 'check' 'verify' 'apply' 'yes' 'enable-flathub' 'with-shell-tools' -- $argv
+argparse 'help' 'chatgpt-desktop' 'interactive' 'modules=' 'only=' 'stores=' 'gpu=' 'dry-run' 'check' 'verify' 'apply' 'yes' 'enable-flathub' 'with-shell-tools' -- $argv
 or exit 2
+if set -q _flag_chatgpt_desktop
+    if test (count (set -n | string match '_flag_*')) -ne 1; or test (count $argv) -ne 0
+        ui_error '--chatgpt-desktop is a standalone read-only inventory'
+        exit 2
+    end
+    panda_setup_chatgpt_inventory
+    exit $status
+end
 if test "$PANDA_SETUP_READ_ONLY" = 1; and set -q _flag_apply
     ui_error 'Use fish bootstrap/panda-setup.fish directly to apply a module plan.'
     exit 2
@@ -296,6 +306,9 @@ for module in $modules
                     ui_info 'A user Flathub remote or existing Heroic install is required without --enable-flathub.'
                 end
             end
+            if contains -- gog $stores
+                ui_step 'User configuration: add the GOG Fish command and KDE menu entry where no existing launcher or command takes precedence'
+            end
             panda_setup_add_result gaming/first-run 'Pending manual action' 'after installing, launch selected clients, sign in, and choose runners or game downloads'
     end
 end
@@ -413,6 +426,13 @@ if test $verify -eq 1
             if test $verify_status -eq 0
                 set verify_status $heroic_status
             end
+        end
+    end
+    if contains -- gog $stores; and test $heroic -eq 1
+        panda_setup_gog_launchers "$script_dir/assets" verify
+        set -l launcher_status $status
+        if test $verify_status -eq 0
+            set verify_status $launcher_status
         end
     end
     if test $shell_tools -eq 1
@@ -625,6 +645,10 @@ end
 if test $heroic -eq 1
     panda_setup_apply_heroic "$enable_flathub"
     or panda_setup_finish $status 'Inspect the user Flathub/Heroic error, then rerun the Gaming selection.' gaming
+    if contains -- gog $stores
+        panda_setup_gog_launchers "$script_dir/assets" apply
+        or panda_setup_finish $status 'Inspect the GOG launcher paths, then rerun the Gaming selection.' gaming
+    end
 end
 for module in $modules
     set -l stage_arguments (panda_setup_module_get "$module" arguments)
