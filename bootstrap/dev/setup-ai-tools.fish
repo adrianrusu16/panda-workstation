@@ -4,6 +4,12 @@ set -l script_dir (path resolve (path dirname (status filename)))
 set -l repo_root (path resolve "$script_dir/../..")
 source "$script_dir/../lib/ui.fish"
 
+argparse 'configure-codex-mcp' -- $argv; or exit 2
+if test (count $argv) -ne 0
+    ui_error 'Unexpected positional arguments'
+    exit 2
+end
+
 ui_section '🤖' 'AI development tools'
 
 for tool in uv python
@@ -90,8 +96,12 @@ if not "$serena_python" -I -c 'from serena.config.serena_config import SerenaCon
     exit 1
 end
 ui_success 'Serena configuration load verified'
-python -B "$script_dir/ai_tools.py" setup-codex; or exit $status
-python -B "$script_dir/ai_tools.py" verify-mcp; or exit $status
+if set -q _flag_configure_codex_mcp
+    python -B "$script_dir/ai_tools.py" setup-codex; or exit $status
+    python -B "$script_dir/ai_tools.py" verify-mcp; or exit $status
+else
+    python -B "$script_dir/ai_tools.py" report-mcp
+end
 
 if not command -q graphify
     ui_step 'Installing Graphify CLI through uv (graphifyy)'

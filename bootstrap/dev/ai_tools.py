@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import subprocess
 import sys
 import tomllib
@@ -28,15 +29,25 @@ def valid_server(server):
     if not isinstance(server, dict):
         return False
     args = server.get("args", [])
-    return (server.get("command") == "serena" and server.get("enabled", True) is True
+    return ("url" not in server and server.get("command") == "serena"
+            and server.get("enabled", True) is True
             and isinstance(args, list) and len(args) == 3
             and all(isinstance(arg, str) for arg in args)
             and args[0] == "start-mcp-server" and set(args[1:]) == SERENA_ARGS)
 
 
+def open_config(path, flags):
+    return os.open(path, flags | os.O_NONBLOCK)
+
+
 def read_config(path):
     try:
-        data = tomllib.loads(path.read_text()) if path.exists() else {}
+        with open(path, "rb", opener=open_config) as config:
+            if not stat.S_ISREG(os.fstat(config.fileno()).st_mode):
+                raise RuntimeError("Codex config.toml must be a regular file")
+            data = tomllib.load(config)
+    except FileNotFoundError:
+        data = {}
     except (ValueError, UnicodeError) as error:
         raise RuntimeError("Codex config.toml is invalid; repair it before running setup") from error
     servers = data.get("mcp_servers", {})
@@ -97,23 +108,40 @@ def verify_mcp():
     result = subprocess.run(["codex", "mcp", "get", "serena", "--json"],
                             check=True, capture_output=True, text=True)
     entry = json.loads(result.stdout)
-    transport = entry.get("transport", {})
-    if (entry.get("enabled") is not True or transport.get("type") != "stdio"
+    transport = entry.get("transport") if isinstance(entry, dict) else None
+    if (not isinstance(transport, dict) or entry.get("enabled") is not True
+            or transport.get("type") != "stdio"
             or not valid_server(transport)):
         raise RuntimeError("Codex CLI does not report the expected enabled Serena MCP server")
     print("Codex MCP verified: serena start-mcp-server --context=codex --project-from-cwd")
 
 
+def report_mcp(home):
+    try:
+        configured = valid_server(read_config(home / "config.toml").get("mcp_servers", {}).get("serena"))
+    except (OSError, RuntimeError):
+        print("Pending manual action: review the Serena MCP entry in Codex config.toml.")
+        return
+    if configured:
+        print("Serena MCP is configured in Codex.")
+    else:
+        print("Pending manual action: configure Serena MCP explicitly with "
+              "fish bootstrap/dev/setup-ai-tools.fish --configure-codex-mcp.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("codex-version", "setup-codex", "verify-mcp"))
+    parser.add_argument("action", choices=("codex-version", "setup-codex", "verify-mcp", "report-mcp"))
     args = parser.parse_args()
     try:
         if args.action == "codex-version":
             verify_codex()
-        elif args.action == "setup-codex":
+        elif args.action in ("setup-codex", "report-mcp"):
             home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
-            setup_codex(home)
+            if args.action == "setup-codex":
+                setup_codex(home)
+            else:
+                report_mcp(home)
         else:
             verify_mcp()
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:

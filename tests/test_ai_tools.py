@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -187,15 +188,15 @@ elif name == "graphify":
             (self.bin / tool).symlink_to(self.fixture_cli)
         (self.bin / "python").symlink_to(shutil.which("python3"))
 
-    def run_bootstrap(self):
-        return subprocess.run(["fish", str(SCRIPT)], env=self.env,
+    def run_bootstrap(self, *args):
+        return subprocess.run(["fish", str(SCRIPT), *args], env=self.env,
                               capture_output=True, text=True)
 
     def calls(self):
         return [json.loads(line) for line in (self.home / "calls.jsonl").read_text().splitlines()]
 
     def test_clean_first_run_then_unchanged_second_run(self):
-        first = self.run_bootstrap()
+        first = self.run_bootstrap("--configure-codex-mcp")
         self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
         self.assertIn(["uv", "tool", "install", "--python", "3.14", "serena-agent"], self.calls())
         self.assertIn(["uv", "tool", "install", "graphifyy"], self.calls())
@@ -206,6 +207,7 @@ elif name == "graphify":
         second = self.run_bootstrap()
         self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
         self.assertEqual([(p.read_bytes(), p.stat().st_mtime_ns) for p in managed], before)
+        self.assertIn("Serena MCP is configured", second.stdout)
         second_calls = self.calls()[call_count:]
         self.assertFalse(any(c[:3] == ["uv", "tool", "install"] for c in second_calls))
         self.assertNotIn(["serena", "init"], second_calls)
@@ -215,6 +217,52 @@ elif name == "graphify":
             'count (string match -- "$HOME/.local/bin" $PATH)'],
             env={**self.env, "PATH": "/usr/bin:/bin"}, capture_output=True, text=True)
         self.assertEqual(path_check.stdout.strip(), "1")
+
+    def test_default_does_not_register_mcp(self):
+        result = self.run_bootstrap()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Pending manual action", result.stdout)
+        self.assertIn("fish bootstrap/dev/setup-ai-tools.fish --configure-codex-mcp", result.stdout)
+        self.assertFalse((self.home / ".codex/config.toml").exists())
+        self.assertNotIn(["serena", "setup", "codex"], self.calls())
+
+    def test_inventory_handles_invalid_and_nonregular_config(self):
+        config = self.home / ".codex/config.toml"
+        config.parent.mkdir()
+        for original in ('[fixture-private-value', 'mcp_servers = []',
+                         '[mcp_servers]\nserena = true'):
+            config.write_text(original)
+            self.assert_inventory_requires_review()
+            self.assertEqual(config.read_text(), original)
+        config.unlink()
+        os.mkfifo(config)
+        self.assert_inventory_requires_review()
+        self.assertTrue(config.is_fifo())
+
+    def assert_inventory_requires_review(self):
+        result = subprocess.run(
+            [sys.executable, "-B", str(HELPER), "report-mcp"],
+            env=self.env, capture_output=True, text=True, timeout=3,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("review the Serena MCP entry", result.stdout)
+        self.assertNotIn("fixture-private-value", result.stdout + result.stderr)
+
+    def test_default_reports_custom_mcp_without_disclosing_config(self):
+        config = self.home / ".codex/config.toml"
+        config.parent.mkdir()
+        original = ('[mcp_servers.serena]\ncommand = "serena"\nenabled = false\n'
+                    '[mcp_servers.serena.env]\nEXAMPLE = "fixture-private-value"\n'
+                    '[mcp_servers.other]\ncommand = "other"\n')
+        config.write_text(original)
+        before = config.stat().st_mtime_ns
+        result = self.run_bootstrap()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Pending manual action", result.stdout)
+        self.assertNotIn("fixture-private-value", result.stdout + result.stderr)
+        self.assertEqual(config.read_text(), original)
+        self.assertEqual(config.stat().st_mtime_ns, before)
+        self.assertNotIn(["serena", "setup", "codex"], self.calls())
 
     def test_existing_user_path_customization_is_preserved(self):
         target = self.home / ".config/fish/conf.d/panda-user-path.fish"

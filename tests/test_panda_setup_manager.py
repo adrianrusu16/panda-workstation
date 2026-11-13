@@ -301,7 +301,8 @@ class G11MockedApplyTests(unittest.TestCase):
                     'bootstrap/setup-workstation.fish', 'bootstrap/setup-plugins.fish',
                     'bootstrap/panda-gaming.fish',
                     'bootstrap/lib/panda-setup.fish',
-                    'bootstrap/lib/packages.fish',
+                    'bootstrap/lib/packages.fish', 'bootstrap/lib/workstation.fish',
+                    'bootstrap/assets/gog.fish', 'bootstrap/assets/panda-gog-heroic.desktop',
                     'bootstrap/lib/ui.fish', 'bootstrap/lib/shell-tools.fish',
                     'bootstrap/lib/shell_tools.py', 'packages/plugins.txt',
                     '.chezmoiroot',
@@ -1474,6 +1475,10 @@ exec "$@"
         applied=self.run_manager(*args,'--apply','--yes')
         self.assertEqual(applied.returncode,0,applied.stdout+applied.stderr)
         self.assertIn('Automatic installation verification',applied.stdout)
+        shortcut = Path(self.env['XDG_CONFIG_HOME']) / 'fish/functions/gog.fish'
+        desktop = Path(self.env['XDG_DATA_HOME']) / 'applications/panda-gog-heroic.desktop'
+        self.assertEqual(shortcut.read_bytes(), (ROOT / 'bootstrap/assets/gog.fish').read_bytes())
+        self.assertEqual(desktop.read_bytes(), (ROOT / 'bootstrap/assets/panda-gog-heroic.desktop').read_bytes())
         expected=self.events.read_text()
         verified=self.run_manager(*args,'--verify')
         self.assertEqual(verified.returncode,0,verified.stdout+verified.stderr)
@@ -1481,6 +1486,16 @@ exec "$@"
         self.assertEqual(self.events.read_text(),expected)
         again=self.run_manager(*args,'--apply','--yes')
         self.assertEqual(again.returncode,0,again.stdout+again.stderr)
+        desktop.write_text('# custom launcher\n')
+        custom = desktop.stat().st_mtime_ns
+        for mode in (('--verify',), ('--apply', '--yes')):
+            conflict = self.run_manager(*args, *mode)
+            output = conflict.stdout + conflict.stderr
+            self.assertNotEqual(conflict.returncode, 0, output)
+            self.assertIn('manual review', output)
+            self.assertIn(str(desktop), output)
+        self.assertEqual(desktop.read_text(), '# custom launcher\n')
+        self.assertEqual(desktop.stat().st_mtime_ns, custom)
         self.assertEqual(self.events.read_text(),expected)
 
     def test_verify_blocks_when_installed_package_missing(self):

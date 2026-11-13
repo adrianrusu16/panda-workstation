@@ -25,7 +25,12 @@ adds `~/.local/bin` on every shell startup without universal PATH mutations.
 `serena init` runs only when the global Serena configuration is missing. The
 installed Serena library must load that configuration successfully, and the
 Serena executable on PATH must belong to the verified uv environment.
-`serena setup codex` runs only when the enabled stdio MCP entry needs setup.
+The default Development stage checks the user Codex TOML for the expected
+enabled Serena stdio entry. A missing or nonmatching entry is a pending manual
+action. The check leaves the file untouched and prints only the status. To opt
+in to registration, run the standalone helper from the repository root.
+`fish bootstrap/dev/setup-ai-tools.fish --configure-codex-mcp`.
+`serena setup codex` then runs only when the enabled stdio MCP entry needs setup.
 The guard validates TOML before setup, checks unrelated settings and hooks
 afterward, and restores original bytes on failure. Existing valid entries
 retain their settings, including any startup timeout. No hooks are installed

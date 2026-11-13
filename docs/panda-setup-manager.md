@@ -140,3 +140,56 @@ refused. `bootstrap/setup-plugins.fish` is a shortcut for the canonical
 Workspace shell-tools selection and defaults to preview. Repository
 validation remains a standalone stage. Machine provisioning requires
 separate scoped authorization.
+
+## panda-potato workstation checklist
+
+- **Automated after apply approval.** Gaming selects the AMD Mesa and Vulkan
+  manifests with `--gpu amd`. Selecting GOG adds a user-local `gog` Fish
+  function and **GOG Games (Heroic)** KDE menu entry. Both open Heroic itself.
+  Epic continues to use the same user Flatpak. Apply and verify report
+  customized launcher files and conflicting commands for manual review,
+  preserving them in place. Launcher paths with symlinked directories or files
+  also require manual review. Reopen Fish if its function list was already
+  loaded. The KDE entry has no terminal and the Fish shortcut detaches its
+  launcher from the calling shell.
+- **Opt-in.** Use `--enable-flathub` if Gaming needs the user Flathub remote.
+  Use `--with-shell-tools` for the existing Ghostty, Starship, JetBrains Mono
+  Nerd Font and Fish startup checks, including the user-local PATH. Keep
+  existing CachyOS Fish defaults and Panda theme settings. Set Ghostty as the
+  default terminal in KDE only if desired. Konsole remains a fallback.
+- **Manual.** Sign in to GOG or Epic in Heroic, or sign in to Steam. Check
+  Steam's compatibility tools for Proton-CachyOS and select the desired
+  version per title when available. Use Heroic's Wine Manager and per-game
+  settings to choose a compatible runner. Add a Desktop-directory shortcut
+  from the KDE menu only if desired. Connect the Wi-Fi antenna during the
+  hardware check. Follow the separate
+  [ChatGPT Desktop workflow](chatgpt-desktop.md) if the inventory is missing.
+- **Deferred.** Runner downloads, game downloads, libraries and prefixes
+  are managed in the respective clients. GOG-specific navigation remains
+  inside Heroic.
+
+Both launchers invoke the user Flatpak and rely on
+[Heroic's single-instance handling](https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/blob/main/src/backend/main.ts)
+to show an existing window. The
+[Flatpak desktop entry](https://github.com/flathub/com.heroicgameslauncher.hgl/blob/master/com.heroicgameslauncher.hgl.desktop)
+uses an ordinary launch command, and no separate supported activation interface
+was found. Showing or focusing the window depends on Heroic and the compositor.
+The Fish command returns after handing off the launch. Any reported Flatpak
+exit failure arrives asynchronously on stderr.
+For an optional Proton-CachyOS install, check
+`pacman -Q proton-cachyos-slr proton-cachyos-native` and review the
+[CachyOS runner installation and compatibility guide](https://wiki.cachyos.org/configuration/gaming/#proton-cachyos).
+
+From the repository root on a clean machine, review and then apply Gaming:
+
+```fish
+fish bootstrap/panda-setup.fish --modules gaming --stores steam,gog,epic --gpu amd --enable-flathub --check
+fish bootstrap/panda-setup.fish --modules gaming --stores steam,gog,epic --gpu amd --enable-flathub --apply
+```
+
+Review Workspace and Desktop separately with
+`fish bootstrap/panda-setup.fish --modules workspace,desktop --with-shell-tools --check`.
+After satisfying its reported prerequisites, repeat with `--apply` in a terminal.
+
+On panda-potato use `--verify` with the Gaming selection above, omitting
+`--enable-flathub`, and use `--chatgpt-desktop` for the AI desktop inventory.

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=GOG Games (Heroic)
+Exec=flatpak run --user com.heroicgameslauncher.hgl
+Icon=com.heroicgameslauncher.hgl
+Terminal=false
+Categories=Game;
